@@ -1,10 +1,11 @@
-<app-page-header title="Demandes de remboursement" subtitle="Gérez les tickets annulés nécessitant un remboursement." />
+<app-page-header title="Gestion des remboursements" subtitle="Traitez les demandes de remboursement des clients avec vérification des fonds ou forçage admin." />
 
     <!-- KPIs -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <app-stat-card label="En attente" [value]="str(pendingCount())" icon="fa-hourglass-half" iconBg="bg-amber-600" accentBar="bg-amber-500" />
-      <app-stat-card label="Remboursés" [value]="str(refundedCount())" icon="fa-check" iconBg="bg-green-600" accentBar="bg-green-500" />
-      <app-stat-card label="Bloqués (fonds insuffisants)" [value]="str(blockedCount())" icon="fa-ban" iconBg="bg-red-600" accentBar="bg-red-500" />
+      <app-stat-card label="Remboursés" [value]="str(refundedCount())" icon="fa-check-circle" iconBg="bg-green-600" accentBar="bg-green-500" />
+      <app-stat-card label="Approuvés" [value]="str(approvedCount())" icon="fa-check" iconBg="bg-blue-600" accentBar="bg-blue-500" />
+      <app-stat-card label="Rejetés" [value]="str(rejectedCount())" icon="fa-xmark" iconBg="bg-red-600" accentBar="bg-red-500" />
     </div>
 
     <!-- Insufficient funds banner -->
@@ -12,14 +13,27 @@
       <div class="mt-4 flex items-start gap-3 rounded-lg border-l-4 border-orange-500 bg-orange-50 p-4">
         <i class="fa-solid fa-triangle-exclamation mt-0.5 text-orange-500"></i>
         <div>
-          <p class="text-sm font-semibold text-orange-800">Fonds insuffisants détectés</p>
-          <p class="text-xs text-orange-700">Une ou plusieurs agences n'ont pas assez de solde disponible pour honorer les remboursements. Un transfert manuel peut être nécessaire.</p>
+          <p class="text-sm font-semibold text-orange-800">Agents avec solde négatif détectés</p>
+          <p class="text-xs text-orange-700">Une ou plusieurs agences ont un solde négatif suite à des remboursements forcés. Les fonds seront récupérés automatiquement sur les prochaines réservations.</p>
         </div>
       </div>
     }
 
     <!-- Action bar -->
-    <div class="mt-5 flex justify-end">
+    <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex flex-wrap gap-2">
+        <!-- Status filter -->
+        <select 
+          [value]="refundService.filters().status || 'ALL'"
+          (change)="onStatusFilter($any($event.target).value)"
+          class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+          <option value="ALL">Tous les statuts</option>
+          <option value="PENDING">En attente</option>
+          <option value="APPROVED">Approuvé</option>
+          <option value="REJECTED">Rejeté</option>
+          <option value="COMPLETED">Terminé</option>
+        </select>
+      </div>
       <button (click)="openForm()"
         class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95">
         <i class="fa-solid fa-plus"></i> Initier un remboursement
@@ -30,105 +44,279 @@
     <div class="mt-4">
       <app-data-table
         [columns]="columns"
-        [rows]="data.refunds()"
-        [searchKeys]="['ticketRef', 'passenger', 'agency']"
-        searchPlaceholder="Rechercher par ticket, passager, agence..."
-        [pageSize]="8">
+        [rows]="data()"
+        [searchKeys]="['bookingReference', 'clientName', 'agencyName', 'reason']"
+        searchPlaceholder="Rechercher par référence, client, agence, motif..."
+        [pageSize]="20"
+        trackKey="id"
+        >
         <ng-template #rowTemplate let-r>
-          <td class="px-5 py-4 font-mono text-xs font-semibold text-gray-700">{{ r.ticketRef }}</td>
-          <td class="px-5 py-4 text-gray-700">{{ r.passenger }}</td>
-          <td class="px-5 py-4 text-gray-700">{{ r.agency }}</td>
+          <td class="px-5 py-4 font-mono text-xs font-semibold text-gray-700">{{ r.bookingReference || 'N/A' }}</td>
+          <td class="px-5 py-4 text-gray-700">
+            <div>{{ r.clientName }}</div>
+            @if (r.clientPhone) {
+              <div class="text-xs text-gray-400">{{ r.clientPhone }}</div>
+            }
+          </td>
+          <td class="px-5 py-4 text-gray-700">
+            <div class="flex items-center gap-2">
+              {{ r.agencyName }}
+              @if (r.hasNegativeBalance) {
+                <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600" title="Solde négatif">NÉGATIF</span>
+              }
+            </div>
+          </td>
           <td class="px-5 py-4 font-semibold text-gray-900">{{ fcfa(r.amount) }}</td>
-          <td class="px-5 py-4 text-gray-600">{{ r.date }}</td>
+          <td class="px-5 py-4 text-gray-600 max-w-[200px] truncate" [title]="r.reason">{{ r.reason }}</td>
           <td class="px-5 py-4">
-            @switch (r.status) {
-              @case ('REFUND_PENDING') { <app-status-badge variant="pending" label="En attente" icon="fa-hourglass-half" /> }
-              @case ('REFUNDED') { <app-status-badge variant="approved" label="Remboursé" icon="fa-check" /> }
-              @case ('BLOCKED') { <app-status-badge variant="rejected" label="Bloqué" icon="fa-ban" /> }
-            }
+            <app-status-badge 
+              [variant]="getStatusVariant(r.status)"
+              [label]="getStatusLabel(r.status)"
+              [icon]="getStatusIcon(r.status)" />
           </td>
+          <td class="px-5 py-4 text-gray-500 whitespace-nowrap">{{ r.createdAt | slice:0:10 }}</td>
           <td class="px-5 py-4 text-right">
-            @if (r.status === 'REFUND_PENDING') {
-              <button
-                (click)="forceRefund(r.id)"
-                class="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-green-700 active:scale-95"
-                [class.opacity-50]="r.insufficientFunds"
-              >
-                <i class="fa-solid fa-money-bill-transfer"></i> Forcer
-              </button>
+            @if (isProcessed(r)) {
+              <span class="text-xs text-gray-400">Traité</span>
             } @else {
-              <span class="text-xs text-gray-400">—</span>
+              <div class="flex gap-2 justify-end">
+                <!-- Standard Refund Button -->
+                @if (checkRefundProcessable(r)) {
+                  <button
+                    (click)="openStandardRefundConfirm(r.id)"
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-cyan-700 active:scale-95"
+                    title="Remboursement standard (vérifie les fonds)">
+                    <i class="fa-solid fa-money-bill-transfer"></i> Standard
+                  </button>
+                }
+                
+                <!-- Force Refund Button -->
+                @if (checkRequiresForce(r)) {
+                  <button
+                    (click)="openForceRefundConfirm(r.id)"
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-700 active:scale-95"
+                    title="Remboursement forcé (ignore les fonds)">
+                    <i class="fa-solid fa-exclamation-triangle"></i> Forcer
+                  </button>
+                }
+                
+                @if (!checkRefundProcessable(r) && !checkRequiresForce(r)) {
+                  <span class="text-xs text-gray-400">En attente</span>
+                }
+              </div>
             }
           </td>
+        </ng-template>
+        
+        <ng-template #emptyTemplate>
+          <div class="py-8 text-center text-gray-400">
+            <i class="fa-solid fa-credit-card text-3xl"></i>
+            <p class="mt-2">Aucune demande de remboursement trouvée.</p>
+          </div>
         </ng-template>
       </app-data-table>
     </div>
 
-    <!-- Initiate Refund Modal -->
-    <app-modal title="Initier un remboursement" subtitle="Remboursez un utilisateur en cas d'erreur ou d'annulation." [open]="showForm()" (close)="closeForm()" size="md">
+    <!-- Standard Refund Confirmation Modal -->
+    <app-modal 
+      title="Confirmer le remboursement standard"
+      subtitle="Vérification des fonds disponibles avant traitement."
+      [open]="standardRefundConfirmId() !== null"
+      (close)="closeStandardRefundConfirm()"
+      size="md">
+      @if (standardRefundError()) {
+        <div class="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          <i class="fa-solid fa-circle-exclamation"></i> {{ standardRefundError() }}
+        </div>
+      }
+      
+      <div class="space-y-4">
+        @if (standardRefundConfirmId(); as id) {
+          @if (refundService.getRefund(id); as r) {
+            <p class="text-gray-600">
+              Vous êtes sur le point de traiter un remboursement standard pour :
+            </p>
+            <div class="rounded-lg border border-gray-100 bg-gray-50 p-4">
+              <div class="space-y-2">
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-500">Référence :</span>
+                  <span class="font-semibold text-gray-800">{{ r.bookingReference || 'N/A' }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-500">Client :</span>
+                  <span class="font-semibold text-gray-800">{{ r.clientName }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-500">Agence :</span>
+                  <span class="font-semibold text-gray-800">{{ r.agencyName }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-500">Montant :</span>
+                  <span class="font-semibold text-green-600">{{ fcfa(r.amount) }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-500">Solde disponible :</span>
+                  <span class="font-semibold text-gray-800">{{ fcfa(r.agentAvailableBalance) }}</span>
+                </div>
+              </div>
+            </div>
+            <p class="text-sm text-gray-500">
+              <i class="fa-solid fa-check-circle text-green-500"></i> 
+              L'agence a suffisamment de fonds pour ce remboursement.
+            </p>
+          }
+        }
+      </div>
+      
+      <div class="mt-6 flex justify-end gap-3">
+        <button (click)="closeStandardRefundConfirm()"
+          class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50">
+          Annuler
+        </button>
+        <button (click)="confirmStandardRefund()"
+          class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 active:scale-95">
+          <i class="fa-solid fa-check"></i> Confirmer le remboursement
+        </button>
+      </div>
+    </app-modal>
+
+    <!-- Force Refund Confirmation Modal -->
+    <app-modal 
+      title="⚠️ Confirmer le remboursement FORCÉ"
+      subtitle="Ce remboursement ignorera la vérification des fonds et peut mettre l'agent en négatif."
+      [open]="forceRefundConfirmId() !== null"
+      (close)="closeForceRefundConfirm()"
+      size="md">
+      <div class="space-y-4">
+        @if (forceRefundConfirmId(); as id) {
+          @if (refundService.getRefund(id); as r) {
+            <div class="rounded-lg border-l-4 border-red-500 bg-red-50 p-4">
+              <div class="flex items-start gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-red-500 mt-0.5"></i>
+                <div>
+                  <p class="text-sm font-semibold text-red-800">ATTENTION : Remboursement forcé</p>
+                  <p class="text-xs text-red-700">
+                    Ce remboursement sera traité même si l'agence n'a pas suffisamment de fonds.
+                    Cela peut entraîner un solde négatif pour l'agent.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="rounded-lg border border-gray-100 bg-gray-50 p-4">
+              <div class="space-y-2">
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-500">Référence :</span>
+                  <span class="font-semibold text-gray-800">{{ r.bookingReference || 'N/A' }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-500">Client :</span>
+                  <span class="font-semibold text-gray-800">{{ r.clientName }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-500">Agence :</span>
+                  <span class="font-semibold text-gray-800">{{ r.agencyName }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-500">Montant :</span>
+                  <span class="font-semibold text-red-600">{{ fcfa(r.amount) }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-500">Solde disponible :</span>
+                  <span class="font-semibold" [class.text-red-600]="r.agentAvailableBalance < 0" [class.text-gray-800]="r.agentAvailableBalance >= 0">
+                    {{ fcfa(r.agentAvailableBalance) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700">Note administrative (optionnelle)</label>
+              <textarea 
+                [value]="forceRefundNote()"
+                (input)="forceRefundNote.set($any($event.target).value)"
+                rows="3"
+                placeholder="Expliquez pourquoi ce remboursement forcé est nécessaire..."
+                class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"></textarea>
+              <p class="mt-1 text-xs text-gray-400">Cette note sera enregistrée dans l'historique pour traçabilité.</p>
+            </div>
+          }
+        }
+      </div>
+      
+      <div class="mt-6 flex justify-end gap-3">
+        <button (click)="closeForceRefundConfirm()"
+          class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50">
+          Annuler
+        </button>
+        <button (click)="confirmForceRefund()"
+          class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 active:scale-95">
+          <i class="fa-solid fa-exclamation-triangle"></i> Forcer le remboursement
+        </button>
+      </div>
+    </app-modal>
+
+    <!-- Create Manual Refund Modal -->
+    <app-modal title="Initier un remboursement manuel" subtitle="Créez une nouvelle demande de remboursement pour un client." [open]="refundService.showCreateModal()" (close)="closeForm()" size="md">
       @if (formSuccess()) {
-        <div class="flex items-center gap-3 rounded-lg bg-green-50 p-4">
+        <div class="mb-4 flex items-center gap-3 rounded-lg bg-green-50 p-4">
           <i class="fa-solid fa-circle-check text-green-600"></i>
           <p class="text-sm font-medium text-green-800">{{ formSuccess() }}</p>
         </div>
       } @else {
         <form (ngSubmit)="submitRefund()" class="space-y-4">
           @if (formError()) {
-            <div class="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            <div class="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
               <i class="fa-solid fa-circle-exclamation"></i> {{ formError() }}
             </div>
           }
 
           <!-- User search-select -->
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700">Utilisateur</label>
+            <label class="mb-1.5 block text-sm font-medium text-gray-700">Utilisateur *</label>
             <app-search-select
-              [items]="userItems()"
+              [items]="[]"
               placeholder="Rechercher un utilisateur..."
-              (selected)="onUserSelected($event)"
-            />
+              (selected)="onUserSelected($event)" />
+            <p class="mt-1 text-xs text-gray-400">Sélectionnez le client à rembourser</p>
+          </div>
+
+          <!-- Reservation search-select -->
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-gray-700">Réservation *</label>
+            <app-search-select
+              [items]="[]"
+              placeholder="Rechercher une réservation..."
+              (selected)="onReservationSelected($event)" />
+            <p class="mt-1 text-xs text-gray-400">Sélectionnez la réservation concernée</p>
           </div>
 
           <!-- Agency select -->
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700">Agence concernée</label>
-            <select
-              [value]="agency()"
-              (change)="agency.set($any($event.target).value)"
-              class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
-              <option value="">Sélectionner une agence</option>
-              @for (a of data.agencies(); track a.id) {
-                <option [value]="a.name">{{ a.name }} — {{ a.city }}</option>
-              }
-            </select>
-          </div>
-
-          <!-- Ticket ref -->
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700">Référence du ticket</label>
-            <input
-              [value]="ticketRef()"
-              (input)="ticketRef.set($any($event.target).value)"
-              type="text"
-              placeholder="ex: TKT-55210"
-              class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+            <label class="mb-1.5 block text-sm font-medium text-gray-700">Agence *</label>
+            <app-search-select
+              [items]="[]"
+              placeholder="Rechercher un utilisateur..."
+              (selected)="onAgencySelected($event)" />
+            <p class="mt-1 text-xs text-gray-400">Sélectionnez l'agence à débiter</p>
           </div>
 
           <!-- Amount -->
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700">Montant (FCFA)</label>
+            <label class="mb-1.5 block text-sm font-medium text-gray-700">Montant (FCFA) *</label>
             <input
               [value]="amount()"
               (input)="amount.set(+$any($event.target).value)"
               type="number"
               min="0"
+              step="100"
               placeholder="ex: 15000"
               class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
           </div>
 
           <!-- Reason -->
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700">Motif du remboursement</label>
+            <label class="mb-1.5 block text-sm font-medium text-gray-700">Motif du remboursement *</label>
             <textarea
               [value]="reason()"
               (input)="reason.set($any($event.target).value)"
@@ -144,7 +332,7 @@
             </button>
             <button type="submit"
               class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 active:scale-95">
-              <i class="fa-solid fa-paper-plane"></i> Valider le remboursement
+              <i class="fa-solid fa-paper-plane"></i> Créer la demande
             </button>
           </div>
         </form>

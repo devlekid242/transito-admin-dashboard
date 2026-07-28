@@ -1,6 +1,6 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MockDataService, User } from '../../services/mock-data.service';
+import { RefundService, RefundRequest, RefundStatus, CreateRefundPayload } from '../../services/refund.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { StatCardComponent } from '../../shared/stat-card.component';
 import { StatusBadgeComponent } from '../../shared/status-badge.component';
@@ -14,88 +14,245 @@ import { SearchSelectComponent, SearchSelectItem } from '../../shared/search-sel
   templateUrl: 'refunds.page.html',
 })
 export class RefundsPage {
-  readonly data = inject(MockDataService);
-  readonly showForm = signal(false);
+  readonly refundService = inject(RefundService);
+  
+  // Form state for creating manual refund
   readonly selectedUser = signal<SearchSelectItem | null>(null);
-  readonly ticketRef = signal('');
+  readonly selectedReservation = signal<SearchSelectItem | null>(null);
   readonly amount = signal(0);
   readonly reason = signal('');
-  readonly agency = signal('');
+  readonly agency = signal<SearchSelectItem | null>(null);
   readonly formError = signal('');
   readonly formSuccess = signal('');
-
-  readonly userItems = computed<SearchSelectItem[]>(() =>
-    this.data.users().map(u => ({ id: u.id, label: u.name, sublabel: u.email }))
-  );
-
-  readonly agencyItems = computed<SearchSelectItem[]>(() =>
-    this.data.agencies().map(a => ({ id: a.id, label: a.name, sublabel: a.city }))
-  );
+  
+  // Confirmation modal state
+  readonly standardRefundConfirmId = signal<number | null>(null);
+  readonly forceRefundConfirmId = signal<number | null>(null);
+  readonly standardRefundError = signal<string | null>(null);
+  readonly forceRefundNote = signal('');
 
   readonly columns: DataTableColumn[] = [
-    { key: 'ticketRef', label: 'Ticket' },
-    { key: 'passenger', label: 'Passager' },
-    { key: 'agency', label: 'Agence' },
+    { key: 'bookingReference', label: 'Référence' },
+    { key: 'clientName', label: 'Client' },
+    { key: 'agencyName', label: 'Agence' },
     { key: 'amount', label: 'Montant' },
-    { key: 'date', label: 'Date' },
+    { key: 'reason', label: 'Motif' },
     { key: 'status', label: 'Statut' },
-    { key: 'actions', label: 'Action', align: 'right' },
+    { key: 'createdAt', label: 'Date' },
+    { key: 'actions', label: 'Actions', align: 'right' },
   ];
 
-  str(n: number) { return String(n); }
-  fcfa(n: number) { return this.data.fcfa(n); }
-  pendingCount() { return this.data.refunds().filter(r => r.status === 'REFUND_PENDING').length; }
-  refundedCount() { return this.data.refunds().filter(r => r.status === 'REFUNDED').length; }
-  blockedCount() { return this.data.refunds().filter(r => r.status === 'BLOCKED').length; }
-  hasInsufficient() { return this.data.refunds().some(r => r.insufficientFunds && r.status === 'REFUND_PENDING'); }
+  // Computed properties
+  readonly data = computed(() => this.refundService.filteredRefunds());
 
-  forceRefund(id: string) {
-    this.data.refunds.update(list => list.map(r => r.id === id ? { ...r, status: 'REFUNDED' as const, insufficientFunds: false } : r));
+  str(n: number) { return String(n); }
+  fcfa(n: number) { return this.refundService.fcfa(n); }
+  
+  // KPI counts
+  pendingCount() { return this.refundService.totalPending(); }
+  refundedCount() { return this.refundService.totalCompleted(); }
+  rejectedCount() { return this.refundService.totalRejected(); }
+  approvedCount() { return this.refundService.totalApproved(); }
+  totalAmountPending() { return this.refundService.totalAmountPending(); }
+  
+  // Check if any agents have negative balance
+  hasInsufficient() { 
+    return this.data().some(r => r.hasNegativeBalance); 
   }
 
+  // Get status badge variant based on status
+  getStatusVariant(status: RefundStatus): 'pending' | 'approved' | 'rejected' | 'completed' {
+    const variantMap: Record<RefundStatus, 'pending' | 'approved' | 'rejected' | 'completed'> = {
+      'PENDING': 'pending',
+      'APPROVED': 'approved',
+      'REJECTED': 'rejected',
+      'COMPLETED': 'approved',
+    };
+    return variantMap[status] || 'pending';
+  }
+
+  getStatusLabel(status: RefundStatus): string {
+    const labelMap: Record<RefundStatus, string> = {
+      'PENDING': 'En attente',
+      'APPROVED': 'Approuvé',
+      'REJECTED': 'Rejeté',
+      'COMPLETED': 'Terminé',
+    };
+    return labelMap[status] || status;
+  }
+
+  getStatusIcon(status: RefundStatus): string {
+    const iconMap: Record<RefundStatus, string> = {
+      'PENDING': 'fa-hourglass-half',
+      'APPROVED': 'fa-check',
+      'REJECTED': 'fa-xmark',
+      'COMPLETED': 'fa-check-circle',
+    };
+    return iconMap[status] || 'fa-question';
+  }
+
+  // Check if standard refund is possible
+  canStandardRefund(id: number): boolean {
+    const refund = this.data().find(r => r.id === id);
+    return refund ? refund.canStandardRefund : false;
+  }
+
+  // Open create refund modal
   openForm() {
-    this.showForm.set(true);
+    this.refundService.openCreateModal();
+    this.formError.set('');
+    this.formSuccess.set('');
+    this.resetForm();
+  }
+
+  closeForm() {
+    this.refundService.closeCreateModal();
+    this.resetForm();
+  }
+
+  resetForm() {
+    this.selectedUser.set(null);
+    this.selectedReservation.set(null);
+    this.amount.set(0);
+    this.reason.set('');
+    this.agency.set(null);
     this.formError.set('');
     this.formSuccess.set('');
   }
 
-  closeForm() {
-    this.showForm.set(false);
-    this.selectedUser.set(null);
-    this.ticketRef.set('');
-    this.amount.set(0);
-    this.reason.set('');
-    this.agency.set('');
+  // Open confirmation modal for standard refund
+  openStandardRefundConfirm(id: number) {
+    this.standardRefundConfirmId.set(id);
+    this.standardRefundError.set(null);
+  }
+
+  closeStandardRefundConfirm() {
+    this.standardRefundConfirmId.set(null);
+    this.standardRefundError.set(null);
+  }
+
+  // Open confirmation modal for force refund
+  openForceRefundConfirm(id: number) {
+    this.forceRefundConfirmId.set(id);
+    this.forceRefundNote.set('');
+  }
+
+  closeForceRefundConfirm() {
+    this.forceRefundConfirmId.set(null);
+    this.forceRefundNote.set('');
+  }
+
+  // Process standard refund
+  confirmStandardRefund() {
+    const id = this.standardRefundConfirmId();
+    if (!id) return;
+
+    this.standardRefundError.set(null);
+    this.refundService.processStandardRefund(id);
+    this.closeStandardRefundConfirm();
+  }
+
+  // Process force refund
+  confirmForceRefund() {
+    const id = this.forceRefundConfirmId();
+    if (!id) return;
+
+    const note = this.forceRefundNote();
+    this.refundService.processForcedRefund(id, note || 'Remboursement forcé par admin');
+    this.closeForceRefundConfirm();
+  }
+
+  // Create manual refund
+  submitRefund() {
     this.formError.set('');
+    
+    if (!this.selectedUser()) { 
+      this.formError.set('Veuillez sélectionner un utilisateur.'); 
+      return; 
+    }
+    if (!this.selectedReservation()) { 
+      this.formError.set('Veuillez sélectionner une réservation.'); 
+      return; 
+    }
+    if (this.amount() <= 0) { 
+      this.formError.set('Le montant doit être supérieur à 0.'); 
+      return; 
+    }
+    if (!this.reason().trim()) { 
+      this.formError.set('La raison est obligatoire.'); 
+      return; 
+    }
+
+    const userId = Number(this.selectedUser()!.id);
+    const reservationId = Number(this.selectedReservation()!.id);
+
+    if (Number.isNaN(userId) || Number.isNaN(reservationId)) {
+      this.formError.set('Utilisateur ou réservation invalide.');
+      return;
+    }
+
+    const payload: CreateRefundPayload = {
+      userId,
+      reservationId,
+      amount: this.amount(),
+      reason: this.reason().trim(),
+      adminNote: this.agency() ? `Agence: ${this.agency()}` : undefined,
+    };
+
+    this.refundService.createManualRefund(payload);
+    this.formSuccess.set('Demande de remboursement créée avec succès.');
+    
+    // Close form after a delay
+    setTimeout(() => {
+      this.closeForm();
+    }, 1500);
   }
 
   onUserSelected(item: SearchSelectItem | null) {
     this.selectedUser.set(item);
   }
 
-  submitRefund() {
-    this.formError.set('');
-    if (!this.selectedUser()) { this.formError.set('Veuillez sélectionner un utilisateur.'); return; }
-    if (!this.ticketRef().trim()) { this.formError.set('Veuillez saisir la référence du ticket.'); return; }
-    if (this.amount() <= 0) { this.formError.set('Le montant doit être supérieur à 0.'); return; }
-    if (!this.agency()) { this.formError.set('Veuillez sélectionner une agence.'); return; }
+  onAgencySelected(item: SearchSelectItem | null) {
+    this.agency.set(item);
+  }
 
-    const user = this.selectedUser()!;
-    const newId = 'R-' + (300 + this.data.refunds().length + 1);
-    this.data.refunds.update(list => [
-      {
-        id: newId,
-        ticketRef: this.ticketRef().trim(),
-        passenger: user.label,
-        agency: this.agency(),
-        amount: this.amount(),
-        date: new Date().toLocaleDateString('fr-FR'),
-        status: 'REFUND_PENDING' as const,
-        insufficientFunds: false,
-      },
-      ...list,
-    ]);
-    this.formSuccess.set('Remboursement initié avec succès.');
-    setTimeout(() => this.closeForm(), 1500);
+  onReservationSelected(item: SearchSelectItem | null) {
+    this.selectedReservation.set(item);
+  }
+
+  // Load data on component initialization
+  constructor() {
+    // Load refunds when component initializes
+    this.refundService.loadRefunds();
+  }
+
+  // Refresh the list
+  refresh() {
+    this.refundService.refresh();
+  }
+
+  // Search handler
+  onSearch(search: string) {
+    this.refundService.filters.update(f => ({ ...f, search }));
+  }
+
+  // Status filter handler
+  onStatusFilter(status: RefundStatus | 'ALL') {
+    this.refundService.filters.update(f => ({ ...f, status }));
+  }
+
+  // Check if refund can be processed with standard method
+  checkRefundProcessable(refund: RefundRequest): boolean {
+    return refund.status === 'PENDING' && refund.canStandardRefund;
+  }
+
+  // Check if refund requires force
+  checkRequiresForce(refund: RefundRequest): boolean {
+    return refund.status === 'PENDING' && !refund.canStandardRefund;
+  }
+
+  // Check if refund is already processed
+  isProcessed(refund: RefundRequest): boolean {
+    return refund.status === 'COMPLETED' || refund.status === 'REJECTED' || refund.status === 'APPROVED';
   }
 }
