@@ -1,0 +1,101 @@
+<app-page-header title="Historique des transactions" subtitle="Toutes les transactions de la plateforme : paiements, retraits, remboursements, commissions et recharges." />
+
+    <!-- KPIs per type -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <app-stat-card label="Paiements" [value]="str(ts.payment.count)" icon="fa-credit-card" iconBg="bg-green-600" accentBar="bg-green-500" />
+      <app-stat-card label="Retraits" [value]="str(ts.withdrawal.count)" icon="fa-hand-holding-dollar" iconBg="bg-amber-600" accentBar="bg-amber-500" />
+      <app-stat-card label="Remboursements" [value]="str(ts.refund.count)" icon="fa-rotate-left" iconBg="bg-red-600" accentBar="bg-red-500" />
+      <app-stat-card label="Commissions" [value]="str(ts.commission.count)" icon="fa-percent" iconBg="bg-violet-600" accentBar="bg-violet-500" />
+      <app-stat-card label="Recharges" [value]="str(ts.topup.count)" icon="fa-plus" iconBg="bg-cyan-600" accentBar="bg-cyan-500" />
+    </div>
+
+    <!-- Volume summary -->
+    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <p class="text-xs text-gray-500">Volume paiements</p><p class="mt-1 text-lg font-bold text-green-700">{{ fcfa(ts.payment.volume) }}</p>
+      </div>
+      <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <p class="text-xs text-gray-500">Volume retraits</p><p class="mt-1 text-lg font-bold text-amber-700">{{ fcfa(ts.withdrawal.volume) }}</p>
+      </div>
+      <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <p class="text-xs text-gray-500">Volume remboursements</p><p class="mt-1 text-lg font-bold text-red-700">{{ fcfa(ts.refund.volume) }}</p>
+      </div>
+      <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <p class="text-xs text-gray-500">Volume commissions</p><p class="mt-1 text-lg font-bold text-violet-700">{{ fcfa(ts.commission.volume) }}</p>
+      </div>
+      <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <p class="text-xs text-gray-500">Volume recharges</p><p class="mt-1 text-lg font-bold text-cyan-700">{{ fcfa(ts.topup.volume) }}</p>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div class="relative flex-1">
+        <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
+        <input #searchInput (input)="search.set(searchInput.value)" type="text" placeholder="Rechercher par ID, agence, utilisateur..."
+          class="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+      </div>
+      <select #typeFilter (change)="onTypeChange(typeFilter.value)"
+        class="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+        <option value="ALL">Tous les types</option>
+        <option value="PAYMENT">Paiements</option>
+        <option value="WITHDRAWAL">Retraits</option>
+        <option value="REFUND">Remboursements</option>
+        <option value="COMMISSION">Commissions</option>
+        <option value="TOPUP">Recharges</option>
+      </select>
+    </div>
+
+    <!-- Transactions table -->
+    <div class="mt-5 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+            <tr>
+              <th class="px-5 py-3 font-semibold">ID</th>
+              <th class="px-5 py-3 font-semibold">Type</th>
+              <th class="px-5 py-3 font-semibold">Description</th>
+              <th class="px-5 py-3 font-semibold">Agence</th>
+              <th class="px-5 py-3 font-semibold">Utilisateur</th>
+              <th class="px-5 py-3 font-semibold">Méthode</th>
+              <th class="px-5 py-3 font-semibold">Montant</th>
+              <th class="px-5 py-3 font-semibold">Date</th>
+              <th class="px-5 py-3 font-semibold">Statut</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-50">
+            @for (t of filtered(); track t.id) {
+              <tr class="transition-colors hover:bg-gray-50">
+                <td class="px-5 py-4 font-mono text-xs font-semibold text-gray-700">{{ t.id }}</td>
+                <td class="px-5 py-4">
+                  <span class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold"
+                    [class.bg-green-50]="t.type === 'PAYMENT'" [class.text-green-700]="t.type === 'PAYMENT'"
+                    [class.bg-amber-50]="t.type === 'WITHDRAWAL'" [class.text-amber-700]="t.type === 'WITHDRAWAL'"
+                    [class.bg-red-50]="t.type === 'REFUND'" [class.text-red-700]="t.type === 'REFUND'"
+                    [class.bg-violet-50]="t.type === 'COMMISSION'" [class.text-violet-700]="t.type === 'COMMISSION'"
+                    [class.bg-cyan-50]="t.type === 'TOPUP'" [class.text-cyan-700]="t.type === 'TOPUP'">
+                    <i class="fa-solid" [class.fa-credit-card]="t.type === 'PAYMENT'" [class.fa-hand-holding-dollar]="t.type === 'WITHDRAWAL'" [class.fa-rotate-left]="t.type === 'REFUND'" [class.fa-percent]="t.type === 'COMMISSION'" [class.fa-plus]="t.type === 'TOPUP'"></i>
+                    {{ typeLabel(t.type) }}
+                  </span>
+                </td>
+                <td class="px-5 py-4 text-gray-700">{{ t.label }}</td>
+                <td class="px-5 py-4 text-gray-600">{{ t.agency }}</td>
+                <td class="px-5 py-4 text-gray-600">{{ t.user || '—' }}</td>
+                <td class="px-5 py-4 text-gray-600">{{ t.method || '—' }}</td>
+                <td class="px-5 py-4 font-semibold" [class.text-green-600]="t.amount > 0" [class.text-red-600]="t.amount < 0">{{ t.amount > 0 ? '+' : '' }}{{ fcfa(t.amount) }}</td>
+                <td class="px-5 py-4 text-gray-500">{{ t.date }}</td>
+                <td class="px-5 py-4">
+                  @switch (t.status) {
+                    @case ('SUCCESS') { <app-status-badge variant="approved" label="Succès" icon="fa-check" /> }
+                    @case ('PENDING') { <app-status-badge variant="pending" label="En attente" icon="fa-hourglass-half" /> }
+                    @case ('FAILED') { <app-status-badge variant="rejected" label="Échec" icon="fa-xmark" /> }
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="9" class="px-5 py-12 text-center text-gray-400">Aucune transaction trouvée.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>

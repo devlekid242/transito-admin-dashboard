@@ -1,0 +1,285 @@
+<app-page-header
+	title="Rapports & Analytics"
+	subtitle="Tableaux de bord décisionnels et indicateurs de performance de la plateforme.">
+	<div class="flex items-center gap-2">
+		<div class="relative">
+			<i
+				class="fa-solid fa-calendar-days pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
+			<input
+				type="text"
+				value="01/07/2026 - 24/07/2026"
+				class="w-56 rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-600 outline-none transition-all focus:border-green-400 focus:ring-2 focus:ring-green-100"
+				readonly />
+		</div>
+		<button
+			(click)="exportCsv()"
+			class="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-slate-700 active:scale-95">
+			<i class="fa-solid fa-file-csv"></i> Exporter CSV
+		</button>
+	</div>
+</app-page-header>
+
+<!-- Platform KPIs -->
+<div class="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-3">
+	<app-stat-card
+		label="Réservations totales"
+		[value]="str(data.kpis.reservationsMonth)"
+		icon="fa-ticket"
+		iconBg="bg-green-600"
+		trend="+12%"
+		[trendUp]="true"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="CA plateforme"
+		[value]="fcfa(data.kpis.platformRevenue)"
+		icon="fa-coins"
+		iconBg="bg-emerald-600"
+		trend="+23%"
+		[trendUp]="true"
+		accentBar="bg-emerald-500" />
+	<app-stat-card
+		label="Taux remplissage"
+		[value]="data.kpis.fillRate + '%'"
+		icon="fa-users-viewfinder"
+		iconBg="bg-cyan-600"
+		trend="+4%"
+		[trendUp]="true"
+		accentBar="bg-cyan-500" />
+	<app-stat-card
+		label="Taux annulation"
+		[value]="data.kpis.cancellationRate + '%'"
+		icon="fa-rotate-left"
+		iconBg="bg-amber-600"
+		trend="-0.5%"
+		[trendUp]="true"
+		accentBar="bg-amber-500" />
+	<app-stat-card
+		label="Taux completion"
+		[value]="data.kpis.completionRate + '%'"
+		icon="fa-flag-checkered"
+		iconBg="bg-green-600"
+		trend="+2%"
+		[trendUp]="true"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Nouveaux users"
+		[value]="str(data.kpis.newUsersThisWeek)"
+		icon="fa-user-plus"
+		iconBg="bg-violet-600"
+		trend="+18%"
+		[trendUp]="true"
+		accentBar="bg-violet-500" />
+</div>
+
+<!-- Revenue + Reservations trends -->
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4">
+			<h3 class="text-base font-semibold text-gray-800">
+				Évolution du chiffre d'affaires
+			</h3>
+			<p class="text-xs text-gray-500">
+				8 derniers mois (en millions FCFA)
+			</p>
+		</div>
+		<div class="h-56">
+			<app-line-chart
+				[labels]="data.revenueLabels"
+				[chartSeries]="[{ name: 'CA (M FCFA)', data: data.caSeries, color: '#2563eb', fill: '#2563eb', dotClass: 'bg-green-600' }]" />
+		</div>
+	</div>
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4">
+			<h3 class="text-base font-semibold text-gray-800">
+				Réservations vs Annulations
+			</h3>
+			<p class="text-xs text-gray-500">8 derniers mois</p>
+		</div>
+		<div class="h-56">
+			<app-line-chart
+				[legend]="true"
+				[labels]="data.revenueLabels"
+				[chartSeries]="[
+              { name: 'Réservations', data: data.moderationStats.monthlyReservations, color: '#2563eb', dotClass: 'bg-green-600' },
+              { name: 'Annulations', data: [180, 210, 195, 280, 240, 310, 290, 412], color: '#ef4444', dotClass: 'bg-red-500' }
+            ]" />
+		</div>
+	</div>
+</div>
+
+<!-- Reservations by status + Payment methods -->
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3 class="mb-4 text-base font-semibold text-gray-800">
+			Réservations par statut
+		</h3>
+		<app-donut-chart
+			[data]="data.moderationStats.reservationsByStatus"
+			centerLabel="Total"
+			[size]="150" />
+	</div>
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3 class="mb-4 text-base font-semibold text-gray-800">
+			Méthodes de paiement
+		</h3>
+		<app-donut-chart
+			[data]="data.paymentDistribution"
+			centerLabel="Volume"
+			[valueFormat]="'percent'"
+			[size]="150" />
+	</div>
+</div>
+
+<!-- Revenue by agency bar chart + Top routes -->
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3 class="mb-4 text-base font-semibold text-gray-800">
+			Revenus par agence
+		</h3>
+		<div class="h-56">
+			<app-bar-chart
+				[data]="agencyBarData()"
+				[valueFormat]="'currency'" />
+		</div>
+	</div>
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4 flex items-center gap-2">
+			<i class="fa-solid fa-trophy text-amber-500"></i>
+			<h3 class="text-base font-semibold text-gray-800">
+				Top trajets par revenus
+			</h3>
+		</div>
+		<div class="space-y-3">
+			@for (r of data.topRoutes; track r.route) {
+			<div>
+				<div class="mb-1 flex items-center justify-between text-sm">
+					<span class="font-medium text-gray-700">{{ r.route }}</span
+					><span class="font-semibold text-gray-900"
+						>{{ fcfa(r.revenue) }}</span
+					>
+				</div>
+				<div
+					class="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+					<div
+						class="h-full rounded-full bg-green-500 transition-all duration-700"
+						[style.width.%]="(r.revenue / data.topRoutes[0].revenue) * 100"></div>
+				</div>
+				<div
+					class="mt-0.5 flex items-center justify-between text-xs text-gray-400">
+					<span>{{ r.bookings }} réservations</span
+					><span>{{ r.fillRate }}% remplissage</span>
+				</div>
+			</div>
+			}
+		</div>
+	</div>
+</div>
+
+<!-- New users trend + Reservations weekly -->
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4">
+			<h3 class="text-base font-semibold text-gray-800">
+				Croissance utilisateurs
+			</h3>
+			<p class="text-xs text-gray-500">Nouveaux inscrits par mois</p>
+		</div>
+		<div class="h-52">
+			<app-line-chart
+				[labels]="data.revenueLabels"
+				[chartSeries]="[{ name: 'Nouveaux users', data: data.moderationStats.monthlyNewUsers, color: '#16a34a', fill: '#16a34a', dotClass: 'bg-green-600' }]" />
+		</div>
+	</div>
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4">
+			<h3 class="text-base font-semibold text-gray-800">
+				Réservations par jour
+			</h3>
+			<p class="text-xs text-gray-500">7 derniers jours</p>
+		</div>
+		<div class="h-52">
+			<app-bar-chart [data]="weeklyData()" />
+		</div>
+	</div>
+</div>
+
+<!-- Detailed agency performance table -->
+<div
+	class="mt-6 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+	<div class="border-b border-gray-100 px-5 py-4">
+		<h3 class="text-base font-semibold text-gray-800">
+			Détail des performances par agence
+		</h3>
+	</div>
+	<div class="overflow-x-auto">
+		<table class="w-full text-left text-sm">
+			<thead
+				class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+				<tr>
+					<th class="px-5 py-3 font-semibold">Agence</th>
+					<th class="px-5 py-3 font-semibold">Réservations</th>
+					<th class="px-5 py-3 font-semibold">Revenus</th>
+					<th class="px-5 py-3 font-semibold">Taux remplissage</th>
+					<th class="px-5 py-3 font-semibold">Annulations</th>
+					<th class="px-5 py-3 font-semibold">Note</th>
+					<th class="px-5 py-3 font-semibold">Statut</th>
+				</tr>
+			</thead>
+			<tbody class="divide-y divide-gray-50">
+				@for (a of data.agencies(); track a.id) {
+				<tr class="transition-colors hover:bg-gray-50">
+					<td class="px-5 py-4 font-semibold text-gray-800">
+						{{ a.name }}
+					</td>
+					<td class="px-5 py-4 text-gray-600">
+						{{ str(data.getAgencyStats(a.id).reservations) }}
+					</td>
+					<td class="px-5 py-4 font-semibold text-gray-900">
+						{{ fcfa(data.getAgencyStats(a.id).revenue) }}
+					</td>
+					<td class="px-5 py-4">
+						<div class="flex items-center gap-2">
+							<div
+								class="h-2 w-20 overflow-hidden rounded-full bg-gray-100">
+								<div
+									class="h-full rounded-full bg-green-500"
+									[style.width.%]="data.getAgencyStats(a.id).fillRate"></div>
+							</div>
+							<span class="text-xs text-gray-600"
+								>{{ data.getAgencyStats(a.id).fillRate }}%</span
+							>
+						</div>
+					</td>
+					<td class="px-5 py-4 text-gray-600">
+						{{ str(data.getAgencyStats(a.id).cancellations) }}
+					</td>
+					<td class="px-5 py-4">
+						<span
+							class="flex items-center gap-1 text-sm font-medium text-amber-600"
+							><i class="fa-solid fa-star text-xs"></i>{{
+							data.getAgencyStats(a.id).rating }}/5</span
+						>
+					</td>
+					<td class="px-5 py-4">
+						<span
+							class="rounded-lg px-2 py-1 text-xs font-semibold"
+							[class.bg-green-50]="a.account === 'ACTIVE'"
+							[class.text-green-700]="a.account === 'ACTIVE'"
+							[class.bg-red-50]="a.account === 'SUSPENDED'"
+							[class.text-red-700]="a.account === 'SUSPENDED'">
+							{{ a.account === 'ACTIVE' ? 'Actif' : 'Suspendu' }}
+						</span>
+					</td>
+				</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+</div>
+
+@if (exported()) {
+<div
+	class="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-lg">
+	<i class="fa-solid fa-circle-check text-green-400"></i> Rapport CSV exporté
+</div>
+}

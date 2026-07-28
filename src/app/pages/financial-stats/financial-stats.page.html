@@ -1,0 +1,248 @@
+<app-page-header
+	title="Statistiques 
+  financières"
+	subtitle="Vue complète de la santé financière de la plateforme Tansico."
+	[actions]="true">
+	<ng-template #buttonAction>
+		<div class="flex items-center gap-2">
+			@for (p of periods; track p.value) {
+			<button
+				(click)="activePeriod.set(p.value)"
+				class="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+				[class.bg-green-600]="activePeriod() === p.value"
+				[class.text-white]="activePeriod() === p.value"
+				[class.bg-gray-100]="activePeriod() !== p.value"
+				[class.text-gray-600]="activePeriod() !== p.value"
+				[class.hover:bg-gray-200]="activePeriod() !== p.value">
+				{{ p.label }}
+			</button>
+			}
+			<input
+				type="text"
+				placeholder="Personnaliser..."
+				class="w-36 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+		</div>
+	</ng-template>
+</app-page-header>
+
+<!-- Financial KPIs -->
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+	<app-stat-card
+		label="Chiffre d'affaires"
+		[value]="fcfa(data.financialKpis.chiffreAffaires)"
+		icon="fa-chart-line"
+		iconBg="bg-green-600"
+		trend="+23%"
+		[trendUp]="true"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Bénéfice"
+		[value]="fcfa(data.financialKpis.benefice)"
+		icon="fa-money-bill-trend-up"
+		iconBg="bg-emerald-600"
+		trend="+34%"
+		[trendUp]="true"
+		accentBar="bg-emerald-500" />
+	<app-stat-card
+		label="Commissions"
+		[value]="fcfa(data.financialKpis.commissions)"
+		icon="fa-percent"
+		iconBg="bg-violet-600"
+		trend="+23%"
+		[trendUp]="true"
+		accentBar="bg-violet-500" />
+	<app-stat-card
+		label="Remboursements"
+		[value]="fcfa(data.financialKpis.remboursements)"
+		icon="fa-rotate-left"
+		iconBg="bg-red-600"
+		trend="-12%"
+		[trendUp]="true"
+		accentBar="bg-red-500" />
+	<app-stat-card
+		label="Solde plateforme"
+		[value]="fcfa(data.financialKpis.soldePlateforme)"
+		icon="fa-vault"
+		iconBg="bg-cyan-600"
+		trend="Stable"
+		[trendUp]="true"
+		accentBar="bg-cyan-500" />
+	<app-stat-card
+		label="Réservations"
+		[value]="str(data.reservationStats.total)"
+		icon="fa-ticket"
+		iconBg="bg-green-600"
+		trend="+12%"
+		[trendUp]="true"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Annulations"
+		[value]="str(data.reservationStats.cancelled)"
+		icon="fa-ban"
+		iconBg="bg-amber-600"
+		trend="-0.5%"
+		[trendUp]="true"
+		accentBar="bg-amber-500" />
+	<app-stat-card
+		label="Panier moyen"
+		[value]="fcfa(data.financialKpis.panierMoyen)"
+		icon="fa-receipt"
+		iconBg="bg-amber-600"
+		trend="+5%"
+		[trendUp]="true"
+		accentBar="bg-amber-500" />
+</div>
+
+<!-- CA evolution -->
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+	<div
+		class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-2">
+		<div class="mb-4">
+			<h3 class="text-base font-semibold text-gray-800">
+				Évolution du chiffre d'affaires
+			</h3>
+			<p class="text-xs text-gray-500">
+				8 derniers mois (en millions FCFA)
+			</p>
+		</div>
+		<div class="h-60">
+			<app-line-chart
+				[labels]="data.revenueLabels"
+				[chartSeries]="[{ name: 'CA (M FCFA)', data: data.caSeries, color: '#2563eb', fill: '#2563eb', dotClass: 'bg-green-600' }]" />
+		</div>
+	</div>
+
+	<!-- Margin info card -->
+	<div class="space-y-4">
+		<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+			<h3 class="mb-4 text-base font-semibold text-gray-800">
+				Marge nette
+			</h3>
+			<div class="flex items-center gap-4">
+				<div
+					class="relative flex h-24 w-24 items-center justify-center">
+					<svg class="h-24 w-24 -rotate-90">
+						<circle
+							cx="48"
+							cy="48"
+							r="40"
+							fill="none"
+							stroke="#f1f5f9"
+							stroke-width="8" />
+						<circle
+							cx="48"
+							cy="48"
+							r="40"
+							fill="none"
+							stroke="#16a34a"
+							stroke-width="8"
+							stroke-dasharray="251.3"
+							[attr.stroke-dashoffset]="251.3 * (1 - data.financialKpis.marge / 100)"
+							stroke-linecap="round"
+							class="transition-all duration-700" />
+					</svg>
+					<span class="absolute text-lg font-bold text-gray-900"
+						>{{ data.financialKpis.marge }}%</span
+					>
+				</div>
+				<div>
+					<p class="text-sm text-gray-500">Marge ce mois</p>
+					<p class="text-xs text-green-600">
+						<i class="fa-solid fa-arrow-trend-up"></i> +3pp vs mois
+						précédent
+					</p>
+				</div>
+			</div>
+		</div>
+		<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+			<h3 class="mb-3 text-base font-semibold text-gray-800">
+				Volume transactions
+			</h3>
+			<p class="text-3xl font-bold text-gray-900">
+				{{ data.financialKpis.volumeTransactions }}
+			</p>
+			<p class="mt-1 text-xs text-gray-500">Transactions ce mois</p>
+		</div>
+	</div>
+</div>
+
+<!-- Revenue by agency bar chart -->
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3 class="mb-4 text-base font-semibold text-gray-800">
+			Chiffre d'affaires par agence
+		</h3>
+		<div class="h-56">
+			<app-bar-chart
+				[data]="agencyBarData()"
+				[valueFormat]="'currency'" />
+		</div>
+	</div>
+
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3 class="mb-4 text-base font-semibold text-gray-800">
+			Bénéfice vs Commissions
+		</h3>
+		<div class="h-56">
+			<app-line-chart
+				[legend]="true"
+				[labels]="data.revenueLabels"
+				[chartSeries]="[
+              { name: 'Bénéfice', data: data.beneficeSeries, color: '#16a34a', dotClass: 'bg-green-600' },
+              { name: 'Commissions', data: data.commissionsSeries, color: '#9333ea', dotClass: 'bg-violet-600' }
+            ]" />
+		</div>
+	</div>
+</div>
+
+<!-- Detailed financial table -->
+<div
+	class="mt-6 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+	<div class="border-b border-gray-100 px-5 py-4">
+		<h3 class="text-base font-semibold text-gray-800">
+			Détail financier par agence
+		</h3>
+	</div>
+	<div class="overflow-x-auto">
+		<table class="w-full text-left text-sm">
+			<thead
+				class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+				<tr>
+					<th class="px-5 py-3 font-semibold">Agence</th>
+					<th class="px-5 py-3 font-semibold">CA</th>
+					<th class="px-5 py-3 font-semibold">Commission</th>
+					<th class="px-5 py-3 font-semibold">Remboursements</th>
+					<th class="px-5 py-3 font-semibold">Bénéfice net</th>
+					<th class="px-5 py-3 font-semibold">Marge</th>
+				</tr>
+			</thead>
+			<tbody class="divide-y divide-gray-50">
+				@for (a of data.revenueByAgency; track a.agency) {
+				<tr class="transition-colors hover:bg-gray-50">
+					<td class="px-5 py-4 font-semibold text-gray-800">
+						{{ a.agency }}
+					</td>
+					<td class="px-5 py-4 text-gray-600">
+						{{ fcfa(a.revenue) }}
+					</td>
+					<td class="px-5 py-4 text-gray-600">
+						{{ fcfa(round(a.revenue * 0.1)) }}
+					</td>
+					<td class="px-5 py-4 text-gray-600">
+						{{ fcfa(round(a.revenue * 0.02)) }}
+					</td>
+					<td class="px-5 py-4 font-semibold text-gray-900">
+						{{ fcfa(round(a.revenue * 0.08)) }}
+					</td>
+					<td class="px-5 py-4">
+						<span
+							class="rounded-lg bg-green-50 px-2 py-1 text-xs font-semibold text-green-700"
+							>8%</span
+						>
+					</td>
+				</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+</div>

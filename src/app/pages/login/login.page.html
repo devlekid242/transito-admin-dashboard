@@ -1,0 +1,152 @@
+<div class="flex min-h-screen bg-black text-white">
+	<!-- Left panel -->
+	<div
+		class="relative hidden w-1/2 flex-col justify-between overflow-hidden lg:flex">
+		<div
+			class="absolute inset-0 bg-gradient-to-br from-black via-green-950 to-black"></div>
+		<div
+			class="absolute inset-0 opacity-20"
+			style="
+				background-image:
+					radial-gradient(
+						circle at 20% 30%,
+						#16a34a 0%,
+						transparent 50%
+					),
+					radial-gradient(
+						circle at 80% 70%,
+						#2563eb 0%,
+						transparent 50%
+					);
+			"></div>
+
+		<div class="relative z-10 p-10">
+			<div class="flex items-center gap-3">
+				<div
+					class="flex h-11 w-11 items-center justify-center rounded-xl bg-green-500 text-black">
+					<i class="fa-solid fa-bus-simple text-xl"></i>
+				</div>
+				<span class="text-2xl font-bold text-white"
+					>Transito<span class="text-green-400"> Admin</span></span
+				>
+			</div>
+		</div>
+
+		<div class="relative z-10 px-10 pb-10">
+			<h1 class="text-4xl font-bold leading-tight text-white">
+				Gérez votre plateforme<br />de transport en toute
+				<span class="text-green-400">simplicité</span>.
+			</h1>
+			<p class="mt-4 max-w-md text-gray-400">
+				Tableau de bord unifié pour piloter agences, réservations,
+				finances et support client.
+			</p>
+			<div class="mt-8 flex items-center gap-6">
+				<div class="flex items-center gap-2 text-sm text-gray-400">
+					<i class="fa-solid fa-shield-halved text-green-400"></i>
+					Sécurisé
+				</div>
+				<div class="flex items-center gap-2 text-sm text-gray-400">
+					<i class="fa-solid fa-chart-line text-green-400"></i> Temps
+					réel
+				</div>
+				<div class="flex items-center gap-2 text-sm text-gray-400">
+					<i class="fa-solid fa-bolt text-green-400"></i> Performant
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Right panel -->
+	<div
+		class="flex w-full flex-col items-center justify-center px-6 py-12 lg:w-1/2">
+		<div class="w-full max-w-md">
+			<!-- Mobile logo -->
+			<div class="mb-8 flex items-center justify-center gap-3 lg:hidden">
+				<div
+					class="flex h-11 w-11 items-center justify-center rounded-xl bg-green-500 text-black">
+					<i class="fa-solid fa-bus-simple text-xl"></i>
+				</div>
+				<span class="text-2xl font-bold text-white"
+					>Transito<span class="text-green-400"> Admin</span></span
+				>
+			</div>
+
+			<h2 class="text-2xl font-bold text-white">Connexion</h2>
+			<p class="mt-2 text-sm text-gray-400">
+				Bienvenue ! Connectez-vous pour accéder au tableau de bord.
+			</p>
+
+			@if (errorMsg()) {
+			<div
+				class="mt-4 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+				<i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+				<span>{{ errorMsg() }}</span>
+			</div>
+			}
+
+			<form (ngSubmit)="handleSubmit()" class="mt-6 space-y-4">
+				<div>
+					<label
+						class="mb-1.5 block text-sm font-medium text-gray-300"
+						>Email</label
+					>
+					<input
+						[(ngModel)]="email"
+						name="email"
+						type="email"
+						required
+						placeholder="admin@Transito.com"
+						class="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-gray-600 focus:border-green-500 focus:ring-2 focus:ring-green-500/20" />
+				</div>
+				<div>
+					<label
+						class="mb-1.5 block text-sm font-medium text-gray-300"
+						>Mot de passe</label
+					>
+					<div class="relative">
+						<input
+							[(ngModel)]="password"
+							name="password"
+							[type]="showPass() ? 'text' : 'password'"
+							required
+							placeholder="••••••••"
+							class="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3 pr-11 text-sm text-white outline-none transition-all placeholder:text-gray-600 focus:border-green-500 focus:ring-2 focus:ring-green-500/20" />
+						<button
+							type="button"
+							(click)="showPass.set(!showPass())"
+							class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
+							<i
+								class="fa-solid"
+								[class.fa-eye]="!showPass()"
+								[class.fa-eye-slash]="showPass()"></i>
+						</button>
+					</div>
+				</div>
+
+				<div class="flex items-center justify-between">
+					<label
+						class="flex cursor-pointer items-center gap-2 text-sm text-gray-400">
+						<input
+							type="checkbox"
+							class="rounded border-gray-600 bg-gray-900 text-green-500 focus:ring-green-500/20" />
+						Se souvenir de moi
+					</label>
+					<a
+						class="text-sm font-medium text-green-400 hover:text-green-300 cursor-pointer"
+						>Mot de passe oublié ?</a
+					>
+				</div>
+
+				<button
+					type="submit"
+					[disabled]="loading()"
+					class="flex w-full items-center justify-center gap-2 rounded-lg bg-green-500 px-4 py-3 text-sm font-semibold text-black transition-all hover:bg-green-400 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100">
+					@if (loading()) {
+					<i class="fa-solid fa-circle-notch animate-spin"></i>
+					Connexion... } @else { Se connecter }
+				</button>
+			</form>
+		</div>
+	</div>
+</div>

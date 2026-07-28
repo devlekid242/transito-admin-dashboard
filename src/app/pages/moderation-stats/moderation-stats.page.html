@@ -1,0 +1,215 @@
+<app-page-header
+	title="Statistiques modération"
+	subtitle="Indicateurs dédiés aux utilisateurs et agences de la plateforme." />
+
+<!-- User KPIs -->
+<div class="mb-3 flex items-center gap-2">
+	<i class="fa-solid fa-users text-green-500"></i>
+	<h2 class="text-sm font-bold uppercase tracking-wide text-gray-600">
+		Utilisateurs
+	</h2>
+</div>
+<div class="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-3">
+	<app-stat-card
+		label="Total"
+		[value]="str(ms.users.total)"
+		icon="fa-users"
+		iconBg="bg-green-600"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Actifs"
+		[value]="str(ms.users.active)"
+		icon="fa-user-check"
+		iconBg="bg-green-600"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Bloqués"
+		[value]="str(ms.users.blocked)"
+		icon="fa-ban"
+		iconBg="bg-red-600"
+		accentBar="bg-red-500" />
+	<app-stat-card
+		label="Nouveaux (semaine)"
+		[value]="str(ms.users.newThisWeek)"
+		icon="fa-user-plus"
+		iconBg="bg-cyan-600"
+		accentBar="bg-cyan-500" />
+	<app-stat-card
+		label="Clients"
+		[value]="str(ms.users.clients)"
+		icon="fa-user"
+		iconBg="bg-violet-600"
+		accentBar="bg-violet-500" />
+	<app-stat-card
+		label="Agents"
+		[value]="str(ms.users.agents)"
+		icon="fa-user-tie"
+		iconBg="bg-amber-600"
+		accentBar="bg-amber-500" />
+</div>
+
+<!-- Agency KPIs -->
+<div class="mb-3 mt-6 flex items-center gap-2">
+	<i class="fa-solid fa-building text-emerald-500"></i>
+	<h2 class="text-sm font-bold uppercase tracking-wide text-gray-600">
+		Agences
+	</h2>
+</div>
+<div class="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-3">
+	<app-stat-card
+		label="Total"
+		[value]="str(ms.agencies.total)"
+		icon="fa-building"
+		iconBg="bg-green-600"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Actives"
+		[value]="str(ms.agencies.active)"
+		icon="fa-circle-check"
+		iconBg="bg-green-600"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Suspendues"
+		[value]="str(ms.agencies.suspended)"
+		icon="fa-ban"
+		iconBg="bg-red-600"
+		accentBar="bg-red-500" />
+	<app-stat-card
+		label="KYC vérifié"
+		[value]="str(ms.agencies.kycVerified)"
+		icon="fa-shield-check"
+		iconBg="bg-emerald-600"
+		accentBar="bg-emerald-500" />
+	<app-stat-card
+		label="KYC en attente"
+		[value]="str(ms.agencies.kycPending)"
+		icon="fa-clock"
+		iconBg="bg-amber-600"
+		accentBar="bg-amber-500" />
+	<app-stat-card
+		label="KYC manquant"
+		[value]="str(ms.agencies.kycMissing)"
+		icon="fa-file-xmark"
+		iconBg="bg-red-600"
+		accentBar="bg-red-500" />
+</div>
+
+<!-- Charts -->
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3 class="mb-4 text-base font-semibold text-gray-800">
+			Réservations par statut
+		</h3>
+		<app-donut-chart
+			[data]="ms.reservationsByStatus"
+			centerLabel="Total"
+			[size]="150" />
+	</div>
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3 class="mb-4 text-base font-semibold text-gray-800">
+			Répartition utilisateurs
+		</h3>
+		<app-donut-chart
+			[data]="ms.usersByType"
+			centerLabel="Total"
+			[size]="150" />
+	</div>
+</div>
+
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4">
+			<h3 class="text-base font-semibold text-gray-800">
+				Nouveaux utilisateurs
+			</h3>
+			<p class="text-xs text-gray-500">8 derniers mois</p>
+		</div>
+		<div class="h-56">
+			<app-line-chart
+				[labels]="data.revenueLabels"
+				[chartSeries]="[{ name: 'Nouveaux', data: ms.monthlyNewUsers, color: '#2563eb', fill: '#2563eb', dotClass: 'bg-green-600' }]" />
+		</div>
+	</div>
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4">
+			<h3 class="text-base font-semibold text-gray-800">
+				Réservations mensuelles
+			</h3>
+			<p class="text-xs text-gray-500">8 derniers mois</p>
+		</div>
+		<div class="h-56">
+			<app-line-chart
+				[labels]="data.revenueLabels"
+				[chartSeries]="[{ name: 'Réservations', data: ms.monthlyReservations, color: '#16a34a', fill: '#16a34a', dotClass: 'bg-green-600' }]" />
+		</div>
+	</div>
+</div>
+
+<!-- Agency comparison -->
+<div class="mt-6 rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+	<h3 class="mb-4 text-base font-semibold text-gray-800">
+		Comparatif des agences
+	</h3>
+	<div class="overflow-x-auto">
+		<table class="w-full text-left text-sm">
+			<thead
+				class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+				<tr>
+					<th class="px-5 py-3 font-semibold">Agence</th>
+					<th class="px-5 py-3 font-semibold">Réservations</th>
+					<th class="px-5 py-3 font-semibold">Taux remplissage</th>
+					<th class="px-5 py-3 font-semibold">KYC</th>
+					<th class="px-5 py-3 font-semibold">Statut</th>
+				</tr>
+			</thead>
+			<tbody class="divide-y divide-gray-50">
+				@for (a of data.agencies(); track a.id) {
+				<tr class="transition-colors hover:bg-gray-50">
+					<td class="px-5 py-4 font-semibold text-gray-800">
+						{{ a.name }}
+					</td>
+					<td class="px-5 py-4 text-gray-600">
+						{{ str(data.getAgencyStats(a.id).reservations) }}
+					</td>
+					<td class="px-5 py-4">
+						<div class="flex items-center gap-2">
+							<div
+								class="h-2 w-16 overflow-hidden rounded-full bg-gray-100">
+								<div
+									class="h-full rounded-full bg-green-500"
+									[style.width.%]="data.getAgencyStats(a.id).fillRate"></div>
+							</div>
+							<span class="text-xs text-gray-500"
+								>{{ data.getAgencyStats(a.id).fillRate }}%</span
+							>
+						</div>
+					</td>
+					<td class="px-5 py-4">
+						<span
+							class="rounded-lg px-2 py-1 text-xs font-semibold"
+							[class.bg-green-50]="a.kyc === 'VERIFIED'"
+							[class.text-green-700]="a.kyc === 'VERIFIED'"
+							[class.bg-amber-50]="a.kyc === 'PENDING'"
+							[class.text-amber-700]="a.kyc === 'PENDING'"
+							[class.bg-red-50]="a.kyc === 'MISSING'"
+							[class.text-red-700]="a.kyc === 'MISSING'">
+							{{ a.kyc === 'VERIFIED' ? 'Vérifié' : a.kyc ===
+							'PENDING' ? 'En attente' : 'Manquant' }}
+						</span>
+					</td>
+					<td class="px-5 py-4">
+						<span
+							class="rounded-lg px-2 py-1 text-xs font-semibold"
+							[class.bg-green-50]="a.account === 'ACTIVE'"
+							[class.text-green-700]="a.account === 'ACTIVE'"
+							[class.bg-red-50]="a.account === 'SUSPENDED'"
+							[class.text-red-700]="a.account === 'SUSPENDED'">
+							{{ a.account === 'ACTIVE' ? 'Actif' : 'Suspendu' }}
+						</span>
+					</td>
+				</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+</div>

@@ -1,0 +1,36 @@
+<div class="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-6">
+      <div class="relative shrink-0" [style.width.px]="size" [style.height.px]="size">
+        <svg [attr.width]="size" [attr.height]="size" [attr.viewBox]="'0 0 ' + size + ' ' + size" class="-rotate-90">
+          <circle [attr.cx]="size/2" [attr.cy]="size/2" [attr.r]="radius" fill="none" stroke="#f1f5f9" [attr.stroke-width]="strokeWidth" />
+          @for (seg of segments(); track seg.label) {
+            <circle
+              [attr.cx]="size/2"
+              [attr.cy]="size/2"
+              [attr.r]="radius"
+              fill="none"
+              [attr.stroke]="seg.color"
+              [attr.stroke-width]="strokeWidth"
+              [attr.stroke-dasharray]="seg.dashArray"
+              [attr.stroke-dashoffset]="seg.dashOffset"
+              stroke-linecap="round"
+              class="transition-all duration-700"
+            />
+          }
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <span class="text-xl font-bold text-gray-900">{{ centerValue() }}</span>
+          <span class="text-[10px] font-medium text-gray-400">{{ centerLabel }}</span>
+        </div>
+      </div>
+      <div class="flex-1 space-y-2">
+        @for (seg of segments(); track seg.label) {
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <span class="h-3 w-3 rounded-full" [style.background]="seg.color"></span>
+              <span class="text-sm font-medium text-gray-600">{{ seg.label }}</span>
+            </div>
+            <span class="text-sm font-semibold text-gray-800">{{ formatValue(seg.value) }}</span>
+          </div>
+        }
+      </div>
+    </div>

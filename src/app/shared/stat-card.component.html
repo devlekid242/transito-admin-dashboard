@@ -1,0 +1,29 @@
+<div
+      class="group relative overflow-hidden rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+    >
+      <div class="flex items-center justify-between">
+        <div class="min-w-0">
+          <p class="truncate text-sm font-medium text-gray-500">{{ label }}</p>
+          <p class="mt-2 text-2xl font-bold text-gray-900">{{ value }}</p>
+          @if (trend) {
+            <p
+              class="mt-1.5 flex items-center gap-1 text-xs font-medium"
+              [class.text-green-600]="trendDir() === 'up'"
+              [class.text-red-600]="trendDir() === 'down'"
+            >
+              <i class="fa-solid" [class.fa-arrow-trend-up]="trendDir() === 'up'" [class.fa-arrow-trend-down]="trendDir() === 'down'"></i>
+              {{ trend }}
+            </p>
+          }
+        </div>
+        <div
+          class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110"
+          [class]="iconBg"
+        >
+          <i class="fa-solid text-xl" [class]="icon" [class.text-white]="true"></i>
+        </div>
+      </div>
+      @if (accentBar) {
+        <div class="absolute inset-x-0 bottom-0 h-1" [class]="accentBar"></div>
+      }
+    </div>

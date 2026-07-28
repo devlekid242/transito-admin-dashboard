@@ -1,0 +1,23 @@
+@if (open) {
+  <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+    (click)="onClose()">
+    <div (click)="$event.stopPropagation()"
+      class="w-full {{ sizeClass() }} max-h-[92vh] overflow-y-auto rounded-t-2xl bg-white shadow-2xl transition-all sm:rounded-2xl"
+      style="animation: modalIn 0.2s ease-out;">
+      <div class="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-gray-100 bg-white px-6 py-4">
+        <div>
+          <h3 class="text-base font-semibold text-gray-900">{{ title }}</h3>
+          @if (subtitle) {
+            <p class="mt-0.5 text-xs text-gray-500">{{ subtitle }}</p>
+          }
+        </div>
+        <button (click)="onClose()" class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="px-6 py-5">
+        <ng-content></ng-content>
+      </div>
+    </div>
+  </div>
+}

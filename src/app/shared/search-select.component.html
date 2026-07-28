@@ -1,0 +1,57 @@
+    <div class="relative">
+      @if (!selectedItem()) {
+        <button type="button" (click)="toggle()" [disabled]="disabled"
+          class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-500 outline-none transition focus:border-green-400 focus:ring-2 focus:ring-green-100 disabled:opacity-50">
+          <span>{{ placeholder }}</span>
+          <i class="fa-solid fa-chevron-down text-xs text-gray-400" [class.rotate-180]="open()"></i>
+        </button>
+      } @else {
+        <div class="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-700">
+              {{ selectedItem()!.label.charAt(0).toUpperCase() }}
+            </div>
+            <div class="min-w-0">
+              <p class="truncate text-sm font-medium text-gray-800">{{ selectedItem()!.label }}</p>
+              @if (selectedItem()!.sublabel) {
+                <p class="truncate text-xs text-gray-500">{{ selectedItem()!.sublabel }}</p>
+              }
+            </div>
+          </div>
+          <button type="button" (click)="clear()" class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-200 hover:text-gray-700">
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
+      }
+
+      @if (open()) {
+        <div class="absolute inset-0 -top-2 z-20" (click)="close()"></div>
+        <div class="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-xl">
+          <div class="border-b border-gray-100 p-2">
+            <div class="relative">
+              <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
+              <input #inputRef [value]="query()" (input)="query.set(inputRef.value)" type="text" [placeholder]="placeholder"
+                class="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+            </div>
+          </div>
+          <div class="max-h-64 overflow-y-auto">
+            @for (item of filtered(); track item.id) {
+              <button type="button" (click)="selectItem(item)"
+                class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-gray-50">
+                <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
+                  {{ item.label.charAt(0).toUpperCase() }}
+                </div>
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-medium text-gray-800">{{ item.label }}</p>
+                  @if (item.sublabel) {
+                    <p class="truncate text-xs text-gray-500">{{ item.sublabel }}</p>
+                  }
+                </div>
+              </button>
+            } @empty {
+              <p class="px-4 py-8 text-center text-sm text-gray-400">{{ noResultsText }}</p>
+            }
+          </div>
+        </div>
+      }
+    </div>

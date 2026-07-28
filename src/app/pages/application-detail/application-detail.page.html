@@ -1,0 +1,210 @@
+@if (app(); as a) {
+  <div class="mb-6 flex items-center gap-2 text-sm text-gray-500">
+    <a routerLink="/moderation/applications" class="hover:text-gray-700">Candidatures</a>
+    <i class="fa-solid fa-chevron-right text-xs"></i>
+    <span class="font-medium text-gray-700">{{ a.ref }}</span>
+  </div>
+
+  <app-page-header [title]="a.agencyName" [subtitle]="a.ref + ' · ' + a.city" />
+
+  <!-- Status banner -->
+  <div class="mt-5 flex flex-col gap-4 rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-center gap-3">
+      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100">
+        <i class="fa-solid fa-building text-green-600"></i>
+      </div>
+      <div>
+        <p class="text-sm font-semibold text-gray-800">{{ a.agencyName }}</p>
+        <p class="text-xs text-gray-500">Soumise le {{ a.submittedAt }}</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      @switch (a.status) {
+        @case ('PENDING') { <app-status-badge variant="pending" label="En attente" icon="fa-clock" /> }
+        @case ('UNDER_REVIEW') { <app-status-badge variant="info" label="En revue" icon="fa-magnifying-glass" /> }
+        @case ('APPROVED') { <app-status-badge variant="approved" label="Approuvée" icon="fa-circle-check" /> }
+        @case ('REJECTED') { <app-status-badge variant="rejected" label="Rejetée" icon="fa-circle-xmark" /> }
+      }
+    </div>
+  </div>
+
+  <div class="mt-5 grid gap-5 lg:grid-cols-3">
+    <!-- Agency info -->
+    <div class="lg:col-span-2 space-y-5">
+      <div class="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+        <h3 class="mb-4 text-base font-semibold text-gray-800">Informations de l'agence</h3>
+        <div class="grid grid-cols-2 gap-4 text-sm md:grid-cols-3">
+          <div>
+            <p class="text-xs text-gray-400">Nom de l'agence</p>
+            <p class="mt-1 font-semibold text-gray-800">{{ a.agencyName }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">Représentant légal</p>
+            <p class="mt-1 font-semibold text-gray-800">{{ a.legalRepresentative }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">Email</p>
+            <p class="mt-1 font-semibold text-gray-800">{{ a.email }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">Téléphone</p>
+            <p class="mt-1 font-semibold text-gray-800">{{ a.phone }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">Ville</p>
+            <p class="mt-1 font-semibold text-gray-800">{{ a.city }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">Adresse</p>
+            <p class="mt-1 font-semibold text-gray-800">{{ a.address }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">Taille de la flotte</p>
+            <p class="mt-1 font-semibold text-gray-800">{{ a.fleetSize }} bus</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">Date de soumission</p>
+            <p class="mt-1 font-semibold text-gray-800">{{ a.submittedAt }}</p>
+          </div>
+          @if (a.reviewedAt) {
+            <div>
+              <p class="text-xs text-gray-400">Date de revue</p>
+              <p class="mt-1 font-semibold text-gray-800">{{ a.reviewedAt }}</p>
+            </div>
+          }
+        </div>
+
+        <h4 class="mt-5 mb-2 text-sm font-semibold text-gray-700">Description</h4>
+        <p class="text-sm leading-relaxed text-gray-600">{{ a.description }}</p>
+
+        <h4 class="mt-5 mb-2 text-sm font-semibold text-gray-700">Routes prévues</h4>
+        <div class="flex flex-wrap gap-2">
+          @for (route of a.routesPlanned; track route) {
+            <span class="inline-flex items-center gap-1.5 rounded-lg bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700">
+              <i class="fa-solid fa-route text-green-500"></i> {{ route }}
+            </span>
+          }
+        </div>
+      </div>
+
+      <!-- Documents -->
+      <div class="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+        <h3 class="mb-4 text-base font-semibold text-gray-800">Documents associés ({{ a.documents.length }})</h3>
+        <div class="grid gap-3 sm:grid-cols-2">
+          @for (doc of a.documents; track doc.name) {
+            <div class="flex items-center gap-3 rounded-lg border border-gray-100 p-3 transition hover:border-green-200 hover:bg-green-50/30">
+              <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100">
+                <i class="fa-solid {{ docIcon(doc.type) }} text-gray-500"></i>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium text-gray-800">{{ doc.name }}</p>
+                <p class="text-xs text-gray-400">{{ doc.type }} · {{ doc.size }} · {{ doc.uploadedAt }}</p>
+              </div>
+              <button class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700">
+                <i class="fa-solid fa-download"></i>
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Rejection reason if any -->
+      @if (a.status === 'REJECTED' && a.rejectionReason) {
+        <div class="rounded-xl border border-red-100 bg-red-50 p-5">
+          <div class="flex items-start gap-3">
+            <i class="fa-solid fa-circle-xmark mt-0.5 text-red-500"></i>
+            <div>
+              <p class="text-sm font-semibold text-red-800">Candidature rejetée</p>
+              <p class="mt-1 text-sm text-red-700">{{ a.rejectionReason }}</p>
+              @if (a.reviewer) {
+                <p class="mt-2 text-xs text-red-500">Revu par {{ a.reviewer }} le {{ a.reviewedAt }}</p>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Review sidebar -->
+    <div class="space-y-4">
+      <div class="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+        <h3 class="mb-4 text-base font-semibold text-gray-800">Actions de revue</h3>
+        @if (a.status === 'PENDING' || a.status === 'UNDER_REVIEW') {
+          <div class="space-y-3">
+            <button (click)="showApproveModal.set(true)"
+              class="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 active:scale-95">
+              <i class="fa-solid fa-circle-check"></i> Approuver la candidature
+            </button>
+            <button (click)="showRejectModal.set(true)"
+              class="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 active:scale-95">
+              <i class="fa-solid fa-circle-xmark"></i> Rejeter la candidature
+            </button>
+          </div>
+        } @else {
+          <p class="text-sm text-gray-500">Cette candidature a déjà été traitée.</p>
+          @if (a.reviewer) {
+            <p class="mt-2 text-xs text-gray-400">Traitée par {{ a.reviewer }}</p>
+          }
+        }
+      </div>
+
+      <div class="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+        <h3 class="mb-3 text-base font-semibold text-gray-800">Résumé</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span class="text-gray-500">Documents</span><span class="font-semibold text-gray-800">{{ a.documents.length }}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Routes prévues</span><span class="font-semibold text-gray-800">{{ a.routesPlanned.length }}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Flotte</span><span class="font-semibold text-gray-800">{{ a.fleetSize }} bus</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Approve Modal -->
+  <app-modal title="Approuver la candidature" [open]="showApproveModal()" (close)="showApproveModal.set(false)" size="sm">
+    <div class="space-y-4">
+      <div class="flex items-start gap-3 rounded-lg bg-green-50 p-4">
+        <i class="fa-solid fa-circle-check mt-0.5 text-green-600"></i>
+        <div>
+          <p class="text-sm font-medium text-green-800">Confirmer l'approbation</p>
+          <p class="mt-1 text-xs text-green-700">L'agence <strong>{{ a.agencyName }}</strong> sera approuvée et pourra publier ses trajets sur la plateforme.</p>
+        </div>
+      </div>
+      <div class="flex justify-end gap-3">
+        <button type="button" (click)="showApproveModal.set(false)" class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50">Annuler</button>
+        <button type="button" (click)="approve()" class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 active:scale-95">
+          <i class="fa-solid fa-check"></i> Confirmer
+        </button>
+      </div>
+    </div>
+  </app-modal>
+
+  <!-- Reject Modal -->
+  <app-modal title="Rejeter la candidature" [open]="showRejectModal()" (close)="showRejectModal.set(false)" size="sm">
+    <div class="space-y-4">
+      <div class="flex items-start gap-3 rounded-lg bg-red-50 p-4">
+        <i class="fa-solid fa-triangle-exclamation mt-0.5 text-red-500"></i>
+        <p class="text-sm text-red-700">Veuillez indiquer la raison du rejet de la candidature de <strong>{{ a.agencyName }}</strong>.</p>
+      </div>
+      <textarea
+        [value]="rejectReason()"
+        (input)="rejectReason.set($any($event.target).value)"
+        rows="4"
+        placeholder="Motif du rejet..."
+        class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"></textarea>
+      <div class="flex justify-end gap-3">
+        <button type="button" (click)="showRejectModal.set(false)" class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50">Annuler</button>
+        <button type="button" (click)="reject()" class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 active:scale-95">
+          <i class="fa-solid fa-xmark"></i> Rejeter
+        </button>
+      </div>
+    </div>
+  </app-modal>
+} @else {
+  <div class="flex flex-col items-center justify-center py-20 text-center">
+    <i class="fa-solid fa-folder-open text-4xl text-gray-300"></i>
+    <p class="mt-4 text-gray-500">Candidature introuvable.</p>
+    <a routerLink="/moderation/applications" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800">
+      <i class="fa-solid fa-arrow-left"></i> Retour aux candidatures
+    </a>
+  </div>
+}

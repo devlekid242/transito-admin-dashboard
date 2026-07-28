@@ -1,0 +1,137 @@
+<app-page-header
+	title="Administrateurs"
+	subtitle="Gérez les administrateurs de la plateforme et attribuez les rôles."
+  [actions]="true"
+  >
+  <ng-template #buttonAction>
+    <a
+      routerLink="/admin/admins/create"
+      class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-green-700 active:scale-95">
+      <i class="fa-solid fa-user-plus"></i> Ajouter un admin
+    </a>
+  </ng-template>
+</app-page-header>
+
+<!-- KPIs -->
+<div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+	<app-stat-card
+		label="Total admins"
+		[value]="str(data.admins().length)"
+		icon="fa-user-shield"
+		iconBg="bg-green-600"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Super Admins"
+		[value]="str(roleCount('SUPER_ADMIN'))"
+		icon="fa-crown"
+		iconBg="bg-violet-600"
+		accentBar="bg-violet-500" />
+	<app-stat-card
+		label="Finance"
+		[value]="str(roleCount('FINANCE'))"
+		icon="fa-coins"
+		iconBg="bg-emerald-600"
+		accentBar="bg-emerald-500" />
+	<app-stat-card
+		label="Support"
+		[value]="str(roleCount('SUPPORT'))"
+		icon="fa-headset"
+		iconBg="bg-cyan-600"
+		accentBar="bg-cyan-500" />
+</div>
+
+<!-- Admin list -->
+<div
+	class="mt-6 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+	<div class="overflow-x-auto">
+		<table class="w-full text-left text-sm">
+			<thead
+				class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+				<tr>
+					<th class="px-5 py-3 font-semibold">Admin</th>
+					<th class="px-5 py-3 font-semibold">Rôle</th>
+					<th class="px-5 py-3 font-semibold">Permissions</th>
+					<th class="px-5 py-3 font-semibold">Dernière activité</th>
+					<th class="px-5 py-3 text-right font-semibold">Actions</th>
+				</tr>
+			</thead>
+			<tbody class="divide-y divide-gray-50">
+				@for (a of data.admins(); track a.id) {
+				<tr class="transition-colors hover:bg-gray-50">
+					<td class="px-5 py-4">
+						<div class="flex items-center gap-3">
+							<div
+								class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white"
+								[class]="a.avatarColor">
+								{{ initials(a.name) }}
+							</div>
+							<div>
+								<p class="font-semibold text-gray-800">
+									{{ a.name }}
+								</p>
+								<p class="text-xs text-gray-400">
+									{{ a.email }}
+								</p>
+							</div>
+						</div>
+					</td>
+					<td class="px-5 py-4">
+						<span
+							class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold"
+							[class.bg-violet-50]="a.role === 'SUPER_ADMIN'"
+							[class.text-violet-700]="a.role === 'SUPER_ADMIN'"
+							[class.bg-emerald-50]="a.role === 'FINANCE'"
+							[class.text-emerald-700]="a.role === 'FINANCE'"
+							[class.bg-amber-50]="a.role === 'MODERATION'"
+							[class.text-amber-700]="a.role === 'MODERATION'"
+							[class.bg-cyan-50]="a.role === 'SUPPORT'"
+							[class.text-cyan-700]="a.role === 'SUPPORT'">
+							<i
+								class="fa-solid"
+								[class.fa-crown]="a.role === 'SUPER_ADMIN'"
+								[class.fa-coins]="a.role === 'FINANCE'"
+								[class.fa-shield-halved]="a.role === 'MODERATION'"
+								[class.fa-headset]="a.role === 'SUPPORT'"></i>
+							{{ roleLabel(a.role) }}
+						</span>
+					</td>
+					<td class="px-5 py-4">
+						<div class="flex flex-wrap gap-1">
+							@for (p of a.permissions; track p) {
+							<span
+								class="rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600"
+								>{{ p }}</span
+							>
+							}
+						</div>
+					</td>
+					<td class="px-5 py-4">
+						<span
+							class="flex items-center gap-1.5 text-xs text-gray-500">
+							@if (a.lastActive === 'En ligne') {
+							<i
+								class="fa-solid fa-circle text-[8px] text-green-400"></i>
+							} {{ a.lastActive }}
+						</span>
+					</td>
+					<td class="px-5 py-4 text-right">
+						<button
+							class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600"
+							title="Modifier">
+							<i class="fa-solid fa-pen"></i>
+						</button>
+						@if (a.role !== 'SUPER_ADMIN') {
+						<button
+							(click)="removeAdmin(a)"
+							class="ml-1 flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+							title="Supprimer">
+							<i class="fa-solid fa-trash"></i>
+						</button>
+						}
+					</td>
+				</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+</div>

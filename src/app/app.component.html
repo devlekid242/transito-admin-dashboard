@@ -1,0 +1,12 @@
+@if (checking()) {
+      <div class="flex min-h-screen items-center justify-center bg-black">
+        <div class="flex flex-col items-center gap-3">
+          <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-500 text-black">
+            <i class="fa-solid fa-bus-simple text-2xl"></i>
+          </div>
+          <i class="fa-solid fa-circle-notch animate-spin text-green-400"></i>
+        </div>
+      </div>
+    } @else {
+      <router-outlet />
+    }

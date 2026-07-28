@@ -1,0 +1,302 @@
+@if (profile()) {
+<div class="mb-4 flex items-center gap-2 text-sm">
+	<a routerLink="/moderation/users" class="text-gray-500 hover:text-green-600"
+		>Utilisateurs</a
+	>
+	<i class="fa-solid fa-chevron-right text-xs text-gray-300"></i>
+	<span class="font-medium text-gray-700">{{ profile()!.user.name }}</span>
+</div>
+
+<!-- Profile header -->
+<div
+	class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+	<div class="flex items-center gap-4">
+		<div
+			class="flex h-20 w-20 items-center justify-center rounded-full text-2xl font-bold text-white"
+			[class]="profile()!.user.avatarColor">
+			{{ initials(profile()!.user.name) }}
+		</div>
+		<div>
+			<h1 class="text-2xl font-bold text-gray-900">
+				{{ profile()!.user.name }}
+			</h1>
+			<p class="text-sm text-gray-500">
+				{{ profile()!.user.email }} · {{ profile()!.user.phone }}
+			</p>
+			<div class="mt-1 flex items-center gap-2">
+				<span
+					class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold"
+					[class.bg-green-50]="profile()!.user.role === 'CLIENT'"
+					[class.text-green-700]="profile()!.user.role === 'CLIENT'"
+					[class.bg-emerald-50]="profile()!.user.role === 'AGENT'"
+					[class.text-emerald-700]="profile()!.user.role === 'AGENT'">
+					<i
+						class="fa-solid"
+						[class.fa-user]="profile()!.user.role === 'CLIENT'"
+						[class.fa-user-tie]="profile()!.user.role === 'AGENT'"></i>
+					{{ profile()!.user.role === 'CLIENT' ? 'Client' : 'Agent' }}
+				</span>
+				@if (profile()!.user.status === 'ACTIVE') {
+				<app-status-badge
+					variant="active"
+					label="Actif"
+					icon="fa-circle-check" />
+				} @else {
+				<app-status-badge
+					variant="suspended"
+					label="Bloqué"
+					icon="fa-ban" />
+				}
+			</div>
+		</div>
+	</div>
+	<button
+		(click)="toggleBlock()"
+		class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all active:scale-95"
+		[class.bg-red-50]="profile()!.user.status === 'ACTIVE'"
+		[class.text-red-600]="profile()!.user.status === 'ACTIVE'"
+		[class.bg-green-50]="profile()!.user.status === 'SUSPENDED'"
+		[class.text-green-600]="profile()!.user.status === 'SUSPENDED'">
+		<i
+			class="fa-solid"
+			[class.fa-ban]="profile()!.user.status === 'ACTIVE'"
+			[class.fa-unlock]="profile()!.user.status === 'SUSPENDED'"></i>
+		{{ profile()!.user.status === 'ACTIVE' ? 'Bloquer' : 'Débloquer' }}
+	</button>
+</div>
+
+<!-- KPIs -->
+<div class="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-3">
+	<app-stat-card
+		label="Réservations"
+		[value]="str(profile()!.stats.totalReservations)"
+		icon="fa-ticket"
+		iconBg="bg-green-600"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Terminées"
+		[value]="str(profile()!.stats.completed)"
+		icon="fa-flag-checkered"
+		iconBg="bg-green-600"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Annulées"
+		[value]="str(profile()!.stats.cancelled)"
+		icon="fa-rotate-left"
+		iconBg="bg-red-600"
+		accentBar="bg-red-500" />
+	<app-stat-card
+		label="No-show"
+		[value]="str(profile()!.stats.noShow)"
+		icon="fa-user-xmark"
+		iconBg="bg-amber-600"
+		accentBar="bg-amber-500" />
+	<app-stat-card
+		label="Total dépensé"
+		[value]="fcfa(profile()!.stats.totalSpent)"
+		icon="fa-coins"
+		iconBg="bg-violet-600"
+		accentBar="bg-violet-500" />
+	<app-stat-card
+		label="Panier moyen"
+		[value]="fcfa(profile()!.stats.avgTicket)"
+		icon="fa-receipt"
+		iconBg="bg-cyan-600"
+		accentBar="bg-cyan-500" />
+</div>
+
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+	<!-- Account info -->
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3
+			class="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800">
+			<i class="fa-solid fa-circle-info text-green-500"></i> Informations
+			du compte
+		</h3>
+		<dl class="space-y-3 text-sm">
+			<div class="flex justify-between">
+				<dt class="text-gray-500">ID</dt>
+				<dd class="font-mono font-medium text-gray-800">
+					{{ profile()!.user.id }}
+				</dd>
+			</div>
+			<div class="flex justify-between">
+				<dt class="text-gray-500">Email</dt>
+				<dd class="font-medium text-gray-800">
+					{{ profile()!.user.email }}
+				</dd>
+			</div>
+			<div class="flex justify-between">
+				<dt class="text-gray-500">Téléphone</dt>
+				<dd class="font-medium text-gray-800">
+					{{ profile()!.user.phone }}
+				</dd>
+			</div>
+			<div class="flex justify-between">
+				<dt class="text-gray-500">Rôle</dt>
+				<dd class="font-medium text-gray-800">
+					{{ profile()!.user.role === 'CLIENT' ? 'Client' : 'Agent' }}
+				</dd>
+			</div>
+			@if (profile()!.user.agency) {
+			<div class="flex justify-between">
+				<dt class="text-gray-500">Agence</dt>
+				<dd class="font-medium text-gray-800">
+					{{ profile()!.user.agency }}
+				</dd>
+			</div>
+			}
+			<div class="flex justify-between">
+				<dt class="text-gray-500">Inscrit le</dt>
+				<dd class="font-medium text-gray-800">
+					{{ profile()!.user.joinedAt }}
+				</dd>
+			</div>
+			<div class="flex justify-between">
+				<dt class="text-gray-500">Trajet préféré</dt>
+				<dd class="font-medium text-gray-800 text-right">
+					{{ profile()!.stats.favoriteRoute }}
+				</dd>
+			</div>
+		</dl>
+	</div>
+
+	<!-- Reservation history -->
+	<div
+		class="rounded-xl border border-gray-100 bg-white shadow-sm lg:col-span-2">
+		<div class="border-b border-gray-100 px-5 py-4">
+			<h3 class="text-base font-semibold text-gray-800">
+				Historique des réservations
+			</h3>
+		</div>
+		<div class="max-h-80 divide-y divide-gray-50 overflow-y-auto">
+			@for (r of profile()!.reservations; track r.id) {
+			<div
+				class="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-gray-50">
+				<div
+					class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-50">
+					<i class="fa-solid fa-ticket text-green-600 text-sm"></i>
+				</div>
+				<div class="min-w-0 flex-1">
+					<p class="truncate text-sm font-semibold text-gray-800">
+						{{ r.route }}
+					</p>
+					<p class="text-xs text-gray-400">
+						{{ r.ref }} · {{ r.date }} · {{ r.agency }}
+					</p>
+				</div>
+				<div class="text-right">
+					<p class="text-sm font-semibold text-gray-700">
+						{{ fcfa(r.amount) }}
+					</p>
+					@switch (r.status) { @case ('CONFIRMED') {
+					<span class="text-xs font-medium text-green-600"
+						>Confirmée</span
+					>
+					} @case ('COMPLETED') {
+					<span class="text-xs font-medium text-emerald-600"
+						>Terminée</span
+					>
+					} @case ('CANCELLED') {
+					<span class="text-xs font-medium text-red-600"
+						>Annulée</span
+					>
+					} @case ('PENDING') {
+					<span class="text-xs font-medium text-amber-600"
+						>En attente</span
+					>
+					} @case ('NO_SHOW') {
+					<span class="text-xs font-medium text-orange-600"
+						>No-show</span
+					>
+					} }
+				</div>
+			</div>
+			} @empty {
+			<p class="px-5 py-8 text-center text-sm text-gray-400">
+				Aucune réservation.
+			</p>
+			}
+		</div>
+	</div>
+</div>
+
+<!-- Transaction history -->
+<div
+	class="mt-6 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+	<div class="border-b border-gray-100 px-5 py-4">
+		<h3 class="text-base font-semibold text-gray-800">
+			Historique des transactions
+		</h3>
+	</div>
+	<div class="overflow-x-auto">
+		<table class="w-full text-left text-sm">
+			<thead
+				class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+				<tr>
+					<th class="px-5 py-3 font-semibold">ID</th>
+					<th class="px-5 py-3 font-semibold">Type</th>
+					<th class="px-5 py-3 font-semibold">Description</th>
+					<th class="px-5 py-3 font-semibold">Montant</th>
+					<th class="px-5 py-3 font-semibold">Date</th>
+					<th class="px-5 py-3 font-semibold">Statut</th>
+				</tr>
+			</thead>
+			<tbody class="divide-y divide-gray-50">
+				@for (t of profile()!.transactions; track t.id) {
+				<tr class="transition-colors hover:bg-gray-50">
+					<td class="px-5 py-4 font-mono text-xs text-gray-700">
+						{{ t.id }}
+					</td>
+					<td class="px-5 py-4 text-gray-600">
+						{{ typeLabel(t.type) }}
+					</td>
+					<td class="px-5 py-4 text-gray-700">{{ t.label }}</td>
+					<td
+						class="px-5 py-4 font-semibold"
+						[class.text-green-600]="t.amount > 0"
+						[class.text-red-600]="t.amount < 0">
+						{{ t.amount > 0 ? '+' : '' }}{{ fcfa(t.amount) }}
+					</td>
+					<td class="px-5 py-4 text-gray-500">{{ t.date }}</td>
+					<td class="px-5 py-4">
+						@switch (t.status) { @case ('SUCCESS') {
+						<app-status-badge
+							variant="approved"
+							label="Succès"
+							icon="fa-check" />
+						} @case ('PENDING') {
+						<app-status-badge
+							variant="pending"
+							label="En attente"
+							icon="fa-hourglass-half" />
+						} @case ('FAILED') {
+						<app-status-badge
+							variant="rejected"
+							label="Échec"
+							icon="fa-xmark" />
+						} }
+					</td>
+				</tr>
+				} @empty {
+				<tr>
+					<td colspan="6" class="px-5 py-8 text-center text-gray-400">
+						Aucune transaction.
+					</td>
+				</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+</div>
+} @else {
+<div class="flex flex-col items-center justify-center py-20 text-gray-400">
+	<i class="fa-solid fa-user-slash text-4xl"></i>
+	<p class="mt-3">Utilisateur introuvable.</p>
+	<a
+		routerLink="/moderation/users"
+		class="mt-3 text-green-600 hover:underline"
+		>Retour à la liste</a
+	>
+</div>
+}

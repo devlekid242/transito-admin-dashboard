@@ -1,0 +1,173 @@
+<app-page-header
+	title="Analyse des revenus"
+	subtitle="Évolution du chiffre d'affaires, bénéfices et commissions par agence et par trajet."
+  [actions]="true"
+  >
+  <ng-template #buttonAction>
+    <div class="flex items-center gap-2">
+      @for (p of periods; track p.value) {
+      <button
+        (click)="activePeriod.set(p.value)"
+        class="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+        [class.bg-green-600]="activePeriod() === p.value"
+        [class.text-white]="activePeriod() === p.value"
+        [class.bg-gray-100]="activePeriod() !== p.value"
+        [class.text-gray-600]="activePeriod() !== p.value"
+        [class.hover:bg-gray-200]="activePeriod() !== p.value">
+        {{ p.label }}
+      </button>
+      }
+      <input
+        type="text"
+        placeholder="Personnaliser..."
+        class="w-36 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+    </div>
+  </ng-template>
+</app-page-header>
+
+<!-- KPIs -->
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+	<app-stat-card
+		label="Chiffre d'affaires"
+		[value]="fcfa(data.financialKpis.chiffreAffaires)"
+		icon="fa-chart-line"
+		iconBg="bg-green-600"
+		trend="+23%"
+		[trendUp]="true"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Bénéfice net"
+		[value]="fcfa(data.financialKpis.benefice)"
+		icon="fa-money-bill-trend-up"
+		iconBg="bg-emerald-600"
+		trend="+34%"
+		[trendUp]="true"
+		accentBar="bg-emerald-500" />
+	<app-stat-card
+		label="Commissions"
+		[value]="fcfa(data.financialKpis.commissions)"
+		icon="fa-percent"
+		iconBg="bg-violet-600"
+		trend="+23%"
+		[trendUp]="true"
+		accentBar="bg-violet-500" />
+	<app-stat-card
+		label="Réservations"
+		[value]="str(data.reservationStats.total)"
+		icon="fa-ticket"
+		iconBg="bg-cyan-600"
+		trend="+12%"
+		[trendUp]="true"
+		accentBar="bg-cyan-500" />
+	<app-stat-card
+		label="Annulations"
+		[value]="str(data.reservationStats.cancelled)"
+		icon="fa-rotate-left"
+		iconBg="bg-red-600"
+		trend="-0.5%"
+		[trendUp]="true"
+		accentBar="bg-red-500" />
+	<app-stat-card
+		label="Marge nette"
+		[value]="data.financialKpis.marge + '%'"
+		icon="fa-gauge"
+		iconBg="bg-amber-600"
+		trend="+3pp"
+		[trendUp]="true"
+		accentBar="bg-amber-500" />
+</div>
+
+<!-- CA vs Benefice chart -->
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+	<div
+		class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-2">
+		<div class="mb-4 flex items-center justify-between">
+			<div>
+				<h3 class="text-base font-semibold text-gray-800">
+					CA vs Bénéfice vs Commissions
+				</h3>
+				<p class="text-xs text-gray-500">
+					Évolution sur 8 mois (en millions FCFA)
+				</p>
+			</div>
+		</div>
+		<div class="h-64">
+			<app-line-chart
+				[legend]="true"
+				[labels]="data.revenueLabels"
+				[chartSeries]="[
+              { name: 'CA', data: data.caSeries, color: '#2563eb', dotClass: 'bg-green-600' },
+              { name: 'Bénéfice', data: data.beneficeSeries, color: '#16a34a', dotClass: 'bg-green-600' },
+              { name: 'Commissions', data: data.commissionsSeries, color: '#9333ea', dotClass: 'bg-violet-600' }
+            ]" />
+		</div>
+	</div>
+
+	<!-- Payment methods donut -->
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3 class="mb-1 text-base font-semibold text-gray-800">
+			Méthodes de paiement
+		</h3>
+		<p class="mb-4 text-xs text-gray-500">Volume par méthode</p>
+		<app-donut-chart
+			[data]="data.paymentDistribution"
+			[centerLabel]="'Volume'"
+			[valueFormat]="'percent'"
+			[size]="140" />
+	</div>
+</div>
+
+<!-- Revenue by agency bar chart + Revenue by route -->
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3 class="mb-4 text-base font-semibold text-gray-800">
+			Revenus par agence
+		</h3>
+		<div class="h-56">
+			<app-bar-chart
+				[data]="agencyBarData()"
+				[valueFormat]="'currency'" />
+		</div>
+	</div>
+
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3 class="mb-4 text-base font-semibold text-gray-800">
+			Revenus par trajet (Top 5)
+		</h3>
+		<div class="space-y-3">
+			@for (r of data.revenueByRoute; track r.route; let i = $index) {
+			<div>
+				<div class="mb-1 flex items-center justify-between text-sm">
+					<span class="font-medium text-gray-700">{{ r.route }}</span>
+					<span class="font-semibold text-gray-900"
+						>{{ fcfa(r.revenue) }}</span
+					>
+				</div>
+				<div
+					class="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+					<div
+						class="h-full rounded-full bg-green-500 transition-all duration-700"
+						[style.width.%]="(r.revenue / data.revenueByRoute[0].revenue) * 100"></div>
+				</div>
+			</div>
+			}
+		</div>
+	</div>
+</div>
+
+<!-- Refunds trend -->
+<div class="mt-6 rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+	<div class="mb-4">
+		<h3 class="text-base font-semibold text-gray-800">
+			Évolution des remboursements
+		</h3>
+		<p class="text-xs text-gray-500">
+			Montant remboursé par mois (en millions FCFA)
+		</p>
+	</div>
+	<div class="h-52">
+		<app-line-chart
+			[labels]="data.revenueLabels"
+			[chartSeries]="[{ name: 'Remboursements', data: data.remboursementsSeries, color: '#dc2626', fill: '#dc2626', dotClass: 'bg-red-500' }]" />
+	</div>
+</div>

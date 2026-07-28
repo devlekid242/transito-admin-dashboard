@@ -1,0 +1,122 @@
+<app-page-header title="Notifications" subtitle="Envoyez des notifications à un utilisateur, une agence, ou en diffusion multi-destinataires.">
+      <div class="flex gap-2">
+        <button (click)="openSingle()" class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-green-700 active:scale-95">
+          <i class="fa-solid fa-user-tag"></i> Notifier un destinataire
+        </button>
+        <button (click)="openMulti()" class="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-violet-700 active:scale-95">
+          <i class="fa-solid fa-bullhorn"></i> Diffusion multiple
+        </button>
+      </div>
+    </app-page-header>
+
+    <!-- KPIs -->
+    <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <app-stat-card label="Total envoyées" [value]="str(data.notifications().length)" icon="fa-bell" iconBg="bg-green-600" accentBar="bg-green-500" />
+      <app-stat-card label="Broadcasts" [value]="str(broadcastCount())" icon="fa-bullhorn" iconBg="bg-amber-600" accentBar="bg-amber-500" />
+      <app-stat-card label="Ciblées" [value]="str(targetedCount())" icon="fa-user-tag" iconBg="bg-violet-600" accentBar="bg-violet-500" />
+      <app-stat-card label="Taux de lecture" [value]="readRate() + '%'" icon="fa-envelope-open" iconBg="bg-green-600" accentBar="bg-green-500" />
+    </div>
+
+    <!-- Notifications list -->
+    <div class="mt-6 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+            <tr>
+              <th class="px-5 py-3 font-semibold">Titre</th>
+              <th class="px-5 py-3 font-semibold">Message</th>
+              <th class="px-5 py-3 font-semibold">Type</th>
+              <th class="px-5 py-3 font-semibold">Cible</th>
+              <th class="px-5 py-3 font-semibold">Destinataires</th>
+              <th class="px-5 py-3 font-semibold">Taux de lecture</th>
+              <th class="px-5 py-3 font-semibold">Date</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-50">
+            @for (n of data.notifications(); track n.id) {
+              <tr class="transition-colors hover:bg-gray-50">
+                <td class="px-5 py-4 font-semibold text-gray-800">{{ n.title }}</td>
+                <td class="px-5 py-4 max-w-xs"><p class="truncate text-gray-500">{{ n.message }}</p></td>
+                <td class="px-5 py-4">
+                  @if (n.type === 'broadcast') { <app-status-badge variant="info" label="Broadcast" icon="fa-bullhorn" /> }
+                  @else { <app-status-badge variant="pending" label="Ciblée" icon="fa-user-tag" /> }
+                </td>
+                <td class="px-5 py-4 text-gray-600">{{ n.target || 'Tous' }}</td>
+                <td class="px-5 py-4 text-gray-600">{{ n.recipients.toLocaleString('fr-FR') }}</td>
+                <td class="px-5 py-4">
+                  <div class="flex items-center gap-2">
+                    <div class="h-2 w-16 overflow-hidden rounded-full bg-gray-100"><div class="h-full rounded-full bg-green-500" [style.width.%]="readPct(n)"></div></div>
+                    <span class="text-xs text-gray-500">{{ readPct(n) }}%</span>
+                  </div>
+                </td>
+                <td class="px-5 py-4 text-gray-500">{{ n.sentAt }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Single notification modal -->
+    @if (showSingle()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" (click)="showSingle.set(false)"></div>
+        <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+          <div class="mb-5 flex items-center justify-between">
+            <div class="flex items-center gap-3"><div class="flex h-11 w-11 items-center justify-center rounded-xl bg-green-50"><i class="fa-solid fa-user-tag text-xl text-green-600"></i></div><div><h3 class="text-lg font-bold text-gray-900">Notifier un destinataire</h3><p class="text-sm text-gray-500">Utilisateur ou agence spécifique</p></div></div>
+            <button (click)="showSingle.set(false)" class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <form (ngSubmit)="sendSingle()" class="space-y-4">
+            <div>
+              <label class="mb-1.5 block text-sm font-medium text-gray-700">Type de destinataire</label>
+              <select #singleTypeSelect class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100">
+                <option value="user">Utilisateur</option>
+                <option value="agency">Agence</option>
+              </select>
+            </div>
+            <div><label class="mb-1.5 block text-sm font-medium text-gray-700">Destinataire</label><input #singleTargetInput type="text" required placeholder="Ex: Aminata Diallo (U-1001)" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" /></div>
+            <div><label class="mb-1.5 block text-sm font-medium text-gray-700">Titre</label><input #singleTitleInput type="text" required placeholder="Titre de la notification" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" /></div>
+            <div><label class="mb-1.5 block text-sm font-medium text-gray-700">Message</label><textarea #singleMsgInput rows="3" required placeholder="Contenu du message..." class="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100"></textarea></div>
+            <div class="flex justify-end gap-2 pt-2">
+              <button type="button" (click)="showSingle.set(false)" class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50">Annuler</button>
+              <button type="submit" class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-green-700 active:scale-95"><i class="fa-solid fa-paper-plane"></i> Envoyer</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
+
+    <!-- Multi-target broadcast modal -->
+    @if (showMulti()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" (click)="showMulti.set(false)"></div>
+        <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+          <div class="mb-5 flex items-center justify-between">
+            <div class="flex items-center gap-3"><div class="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50"><i class="fa-solid fa-bullhorn text-xl text-violet-600"></i></div><div><h3 class="text-lg font-bold text-gray-900">Diffusion multiple</h3><p class="text-sm text-gray-500">Envoyer à plusieurs destinataires</p></div></div>
+            <button (click)="showMulti.set(false)" class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <form (ngSubmit)="sendMulti()" class="space-y-4">
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700">Destinataires</label>
+              <div class="grid grid-cols-3 gap-2">
+                @for (t of targetTypes; track t.value) {
+                  <label class="flex cursor-pointer items-center gap-2 rounded-lg border p-2.5 transition-colors"
+                    [class.border-violet-500]="selectedTargets().includes(t.value)" [class.bg-violet-50]="selectedTargets().includes(t.value)"
+                    [class.border-gray-200]="!selectedTargets().includes(t.value)">
+                    <input type="checkbox" [checked]="selectedTargets().includes(t.value)" (change)="toggleTarget(t.value)" class="rounded text-violet-600" />
+                    <span class="text-xs font-medium text-gray-700">{{ t.label }}</span>
+                  </label>
+                }
+              </div>
+            </div>
+            <div><label class="mb-1.5 block text-sm font-medium text-gray-700">Titre</label><input #multiTitleInput type="text" required placeholder="Titre de la notification" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" /></div>
+            <div><label class="mb-1.5 block text-sm font-medium text-gray-700">Message</label><textarea #multiMsgInput rows="3" required placeholder="Contenu du message..." class="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100"></textarea></div>
+            <div class="rounded-lg bg-violet-50 p-3 text-xs text-violet-700"><i class="fa-solid fa-circle-info mr-1"></i> La notification sera envoyée à tous les destinataires des catégories sélectionnées.</div>
+            <div class="flex justify-end gap-2 pt-2">
+              <button type="button" (click)="showMulti.set(false)" class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50">Annuler</button>
+              <button type="submit" class="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-violet-700 active:scale-95"><i class="fa-solid fa-paper-plane"></i> Diffuser</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
