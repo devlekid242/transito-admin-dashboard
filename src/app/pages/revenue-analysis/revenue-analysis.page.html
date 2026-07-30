@@ -7,74 +7,85 @@
     <div class="flex items-center gap-2">
       @for (p of periods; track p.value) {
       <button
-        (click)="activePeriod.set(p.value)"
+        (click)="onPeriodChange(p.value)"
         class="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
-        [class.bg-green-600]="activePeriod() === p.value"
-        [class.text-white]="activePeriod() === p.value"
-        [class.bg-gray-100]="activePeriod() !== p.value"
-        [class.text-gray-600]="activePeriod() !== p.value"
-        [class.hover:bg-gray-200]="activePeriod() !== p.value">
+        [class.bg-green-600]="dateFilter().period === p.value"
+        [class.text-white]="dateFilter().period === p.value"
+        [class.bg-gray-100]="dateFilter().period !== p.value"
+        [class.text-gray-600]="dateFilter().period !== p.value"
+        [class.hover:bg-gray-200]="dateFilter().period !== p.value">
         {{ p.label }}
       </button>
       }
       <input
-        type="text"
-        placeholder="Personnaliser..."
+        type="date"
+        [value]="dateFilter().startDate"
+        (change)="onStartDateChange($event)"
         class="w-36 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+      <input
+        type="date"
+        [value]="dateFilter().endDate"
+        (change)="onEndDateChange($event)"
+        class="w-36 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+      <button
+        (click)="applyCustomDateRange()"
+        class="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700">
+        Appliquer
+      </button>
     </div>
   </ng-template>
 </app-page-header>
 
+<!-- Loading state -->
+@if (loading()) {
+<div class="flex items-center justify-center py-8">
+  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+  <span class="ml-3">Chargement des données...</span>
+</div>
+}
+
+<!-- Error state -->
+@if (error()) {
+<div class="rounded-lg bg-red-50 border border-red-200 p-4 text-red-700">
+  {{ error() }}
+</div>
+}
+
 <!-- KPIs -->
+@if (data()) {
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 	<app-stat-card
-		label="Chiffre d'affaires"
-		[value]="fcfa(data.financialKpis.chiffreAffaires)"
+		label="Revenu plateforme"
+		[value]="fcfa(platformRevenue())"
 		icon="fa-chart-line"
 		iconBg="bg-green-600"
-		trend="+23%"
-		[trendUp]="true"
+		[trend]="getRevenueTrend()"
+		[trendUp]="revenueGrowthRate() >= 0"
 		accentBar="bg-green-500" />
 	<app-stat-card
 		label="Bénéfice net"
-		[value]="fcfa(data.financialKpis.benefice)"
+		[value]="fcfa(platformNetEarnings())"
 		icon="fa-money-bill-trend-up"
 		iconBg="bg-emerald-600"
-		trend="+34%"
-		[trendUp]="true"
+		[trend]="getNetEarningsTrend()"
+		[trendUp]="revenueGrowthRate() >= 0"
 		accentBar="bg-emerald-500" />
 	<app-stat-card
 		label="Commissions"
-		[value]="fcfa(data.financialKpis.commissions)"
+		[value]="fcfa(platformCommissions())"
 		icon="fa-percent"
 		iconBg="bg-violet-600"
-		trend="+23%"
-		[trendUp]="true"
+		[trend]="getCommissionsTrend()"
+		[trendUp]="revenueGrowthRate() >= 0"
 		accentBar="bg-violet-500" />
 	<app-stat-card
-		label="Réservations"
-		[value]="str(data.reservationStats.total)"
-		icon="fa-ticket"
+		label="Taux de croissance"
+		[value]="formatPercentage(revenueGrowthRate())"
+		icon="fa-arrow-trend-up"
 		iconBg="bg-cyan-600"
-		trend="+12%"
-		[trendUp]="true"
+		trend="Revenu"
+		[trendUp]="revenueGrowthRate() >= 0"
 		accentBar="bg-cyan-500" />
-	<app-stat-card
-		label="Annulations"
-		[value]="str(data.reservationStats.cancelled)"
-		icon="fa-rotate-left"
-		iconBg="bg-red-600"
-		trend="-0.5%"
-		[trendUp]="true"
-		accentBar="bg-red-500" />
-	<app-stat-card
-		label="Marge nette"
-		[value]="data.financialKpis.marge + '%'"
-		icon="fa-gauge"
-		iconBg="bg-amber-600"
-		trend="+3pp"
-		[trendUp]="true"
-		accentBar="bg-amber-500" />
 </div>
 
 <!-- CA vs Benefice chart -->
@@ -87,19 +98,15 @@
 					CA vs Bénéfice vs Commissions
 				</h3>
 				<p class="text-xs text-gray-500">
-					Évolution sur 8 mois (en millions FCFA)
+					Évolution sur la période sélectionnée (en FCFA)
 				</p>
 			</div>
 		</div>
 		<div class="h-64">
 			<app-line-chart
 				[legend]="true"
-				[labels]="data.revenueLabels"
-				[chartSeries]="[
-              { name: 'CA', data: data.caSeries, color: '#2563eb', dotClass: 'bg-green-600' },
-              { name: 'Bénéfice', data: data.beneficeSeries, color: '#16a34a', dotClass: 'bg-green-600' },
-              { name: 'Commissions', data: data.commissionsSeries, color: '#9333ea', dotClass: 'bg-violet-600' }
-            ]" />
+				[labels]="chartLabels()"
+				[chartSeries]="chartSeries()" />
 		</div>
 	</div>
 
@@ -110,7 +117,7 @@
 		</h3>
 		<p class="mb-4 text-xs text-gray-500">Volume par méthode</p>
 		<app-donut-chart
-			[data]="data.paymentDistribution"
+			[data]="paymentDistribution()"
 			[centerLabel]="'Volume'"
 			[valueFormat]="'percent'"
 			[size]="140" />
@@ -135,19 +142,15 @@
 			Revenus par trajet (Top 5)
 		</h3>
 		<div class="space-y-3">
-			@for (r of data.revenueByRoute; track r.route; let i = $index) {
+			@for (r of revenueByRoute(); track r.route; let i = $index) {
 			<div>
 				<div class="mb-1 flex items-center justify-between text-sm">
 					<span class="font-medium text-gray-700">{{ r.route }}</span>
-					<span class="font-semibold text-gray-900"
-						>{{ fcfa(r.revenue) }}</span
-					>
+					<span class="font-semibold text-gray-900">{{ fcfa(r.revenue) }}</span>
 				</div>
-				<div
-					class="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
-					<div
-						class="h-full rounded-full bg-green-500 transition-all duration-700"
-						[style.width.%]="(r.revenue / data.revenueByRoute[0].revenue) * 100"></div>
+				<div class="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+					<div class="h-full rounded-full bg-green-500 transition-all duration-700"
+						[style.width.%]="(r.revenue / (revenueByRoute()[0]?.revenue ?? 1)) * 100"></div>
 				</div>
 			</div>
 			}
@@ -162,12 +165,13 @@
 			Évolution des remboursements
 		</h3>
 		<p class="text-xs text-gray-500">
-			Montant remboursé par mois (en millions FCFA)
+			Montant remboursé par période (en FCFA)
 		</p>
 	</div>
 	<div class="h-52">
 		<app-line-chart
-			[labels]="data.revenueLabels"
-			[chartSeries]="[{ name: 'Remboursements', data: data.remboursementsSeries, color: '#dc2626', fill: '#dc2626', dotClass: 'bg-red-500' }]" />
+			[labels]="refundsTrendLabels()"
+			[chartSeries]="refundsTrendSeries()" />
 	</div>
 </div>
+}

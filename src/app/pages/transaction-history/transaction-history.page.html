@@ -1,101 +1,455 @@
 <app-page-header title="Historique des transactions" subtitle="Toutes les transactions de la plateforme : paiements, retraits, remboursements, commissions et recharges." />
 
-    <!-- KPIs per type -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      <app-stat-card label="Paiements" [value]="str(ts.payment.count)" icon="fa-credit-card" iconBg="bg-green-600" accentBar="bg-green-500" />
-      <app-stat-card label="Retraits" [value]="str(ts.withdrawal.count)" icon="fa-hand-holding-dollar" iconBg="bg-amber-600" accentBar="bg-amber-500" />
-      <app-stat-card label="Remboursements" [value]="str(ts.refund.count)" icon="fa-rotate-left" iconBg="bg-red-600" accentBar="bg-red-500" />
-      <app-stat-card label="Commissions" [value]="str(ts.commission.count)" icon="fa-percent" iconBg="bg-violet-600" accentBar="bg-violet-500" />
-      <app-stat-card label="Recharges" [value]="str(ts.topup.count)" icon="fa-plus" iconBg="bg-cyan-600" accentBar="bg-cyan-500" />
-    </div>
+<!-- KPIs per type -->
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+  <app-stat-card label="Paiements" [value]="formatNumber(getCountByType('PAYMENT'))" icon="fa-credit-card" iconBg="bg-green-600" accentBar="bg-green-500" />
+  <app-stat-card label="Retraits" [value]="formatNumber(getCountByType('WITHDRAWAL'))" icon="fa-hand-holding-dollar" iconBg="bg-amber-600" accentBar="bg-amber-500" />
+  <app-stat-card label="Remboursements" [value]="formatNumber(getCountByType('REFUND'))" icon="fa-rotate-left" iconBg="bg-red-600" accentBar="bg-red-500" />
+  <app-stat-card label="Commissions" [value]="formatNumber(getCountByType('COMMISSION'))" icon="fa-percent" iconBg="bg-violet-600" accentBar="bg-violet-500" />
+  <app-stat-card label="Recharges" [value]="formatNumber(getCountByType('TOPUP'))" icon="fa-plus" iconBg="bg-cyan-600" accentBar="bg-cyan-500" />
+</div>
 
-    <!-- Volume summary -->
-    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <p class="text-xs text-gray-500">Volume paiements</p><p class="mt-1 text-lg font-bold text-green-700">{{ fcfa(ts.payment.volume) }}</p>
-      </div>
-      <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <p class="text-xs text-gray-500">Volume retraits</p><p class="mt-1 text-lg font-bold text-amber-700">{{ fcfa(ts.withdrawal.volume) }}</p>
-      </div>
-      <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <p class="text-xs text-gray-500">Volume remboursements</p><p class="mt-1 text-lg font-bold text-red-700">{{ fcfa(ts.refund.volume) }}</p>
-      </div>
-      <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <p class="text-xs text-gray-500">Volume commissions</p><p class="mt-1 text-lg font-bold text-violet-700">{{ fcfa(ts.commission.volume) }}</p>
-      </div>
-      <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <p class="text-xs text-gray-500">Volume recharges</p><p class="mt-1 text-lg font-bold text-cyan-700">{{ fcfa(ts.topup.volume) }}</p>
-      </div>
-    </div>
+<!-- Volume summary -->
+<div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+    <p class="text-xs text-gray-500">Volume paiements</p><p class="mt-1 text-lg font-bold text-green-700">{{ fcfa(getVolumeByType('PAYMENT')) }}</p>
+  </div>
+  <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+    <p class="text-xs text-gray-500">Volume retraits</p><p class="mt-1 text-lg font-bold text-amber-700">{{ fcfa(getVolumeByType('WITHDRAWAL')) }}</p>
+  </div>
+  <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+    <p class="text-xs text-gray-500">Volume remboursements</p><p class="mt-1 text-lg font-bold text-red-700">{{ fcfa(getVolumeByType('REFUND')) }}</p>
+  </div>
+  <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+    <p class="text-xs text-gray-500">Volume commissions</p><p class="mt-1 text-lg font-bold text-violet-700">{{ fcfa(getVolumeByType('COMMISSION')) }}</p>
+  </div>
+</div>
 
-    <!-- Filters -->
-    <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-      <div class="relative flex-1">
-        <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
-        <input #searchInput (input)="search.set(searchInput.value)" type="text" placeholder="Rechercher par ID, agence, utilisateur..."
-          class="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-green-400 focus:ring-2 focus:ring-green-100" />
-      </div>
-      <select #typeFilter (change)="onTypeChange(typeFilter.value)"
-        class="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
-        <option value="ALL">Tous les types</option>
-        <option value="PAYMENT">Paiements</option>
-        <option value="WITHDRAWAL">Retraits</option>
-        <option value="REFUND">Remboursements</option>
-        <option value="COMMISSION">Commissions</option>
-        <option value="TOPUP">Recharges</option>
-      </select>
-    </div>
+<!-- Total summary -->
+<div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+  <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+    <p class="text-xs text-gray-500">Transactions totales</p><p class="mt-1 text-xl font-bold text-gray-900">{{ formatNumber(getTotalTransactions()) }}</p>
+  </div>
+  <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+    <p class="text-xs text-gray-500">Volume total</p><p class="mt-1 text-xl font-bold text-blue-700">{{ getTotalVolume() }}</p>
+  </div>
+  <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+    <p class="text-xs text-gray-500">Frais totaux</p><p class="mt-1 text-xl font-bold text-purple-700">{{ getTotalFees() }}</p>
+  </div>
+</div>
 
-    <!-- Transactions table -->
-    <div class="mt-5 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-            <tr>
-              <th class="px-5 py-3 font-semibold">ID</th>
-              <th class="px-5 py-3 font-semibold">Type</th>
-              <th class="px-5 py-3 font-semibold">Description</th>
-              <th class="px-5 py-3 font-semibold">Agence</th>
-              <th class="px-5 py-3 font-semibold">Utilisateur</th>
-              <th class="px-5 py-3 font-semibold">Méthode</th>
-              <th class="px-5 py-3 font-semibold">Montant</th>
-              <th class="px-5 py-3 font-semibold">Date</th>
-              <th class="px-5 py-3 font-semibold">Statut</th>
+<!-- Filters -->
+<div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+  <div class="relative flex-1">
+    <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
+    <input #searchInput (input)="search.set(searchInput.value)" type="text" placeholder="Rechercher par ID, agence, réservation..."
+      class="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+  </div>
+  <select #typeFilter (change)="onTypeChange(typeFilter.value)"
+    class="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+    @for (option of typeOptions; track option.value) {
+      <option [value]="option.value">{{ option.label }}</option>
+    }
+  </select>
+  <select #statusFilter (change)="onStatusChange(statusFilter.value)"
+    class="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+    @for (option of statusOptions; track option.value) {
+      <option [value]="option.value">{{ option.label }}</option>
+    }
+  </select>
+  <button (click)="loadData(1)" class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-green-700">
+    <i class="fa-solid fa-filter"></i>
+    Filtrer
+  </button>
+</div>
+
+<!-- Loading state -->
+@if (isLoading()) {
+  <div class="mt-5 flex items-center justify-center py-12">
+    <div class="flex items-center gap-3 text-gray-500">
+      <i class="fa-solid fa-spinner fa-spin text-xl"></i>
+      <span>Chargement des transactions...</span>
+    </div>
+  </div>
+}
+
+<!-- Error state -->
+@if (error()) {
+  <div class="mt-5 flex items-center justify-center gap-3 py-12 text-red-500">
+    <i class="fa-solid fa-exclamation-triangle text-xl"></i>
+    <span>{{ error() }}</span>
+    <button (click)="loadData(1)" class="text-green-600 hover:underline">Réessayer</button>
+  </div>
+}
+
+<!-- Empty state -->
+@if (!isLoading() && !error() && transactions().length === 0) {
+  <div class="mt-5 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+    <div class="py-12 text-center text-gray-400">
+      <i class="fa-solid fa-inbox text-3xl mb-2"></i>
+      <p>Aucune transaction trouvée.</p>
+    </div>
+  </div>
+}
+
+<!-- Transactions table -->
+@if (!isLoading() && !error() && transactions().length > 0) {
+  <div class="mt-5 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+          <tr>
+            <th class="px-5 py-3 font-semibold">ID</th>
+            <th class="px-5 py-3 font-semibold">Type</th>
+            <th class="px-5 py-3 font-semibold">Description</th>
+            <th class="px-5 py-3 font-semibold">Agence</th>
+            <th class="px-5 py-3 font-semibold">Montant</th>
+            <th class="px-5 py-3 font-semibold">Frais</th>
+            <th class="px-5 py-3 font-semibold">Solde après</th>
+            <th class="px-5 py-3 font-semibold">Date</th>
+            <th class="px-5 py-3 font-semibold">Statut</th>
+            <th class="px-5 py-3 font-semibold text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+          @for (t of transactions(); track t.id) {
+            <tr class="transition-colors hover:bg-gray-50 cursor-pointer" (click)="openDetailModal(t)">
+              <td class="px-5 py-4 font-mono text-xs font-semibold text-gray-700">{{ t.id }}</td>
+              <td class="px-5 py-4">
+                <span class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold {{ getTypeColor(t.type) }}">
+                  <i class="fa-solid {{ getTypeIcon(t.type) }}"></i>
+                  {{ getTypeLabel(t.type) }}
+                </span>
+              </td>
+              <td class="px-5 py-4 text-gray-700">{{ t.description || '—' }}</td>
+              <td class="px-5 py-4 text-gray-600">{{ t.agency.name || '—' }}</td>
+              <td class="px-5 py-4 font-semibold {{ getAmountColor(t.amount) }}">{{ t.amount > 0 ? '+' : '' }}{{ fcfa(t.amount) }}</td>
+              <td class="px-5 py-4 text-gray-600">{{ fcfa(t.feeAmount) }}</td>
+              <td class="px-5 py-4 text-gray-600">{{ fcfa(t.balanceAfter) }}</td>
+              <td class="px-5 py-4 text-gray-500">{{ t.date | slice:0:10 }} <span class="text-gray-400">{{ t.date | slice:11:16 }}</span></td>
+              <td class="px-5 py-4">
+                <app-status-badge [variant]="getStatusVariant(t.status)" [label]="getStatusLabel(t.status)" [icon]="getStatusIcon(t.status)" />
+              </td>
+              <td class="px-5 py-4 text-right">
+                <button (click)="$event.stopPropagation(); openDetailModal(t)" class="rounded-lg p-2 text-sm text-gray-500 transition hover:bg-gray-100 hover:text-green-600" title="Voir les détails">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </td>
             </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-50">
-            @for (t of filtered(); track t.id) {
-              <tr class="transition-colors hover:bg-gray-50">
-                <td class="px-5 py-4 font-mono text-xs font-semibold text-gray-700">{{ t.id }}</td>
-                <td class="px-5 py-4">
-                  <span class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold"
-                    [class.bg-green-50]="t.type === 'PAYMENT'" [class.text-green-700]="t.type === 'PAYMENT'"
-                    [class.bg-amber-50]="t.type === 'WITHDRAWAL'" [class.text-amber-700]="t.type === 'WITHDRAWAL'"
-                    [class.bg-red-50]="t.type === 'REFUND'" [class.text-red-700]="t.type === 'REFUND'"
-                    [class.bg-violet-50]="t.type === 'COMMISSION'" [class.text-violet-700]="t.type === 'COMMISSION'"
-                    [class.bg-cyan-50]="t.type === 'TOPUP'" [class.text-cyan-700]="t.type === 'TOPUP'">
-                    <i class="fa-solid" [class.fa-credit-card]="t.type === 'PAYMENT'" [class.fa-hand-holding-dollar]="t.type === 'WITHDRAWAL'" [class.fa-rotate-left]="t.type === 'REFUND'" [class.fa-percent]="t.type === 'COMMISSION'" [class.fa-plus]="t.type === 'TOPUP'"></i>
-                    {{ typeLabel(t.type) }}
-                  </span>
-                </td>
-                <td class="px-5 py-4 text-gray-700">{{ t.label }}</td>
-                <td class="px-5 py-4 text-gray-600">{{ t.agency }}</td>
-                <td class="px-5 py-4 text-gray-600">{{ t.user || '—' }}</td>
-                <td class="px-5 py-4 text-gray-600">{{ t.method || '—' }}</td>
-                <td class="px-5 py-4 font-semibold" [class.text-green-600]="t.amount > 0" [class.text-red-600]="t.amount < 0">{{ t.amount > 0 ? '+' : '' }}{{ fcfa(t.amount) }}</td>
-                <td class="px-5 py-4 text-gray-500">{{ t.date }}</td>
-                <td class="px-5 py-4">
-                  @switch (t.status) {
-                    @case ('SUCCESS') { <app-status-badge variant="approved" label="Succès" icon="fa-check" /> }
-                    @case ('PENDING') { <app-status-badge variant="pending" label="En attente" icon="fa-hourglass-half" /> }
-                    @case ('FAILED') { <app-status-badge variant="rejected" label="Échec" icon="fa-xmark" /> }
-                  }
-                </td>
-              </tr>
-            } @empty {
-              <tr><td colspan="9" class="px-5 py-12 text-center text-gray-400">Aucune transaction trouvée.</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
+          } @empty {
+            <tr><td colspan="10" class="px-5 py-12 text-center text-gray-400">Aucune transaction trouvée.</td></tr>
+          }
+        </tbody>
+      </table>
     </div>
+    
+    <!-- Pagination -->
+    @if (pagination() && pagination()!.total_pages > 1) {
+      <div class="border-t border-gray-100 bg-gray-50 px-5 py-4">
+        <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <div class="text-sm text-gray-500">
+            {{ pagination()!.total }} transactions au total
+          </div>
+          <div class="flex items-center gap-2">
+            <button (click)="goToPage(pagination()!.current_page - 1)" [disabled]="pagination()!.current_page === 1" 
+                    class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 transition disabled:cursor-not-allowed disabled:opacity-50 hover:bg-gray-100">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            
+            @for (page of pages; track page) {
+              @if (page === -1) {
+                <span class="px-2 py-2 text-gray-400">...</span>
+              } @else {
+                <button (click)="goToPage(page)" [class.bg-green-600]="page === pagination()!.current_page" [class.text-white]="page === pagination()!.current_page" 
+                        class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 transition hover:bg-green-50 hover:text-green-700">
+                  {{ page }}
+                </button>
+              }
+            }
+            
+            <button (click)="goToPage(pagination()!.current_page + 1)" [disabled]="pagination()!.current_page === pagination()!.total_pages"
+                    class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 transition disabled:cursor-not-allowed disabled:opacity-50 hover:bg-gray-100">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+}
+
+<!-- Detail Modal -->
+<app-modal
+  title="Détails de la transaction"
+  [subtitle]="selectedTransaction() ? getTypeLabel(selectedTransaction()!.type) + ' • ' + selectedTransaction()!.id : ''"
+  [open]="showDetailModal()"
+  [size]="'lg'"
+  (close)="closeDetailModal()"
+>
+  @if (selectedTransaction()) {
+    <div class="space-y-6">
+
+      <!-- Bandeau résumé : type / statut / montant -->
+      <div class="flex flex-col gap-4 rounded-xl border border-gray-100 bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold {{ getTypeColor(selectedTransaction()!.type) }}">
+            <i class="fa-solid {{ getTypeIcon(selectedTransaction()!.type) }}"></i>
+            {{ getTypeLabel(selectedTransaction()!.type) }}
+          </span>
+          <app-status-badge [variant]="getStatusVariant(selectedTransaction()!.status)" [label]="getStatusLabel(selectedTransaction()!.status)" [icon]="getStatusIcon(selectedTransaction()!.status)" />
+        </div>
+        <div class="text-left sm:text-right">
+          <p class="text-2xl font-bold leading-none {{ getAmountColor(selectedTransaction()!.amount) }}">
+            {{ selectedTransaction()!.amount > 0 ? '+' : '' }}{{ fcfa(selectedTransaction()!.amount) }}
+          </p>
+          <p class="mt-1 text-xs text-gray-500">Montant de la transaction</p>
+        </div>
+      </div>
+
+      <!-- Identifiants : copiables -->
+      <div class="flex flex-wrap gap-4 text-sm">
+        <button (click)="copyToClipboard(selectedTransaction()!.id, 'id')" class="group flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 font-mono text-xs text-gray-600 transition hover:border-green-300 hover:bg-green-50" title="Copier l'ID">
+          <span>{{ selectedTransaction()!.id }}</span>
+          <i class="fa-solid" [class.fa-copy]="copiedField() !== 'id'" [class.fa-check]="copiedField() === 'id'" [class.text-green-600]="copiedField() === 'id'"></i>
+        </button>
+        <button (click)="copyToClipboard(selectedTransaction()!.source, 'source')" class="group flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 font-mono text-xs text-gray-500 transition hover:border-green-300 hover:bg-green-50" title="Copier la source">
+          <span>{{ selectedTransaction()!.source }}</span>
+          <i class="fa-solid" [class.fa-copy]="copiedField() !== 'source'" [class.fa-check]="copiedField() === 'source'" [class.text-green-600]="copiedField() === 'source'"></i>
+        </button>
+      </div>
+
+      <!-- Chronologie : initiation -> validation -->
+      <div class="rounded-xl border border-gray-100 p-4">
+        <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+          <i class="fa-solid fa-timeline text-gray-400"></i>
+          Chronologie
+        </h4>
+        <div class="flex items-center gap-3">
+          <div class="flex-1">
+            <p class="text-xs text-gray-500">Initiée le</p>
+            <p class="text-sm font-medium text-gray-800">{{ formatDateTime($any(selectedTransaction()!).initiatedAt ?? selectedTransaction()!.date) }}</p>
+          </div>
+          <div class="flex flex-col items-center px-2">
+            <i class="fa-solid fa-arrow-right-long text-gray-300"></i>
+          </div>
+          <div class="flex-1 text-right">
+            <p class="text-xs text-gray-500">Validée le</p>
+            @if ($any(selectedTransaction()!).validatedAt) {
+              <p class="text-sm font-medium text-gray-800">{{ formatDateTime($any(selectedTransaction()!).validatedAt) }}</p>
+            } @else {
+              <p class="text-sm font-medium text-amber-600">
+                <i class="fa-solid fa-hourglass-half"></i>
+                En attente
+              </p>
+            }
+          </div>
+        </div>
+        <div class="mt-3 border-t border-gray-100 pt-3 text-center">
+          <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                [class.bg-amber-50]="!$any(selectedTransaction()!).validatedAt" [class.text-amber-700]="!$any(selectedTransaction()!).validatedAt"
+                [class.bg-gray-100]="$any(selectedTransaction()!).validatedAt" [class.text-gray-600]="$any(selectedTransaction()!).validatedAt">
+            <i class="fa-solid fa-clock"></i>
+            {{ getDurationLabel($any(selectedTransaction()!).initiatedAt ?? selectedTransaction()!.date, $any(selectedTransaction()!).validatedAt) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Résumé + Montants -->
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="rounded-xl border border-gray-100 p-4">
+          <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+            <i class="fa-solid fa-circle-info text-gray-400"></i>
+            Résumé
+          </h4>
+          <div class="space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <span class="text-sm text-gray-500">Description</span>
+              <span class="text-right text-sm text-gray-800">{{ selectedTransaction()!.description || '—' }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm text-gray-500">Agence</span>
+              <span class="text-sm text-gray-800">{{ selectedTransaction()!.agency.name || '—' }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm text-gray-500">Portefeuille</span>
+              <span class="font-mono text-sm text-gray-800">{{ selectedTransaction()!.wallet.id ?? '—' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-gray-100 p-4">
+          <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+            <i class="fa-solid fa-coins text-gray-400"></i>
+            Montants
+          </h4>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm text-gray-500">Montant</span>
+              <span class="text-sm font-semibold {{ getAmountColor(selectedTransaction()!.amount) }}">{{ selectedTransaction()!.amount > 0 ? '+' : '' }}{{ fcfa(selectedTransaction()!.amount) }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm text-gray-500">Frais</span>
+              <span class="text-sm text-gray-800">{{ fcfa(selectedTransaction()!.feeAmount) }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-3 border-t border-gray-100 pt-3">
+              <span class="text-sm font-medium text-gray-600">Solde après opération</span>
+              <span class="text-sm font-semibold text-gray-900">{{ fcfa(selectedTransaction()!.balanceAfter) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bloc spécifique au type : réservation / paiement / remboursement / retrait / admin -->
+
+      @if (selectedTransaction()!.reservation) {
+        <div class="rounded-xl border border-gray-100 border-l-4 border-l-blue-400 bg-blue-50/30 p-4">
+          <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+            <i class="fa-solid fa-ticket text-blue-500"></i>
+            Réservation associée
+          </h4>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm text-gray-500">Référence</span>
+              <button (click)="copyToClipboard(selectedTransaction()!.reservation?.ref, 'resRef')" class="flex items-center gap-1.5 font-mono text-sm text-gray-800 hover:text-blue-600" title="Copier">
+                {{ selectedTransaction()!.reservation?.ref || '—' }}
+                <i class="fa-solid fa-copy text-xs" [class.text-blue-600]="copiedField() === 'resRef'"></i>
+              </button>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm text-gray-500">ID Réservation</span>
+              <span class="font-mono text-sm text-gray-800">{{ selectedTransaction()!.reservation?.id ?? '—' }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-3 sm:col-span-2">
+              <span class="text-sm text-gray-500">Montant total réservation</span>
+              <span class="text-sm font-medium text-gray-800">{{ fcfa(selectedTransaction()!.reservation?.amount || 0) }}</span>
+            </div>
+          </div>
+        </div>
+      }
+
+      @if (selectedTransaction()!.payment) {
+        <div class="rounded-xl border border-gray-100 border-l-4 border-l-green-400 bg-green-50/30 p-4">
+          <div class="mb-3 flex items-center justify-between">
+            <h4 class="flex items-center gap-2 text-sm font-semibold text-gray-900">
+              <i class="fa-solid fa-credit-card text-green-500"></i>
+              Paiement
+            </h4>
+            <app-status-badge
+              [variant]="getSubStatusMeta(selectedTransaction()!.payment?.status).variant"
+              [label]="getSubStatusMeta(selectedTransaction()!.payment?.status).label"
+              [icon]="getSubStatusMeta(selectedTransaction()!.payment?.status).icon" />
+          </div>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm text-gray-500">Référence</span>
+              <button (click)="copyToClipboard(selectedTransaction()!.payment?.reference, 'payRef')" class="flex items-center gap-1.5 font-mono text-sm text-gray-800 hover:text-green-600" title="Copier">
+                {{ selectedTransaction()!.payment?.reference || '—' }}
+                <i class="fa-solid fa-copy text-xs" [class.text-green-600]="copiedField() === 'payRef'"></i>
+              </button>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm text-gray-500">Opérateur</span>
+              <span class="text-sm text-gray-800">{{ selectedTransaction()!.payment?.operator || '—' }}</span>
+            </div>
+          </div>
+        </div>
+      }
+
+      @if (selectedTransaction()!.refund) {
+        <div class="rounded-xl border border-gray-100 border-l-4 border-l-red-400 bg-red-50/30 p-4">
+          <div class="mb-3 flex items-center justify-between">
+            <h4 class="flex items-center gap-2 text-sm font-semibold text-gray-900">
+              <i class="fa-solid fa-rotate-left text-red-500"></i>
+              Remboursement
+            </h4>
+            <app-status-badge
+              [variant]="getSubStatusMeta(selectedTransaction()!.refund?.status).variant"
+              [label]="getSubStatusMeta(selectedTransaction()!.refund?.status).label"
+              [icon]="getSubStatusMeta(selectedTransaction()!.refund?.status).icon" />
+          </div>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm text-gray-500">ID Remboursement</span>
+              <span class="font-mono text-sm text-gray-800">{{ selectedTransaction()!.refund?.id ?? '—' }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm text-gray-500">Montant demandé</span>
+              <span class="text-sm text-gray-800">{{ fcfa($any(selectedTransaction()!.refund)?.requestedAmount ?? selectedTransaction()!.refund?.amount ?? 0) }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-3 sm:col-span-2 border-t border-red-100 pt-3">
+              <span class="text-sm font-medium text-gray-600">Montant réellement remboursé</span>
+              <span class="text-sm font-semibold text-gray-900">{{ fcfa($any(selectedTransaction()!.refund)?.refundedAmount ?? selectedTransaction()!.refund?.amount ?? 0) }}</span>
+            </div>
+            @if ($any(selectedTransaction()!.refund)?.processedByAdmin) {
+              <div class="flex items-center justify-between gap-3 sm:col-span-2">
+                <span class="text-sm text-gray-500">Traité par</span>
+                <span class="text-sm text-gray-800">{{ $any(selectedTransaction()!.refund)?.processedByAdmin }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      @if (selectedTransaction()!.withdrawal) {
+        <div class="rounded-xl border border-gray-100 border-l-4 border-l-amber-400 bg-amber-50/30 p-4">
+          <div class="mb-3 flex items-center justify-between">
+            <h4 class="flex items-center gap-2 text-sm font-semibold text-gray-900">
+              <i class="fa-solid fa-hand-holding-dollar text-amber-500"></i>
+              Retrait
+            </h4>
+            <app-status-badge
+              [variant]="getSubStatusMeta(selectedTransaction()!.withdrawal?.status).variant"
+              [label]="getSubStatusMeta(selectedTransaction()!.withdrawal?.status).label"
+              [icon]="getSubStatusMeta(selectedTransaction()!.withdrawal?.status).icon" />
+          </div>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm text-gray-500">ID Retrait</span>
+              <span class="font-mono text-sm text-gray-800">{{ selectedTransaction()!.withdrawal?.id ?? '—' }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm text-gray-500">Montant</span>
+              <span class="text-sm text-gray-800">{{ fcfa(selectedTransaction()!.withdrawal?.amount || 0) }}</span>
+            </div>
+            @if ($any(selectedTransaction()!.withdrawal)?.method) {
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-sm text-gray-500">Méthode</span>
+                <span class="text-sm text-gray-800">{{ $any(selectedTransaction()!.withdrawal)?.method }}</span>
+              </div>
+            }
+            @if ($any(selectedTransaction()!.withdrawal)?.forcePaid) {
+              <div class="flex items-center gap-2 sm:col-span-2 rounded-lg bg-amber-100 px-3 py-2 text-xs font-medium text-amber-800">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                Paiement forcé (solvabilité non vérifiée par le système)
+              </div>
+            }
+            @if ($any(selectedTransaction()!.withdrawal)?.processedByAdmin) {
+              <div class="flex items-center justify-between gap-3 sm:col-span-2">
+                <span class="text-sm text-gray-500">Traité par</span>
+                <span class="text-sm text-gray-800">{{ $any(selectedTransaction()!.withdrawal)?.processedByAdmin }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      @if (selectedTransaction()!.admin) {
+        <div class="rounded-xl border border-gray-100 border-l-4 border-l-violet-400 bg-violet-50/30 p-4">
+          <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+            <i class="fa-solid fa-user-shield text-violet-500"></i>
+            Effectué par l'administrateur
+          </h4>
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 text-violet-600">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-900">{{ selectedTransaction()!.admin?.name || '—' }}</p>
+              <p class="text-xs text-gray-500">{{ selectedTransaction()!.admin?.email || '—' }}</p>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</app-modal>

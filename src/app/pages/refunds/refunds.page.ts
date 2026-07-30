@@ -7,10 +7,12 @@ import { StatusBadgeComponent } from '../../shared/status-badge.component';
 import { DataTableComponent, DataTableColumn } from '../../shared/data-table.component';
 import { ModalComponent } from '../../shared/modal.component';
 import { SearchSelectComponent, SearchSelectItem } from '../../shared/search-select.component';
+import { FormsModule } from "@angular/forms";
+
 
 @Component({
   selector: 'app-refunds',
-  imports: [CommonModule, PageHeaderComponent, StatCardComponent, StatusBadgeComponent, DataTableComponent, ModalComponent, SearchSelectComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, StatCardComponent, StatusBadgeComponent, DataTableComponent, ModalComponent, SearchSelectComponent],
   templateUrl: 'refunds.page.html',
 })
 export class RefundsPage {
@@ -118,6 +120,25 @@ export class RefundsPage {
     this.agency.set(null);
     this.formError.set('');
     this.formSuccess.set('');
+    this.refundService.resetLookups();
+  }
+
+  // Dynamic search handlers for the manual refund creation form.
+  // Each is wired to a search-select field in `async` mode: the field
+  // debounces keystrokes and emits the raw query text here.
+  onUserSearch(query: string) {
+    this.refundService.searchClients(query);
+  }
+
+  onReservationSearch(query: string) {
+    // Scope results to the already-selected client when available, so the
+    // admin doesn't have to retype the client's name/reference.
+    const userId = this.selectedUser() ? Number(this.selectedUser()!.id) : null;
+    this.refundService.searchReservations(query, userId);
+  }
+
+  onAgencySearch(query: string) {
+    this.refundService.searchAgencies(query);
   }
 
   // Open confirmation modal for standard refund
@@ -196,7 +217,7 @@ export class RefundsPage {
       reservationId,
       amount: this.amount(),
       reason: this.reason().trim(),
-      adminNote: this.agency() ? `Agence: ${this.agency()}` : undefined,
+      adminNote: this.agency() ? `Agence sélectionnée: ${this.agency()!.label}` : undefined,
     };
 
     this.refundService.createManualRefund(payload);
@@ -218,6 +239,12 @@ export class RefundsPage {
 
   onReservationSelected(item: SearchSelectItem | null) {
     this.selectedReservation.set(item);
+
+    // Convenience: prefill the amount from the reservation's total when the
+    // admin hasn't already entered one manually.
+    if (item && this.amount() === 0 && typeof item['totalAmount'] === 'number') {
+      this.amount.set(item['totalAmount']);
+    }
   }
 
   // Load data on component initialization

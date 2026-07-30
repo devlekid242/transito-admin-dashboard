@@ -1,4 +1,4 @@
-    <div class="relative">
+<div class="relative">
       @if (!selectedItem()) {
         <button type="button" (click)="toggle()" [disabled]="disabled"
           class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-500 outline-none transition focus:border-green-400 focus:ring-2 focus:ring-green-100 disabled:opacity-50">
@@ -30,26 +30,32 @@
           <div class="border-b border-gray-100 p-2">
             <div class="relative">
               <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
-              <input #inputRef [value]="query()" (input)="query.set(inputRef.value)" type="text" [placeholder]="placeholder"
+              <input #inputRef [value]="query()" (input)="onQueryChange(inputRef.value)" type="text" [placeholder]="placeholder"
                 class="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
             </div>
           </div>
           <div class="max-h-64 overflow-y-auto">
-            @for (item of filtered(); track item.id) {
-              <button type="button" (click)="selectItem(item)"
-                class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-gray-50">
-                <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
-                  {{ item.label.charAt(0).toUpperCase() }}
-                </div>
-                <div class="min-w-0">
-                  <p class="truncate text-sm font-medium text-gray-800">{{ item.label }}</p>
-                  @if (item.sublabel) {
-                    <p class="truncate text-xs text-gray-500">{{ item.sublabel }}</p>
-                  }
-                </div>
-              </button>
-            } @empty {
-              <p class="px-4 py-8 text-center text-sm text-gray-400">{{ noResultsText }}</p>
+            @if (loading) {
+              <div class="flex items-center justify-center gap-2 px-4 py-8 text-sm text-gray-400">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> Recherche en cours...
+              </div>
+            } @else {
+              @for (item of filtered(); track item.id) {
+                <button type="button" (click)="selectItem(item)"
+                  class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-gray-50">
+                  <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
+                    {{ item.label.charAt(0).toUpperCase() }}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-medium text-gray-800">{{ item.label }}</p>
+                    @if (item.sublabel) {
+                      <p class="truncate text-xs text-gray-500">{{ item.sublabel }}</p>
+                    }
+                  </div>
+                </button>
+              } @empty {
+                <p class="px-4 py-8 text-center text-sm text-gray-400">{{ noResultsText }}</p>
+              }
             }
           </div>
         </div>

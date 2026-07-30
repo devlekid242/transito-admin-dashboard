@@ -100,6 +100,12 @@ export const routes: Routes = [
         canActivate: [authGuard],
       },
       {
+        path: "moderation/agencies/:id/edit",
+        component: AgencyCreatePage,
+        title: "Modifier agence · Tansico Admin",
+        canActivate: [authGuard],
+      },
+      {
         path: "moderation/agencies/:id",
         component: AgencyDetailPage,
         title: "Détail agence · Tansico Admin",

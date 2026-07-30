@@ -1,110 +1,153 @@
 @if (agency()) {
-      <div class="mb-4 flex items-center gap-2 text-sm">
-        <a routerLink="/moderation/agencies" class="text-gray-500 hover:text-green-600">Agences</a>
-        <i class="fa-solid fa-chevron-right text-xs text-gray-300"></i>
-        <span class="font-medium text-gray-700">{{ agency()!.name }}</span>
-      </div>
+<div class="mb-4 flex items-center gap-2 text-sm">
+  <a routerLink="/moderation/agencies" class="text-gray-500 hover:text-green-600">Agences</a>
+  <i class="fa-solid fa-chevron-right text-xs text-gray-300"></i>
+  <span class="font-medium text-gray-700">{{ agency()!.name }}</span>
+</div>
 
-      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex items-center gap-4">
-          <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-50 text-xl font-bold text-green-700">{{ initials(agency()!.name) }}</div>
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900">{{ agency()!.name }}</h1>
-            <p class="text-sm text-gray-500">{{ agency()!.city }} · {{ agency()!.id }}</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <a [routerLink]="['/moderation/agencies', agency()!.id, 'stats']" class="flex items-center gap-2 rounded-lg bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 transition-colors hover:bg-green-100">
-            <i class="fa-solid fa-chart-bar"></i> Statistiques
-          </a>
-        </div>
-      </div>
+<div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  <div class="flex items-center gap-4">
+    <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-50 text-xl font-bold text-green-700">
+      {{ initials(agency()!.name) }}
+    </div>
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">{{ agency()!.name }}</h1>
+      <p class="text-sm text-gray-500">ID: {{ agency()!.id }} · Inscrite le {{ formatDate(agency()!.createdAt) }}</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <a [routerLink]="['/moderation/agencies', agency()!.id, 'stats']" class="flex items-center gap-2 rounded-lg bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 transition-colors hover:bg-green-100">
+      <i class="fa-solid fa-chart-bar"></i> Statistiques
+    </a>
+    <a [routerLink]="['/moderation/agencies', agency()!.id, 'edit']" class="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">
+      <i class="fa-solid fa-edit"></i> Modifier
+    </a>
+  </div>
+</div>
 
-      <!-- Info cards -->
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <!-- Agency info -->
-        <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800"><i class="fa-solid fa-circle-info text-green-500"></i> Informations</h3>
-          <dl class="space-y-3 text-sm">
-            <div class="flex justify-between"><dt class="text-gray-500">Responsable</dt><dd class="font-medium text-gray-800">{{ agency()!.contact }}</dd></div>
-            <div class="flex justify-between"><dt class="text-gray-500">Email</dt><dd class="font-medium text-gray-800">{{ agency()!.email }}</dd></div>
-            <div class="flex justify-between"><dt class="text-gray-500">Téléphone</dt><dd class="font-medium text-gray-800">{{ agency()!.phone }}</dd></div>
-            <div class="flex justify-between"><dt class="text-gray-500">Ville</dt><dd class="font-medium text-gray-800">{{ agency()!.city }}</dd></div>
-            <div class="flex justify-between"><dt class="text-gray-500">Inscrite le</dt><dd class="font-medium text-gray-800">{{ agency()!.createdAt }}</dd></div>
-            <div class="flex justify-between items-center"><dt class="text-gray-500">KYC</dt>
-              <dd>
-                @switch (agency()!.kyc) {
-                  @case ('VERIFIED') { <app-status-badge variant="verified" label="Vérifié" icon="fa-circle-check" /> }
-                  @case ('PENDING') { <app-status-badge variant="info" label="À valider" icon="fa-clock" /> }
-                  @case ('MISSING') { <app-status-badge variant="missing" label="Manquant" icon="fa-file-circle-xmark" /> }
-                }
-              </dd>
-            </div>
-            <div class="flex justify-between items-center"><dt class="text-gray-500">Compte</dt>
-              <dd>
-                @if (agency()!.account === 'ACTIVE') { <app-status-badge variant="active" label="Actif" icon="fa-circle-check" /> }
-                @else { <app-status-badge variant="suspended" label="Suspendu" icon="fa-ban" /> }
-              </dd>
-            </div>
-          </dl>
-          <p class="mt-4 border-t border-gray-100 pt-3 text-xs text-gray-500">{{ agency()!.description }}</p>
-        </div>
+<div class="mb-6">
+  <div class="border-b border-gray-200">
+    <nav class="-mb-px flex gap-1 overflow-x-auto" aria-label="Tabs">
+      @for (tab of tabs; track tab) {
+        <button (click)="setTab(tab)" class="whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors"
+          [class.border-b-2]="activeTab() === tab" [class.border-green-500]="activeTab() === tab"
+          [class.text-green-600]="activeTab() === tab" [class.text-gray-500]="activeTab() !== tab"
+          [class.hover:text-gray-700]="activeTab() !== tab" [class.hover:bg-gray-50]="activeTab() !== tab">
+          <i class="fa-solid {{ getTabIcon(tab) }} mr-1"></i> {{ getTabLabel(tab) }}
+        </button>
+      }
+    </nav>
+  </div>
+</div>
 
-        <!-- Voyages -->
-        <div class="rounded-xl border border-gray-100 bg-white shadow-sm lg:col-span-2">
-          <div class="border-b border-gray-100 px-5 py-4">
-            <h3 class="flex items-center gap-2 text-base font-semibold text-gray-800"><i class="fa-solid fa-road text-green-500"></i> Voyages ({{ trips().length }})</h3>
-          </div>
-          <div class="divide-y divide-gray-50 max-h-96 overflow-y-auto">
-            @for (t of trips(); track t.id) {
-              <div class="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-gray-50">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg" [class.bg-green-50]="t.active" [class.bg-gray-100]="!t.active">
-                  <i class="fa-solid fa-bus text-sm" [class.text-green-600]="t.active" [class.text-gray-400]="!t.active"></i>
-                </div>
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-semibold text-gray-800">{{ t.route }}</p>
-                  <p class="text-xs text-gray-400">{{ t.departure }} → {{ t.arrival }} · {{ t.duration }} · {{ t.busType }} · {{ t.seats }} places</p>
-                </div>
-                <div class="text-right">
-                  <p class="text-sm font-semibold text-gray-700">{{ fcfa(t.price) }}</p>
-                  @if (t.active) {
-                    <span class="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">Actif</span>
-                  } @else {
-                    <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">Inactif</span>
-                  }
-                </div>
-              </div>
-            } @empty {
-              <p class="px-5 py-8 text-center text-sm text-gray-400">Aucun voyage enregistré.</p>
-            }
-          </div>
-        </div>
-      </div>
-
-      <!-- Boarding points -->
-      <div class="mt-6 rounded-xl border border-gray-100 bg-white shadow-sm">
-        <div class="border-b border-gray-100 px-5 py-4">
-          <h3 class="flex items-center gap-2 text-base font-semibold text-gray-800"><i class="fa-solid fa-location-dot text-green-500"></i> Points d'embarquement ({{ boardingPoints().length }})</h3>
-        </div>
-        <div class="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 lg:grid-cols-3">
-          @for (bp of boardingPoints(); track bp.id) {
-            <div class="flex items-start gap-3 rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50">
-              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-50"><i class="fa-solid fa-map-pin text-green-600"></i></div>
-              <div>
-                <p class="text-sm font-semibold text-gray-800">{{ bp.name }}</p>
-                <p class="text-xs text-gray-500">{{ bp.address }}</p>
-                <p class="mt-1 text-xs text-gray-400"><i class="fa-solid fa-clock mr-1"></i>Départ: {{ bp.departureTime }}</p>
-              </div>
-            </div>
-          } @empty {
-            <p class="col-span-full py-4 text-center text-sm text-gray-400">Aucun point d'embarquement enregistré.</p>
+<div class="space-y-6">
+  @if (activeTab() === 'info') {
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+        <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800"><i class="fa-solid fa-circle-info text-green-500"></i> Informations</h3>
+        <dl class="space-y-3 text-sm">
+          <div class="flex justify-between"><dt class="text-gray-500">Nom</dt><dd class="font-medium text-gray-800">{{ agency()!.name }}</dd></div>
+          <div class="flex justify-between"><dt class="text-gray-500">Email</dt><dd class="font-medium text-gray-800">{{ agency()!.email }}</dd></div>
+          <div class="flex justify-between"><dt class="text-gray-500">Telephone</dt><dd class="font-medium text-gray-800">{{ agency()!.phone }}</dd></div>
+          <div class="flex justify-between"><dt class="text-gray-500">Adresse</dt><dd class="font-medium text-gray-800">{{ agency()!.address || 'N/A' }}</dd></div>
+          @if (agency()!.registrationNumber) {
+            <div class="flex justify-between"><dt class="text-gray-500">N° Immatriculation</dt><dd class="font-medium text-gray-800">{{ agency()!.registrationNumber }}</dd></div>
           }
-        </div>
+          <div class="flex justify-between"><dt class="text-gray-500">Cree le</dt><dd class="font-medium text-gray-800">{{ formatDate(agency()!.createdAt) }}</dd></div>
+          <div class="flex justify-between"><dt class="text-gray-500">Commission</dt><dd class="font-medium text-gray-800">{{ agency()!.commissionRate }}%</dd></div>
+        </dl>
       </div>
-    } @else {
-      <div class="flex flex-col items-center justify-center py-20 text-gray-400">
-        <i class="fa-solid fa-building-circle-exclamation text-4xl"></i>
-        <p class="mt-3">Agence introuvable.</p>
-        <a routerLink="/moderation/agencies" class="mt-3 text-green-600 hover:underline">Retour à la liste</a>
+      <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+        <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800"><i class="fa-solid fa-shield-halved text-green-500"></i> Statut</h3>
+        <dl class="space-y-4 text-sm">
+          <div class="flex justify-between items-center">
+            <dt class="text-gray-500">Statut compte</dt>
+            <dd><app-status-badge [variant]="getStatusBadgeVariant(agency()!.status)" [label]="agency()!.status === 'active' ? 'Actif' : agency()!.status === 'suspended' ? 'Suspendu' : 'En attente'" /></dd>
+          </div>
+          <div class="flex justify-between items-center">
+            <dt class="text-gray-500">KYC</dt>
+            <dd>@if (agency()!.kyc) {<app-status-badge [variant]="getKycBadgeVariant(agency()!.kyc!)" [label]="getKycLabel(agency()!.kyc!)" [icon]="getKycIcon(agency()!.kyc!)" />} @else {<app-status-badge variant="missing" label="Manquant" icon="fa-file-circle-xmark" />}</dd>
+          </div>
+          <div class="flex justify-between"><dt class="text-gray-500">Note</dt><dd class="font-medium text-gray-800">{{ agency()!.ratingCache || '0' }}/5</dd></div>
+        </dl>
       </div>
-    }
+      <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+        <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800"><i class="fa-solid fa-chart-pie text-green-500"></i> Statistiques</h3>
+        <dl class="space-y-3 text-sm">
+          <div class="flex justify-between"><dt class="text-gray-500">Total voyages</dt><dd class="font-medium text-gray-800">{{ agency()!.tripsCount || 0 }}</dd></div>
+          <div class="flex justify-between"><dt class="text-gray-500">Total reservations</dt><dd class="font-medium text-gray-800">{{ agency()!.reservationsCount || 0 }}</dd></div>
+        </dl>
+      </div>
+    </div>
+  }
+  @if (activeTab() === 'trips') {
+    <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+      <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800"><i class="fa-solid fa-road text-green-500"></i> Voyages ({{ trips().length }})</h3>
+      @if (loadingTrips()) {
+        <div class="flex items-center justify-center py-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-green-500"></i><span class="ml-2 text-gray-500">Chargement...</span></div>
+      } @else {
+        <app-data-table
+          [columns]="tripColumns"
+          [rows]="formattedTrips()"
+          [trackKey]="'id'"
+          [pageSize]="10"
+          [emptyMessage]="'Aucun voyage trouve.'">
+          
+          <!-- Custom row template with status styling -->
+          <ng-template #rowTemplate let-row="row">
+            <td class="px-5 py-4 text-gray-800">{{ row.route }}</td>
+            <td class="px-5 py-4 text-gray-600">{{ row.tripDate }}</td>
+            <td class="px-5 py-4 text-gray-600">{{ row.departureTime }}</td>
+            <td class="px-5 py-4 text-right font-semibold text-gray-800">{{ row.price }}</td>
+            <td class="px-5 py-4 text-center">
+              <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+                [class.bg-green-100]="isTripActiveByStatus(row.statusRaw)" [class.text-green-700]="isTripActiveByStatus(row.statusRaw)"
+                [class.bg-gray-100]="!isTripActiveByStatus(row.statusRaw)" [class.text-gray-500]="!isTripActiveByStatus(row.statusRaw)">{{ row.status }}</span>
+            </td>
+            <td class="px-5 py-4 text-center text-gray-600">{{ row.seats }}</td>
+          </ng-template>
+        </app-data-table>
+      }
+    </div>
+  }
+  @if (activeTab() === 'bookings') {
+    <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+      <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800"><i class="fa-solid fa-ticket text-green-500"></i> Reservations ({{ reservations().length }})</h3>
+      @if (loadingReservations()) {
+        <div class="flex items-center justify-center py-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-green-500"></i><span class="ml-2 text-gray-500">Chargement...</span></div>
+      } @else {
+        <app-data-table
+          [columns]="reservationColumns"
+          [rows]="formattedReservations()"
+          [trackKey]="'id'"
+          [pageSize]="10"
+          [emptyMessage]="'Aucune reservation trouvee.'">
+          
+          <!-- Custom row template with payment status styling -->
+          <ng-template #rowTemplate let-row="row">
+            <td class="px-5 py-4 font-medium text-gray-800">{{ row.reference }}</td>
+            <td class="px-5 py-4 text-gray-600">{{ row.tripRoute || 'N/A' }}</td>
+            <td class="px-5 py-4 text-gray-600">{{ row.userName }}</td>
+            <td class="px-5 py-4 text-gray-600">{{ row.createdAt }}</td>
+            <td class="px-5 py-4 text-right font-semibold text-gray-800">{{ row.totalAmount }}</td>
+            <td class="px-5 py-4 text-center">
+              <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+                [class.bg-green-100]="row.paymentStatus === 'Paye'" [class.text-green-700]="row.paymentStatus === 'Paye'"
+                [class.bg-amber-100]="row.paymentStatus === 'En attente'" [class.text-amber-700]="row.paymentStatus === 'En attente'"
+                [class.bg-red-100]="row.paymentStatus === 'Echoue' || row.paymentStatus === 'Rembourse'"
+                [class.text-red-700]="row.paymentStatus === 'Echoue' || row.paymentStatus === 'Rembourse'">{{ row.paymentStatus }}</span>
+            </td>
+          </ng-template>
+        </app-data-table>
+      }
+    </div>
+  }
+</div>
+
+} @else {
+<div class="flex flex-col items-center justify-center py-20 text-gray-400">
+  <i class="fa-solid fa-building-circle-exclamation text-4xl"></i>
+  <p class="mt-3">Agence introuvable.</p>
+  <a routerLink="/moderation/agencies" class="mt-3 text-green-600 hover:underline">Retour a la liste</a>
+</div>
+}

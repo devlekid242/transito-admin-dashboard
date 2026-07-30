@@ -275,8 +275,12 @@
           <div>
             <label class="mb-1.5 block text-sm font-medium text-gray-700">Utilisateur *</label>
             <app-search-select
-              [items]="[]"
-              placeholder="Rechercher un utilisateur..."
+              [async]="true"
+              [items]="refundService.clientResults()"
+              [loading]="refundService.clientSearchLoading()"
+              placeholder="Rechercher un client (nom, téléphone)..."
+              noResultsText="Aucun client trouvé"
+              (search)="onUserSearch($event)"
               (selected)="onUserSelected($event)" />
             <p class="mt-1 text-xs text-gray-400">Sélectionnez le client à rembourser</p>
           </div>
@@ -285,8 +289,12 @@
           <div>
             <label class="mb-1.5 block text-sm font-medium text-gray-700">Réservation *</label>
             <app-search-select
-              [items]="[]"
-              placeholder="Rechercher une réservation..."
+              [async]="true"
+              [items]="refundService.reservationResults()"
+              [loading]="refundService.reservationSearchLoading()"
+              placeholder="Rechercher par référence de réservation..."
+              noResultsText="Aucune réservation trouvée"
+              (search)="onReservationSearch($event)"
               (selected)="onReservationSelected($event)" />
             <p class="mt-1 text-xs text-gray-400">Sélectionnez la réservation concernée</p>
           </div>
@@ -295,8 +303,12 @@
           <div>
             <label class="mb-1.5 block text-sm font-medium text-gray-700">Agence *</label>
             <app-search-select
-              [items]="[]"
-              placeholder="Rechercher un utilisateur..."
+              [async]="true"
+              [items]="refundService.agencyResults()"
+              [loading]="refundService.agencySearchLoading()"
+              placeholder="Rechercher une agence..."
+              noResultsText="Aucune agence trouvée"
+              (search)="onAgencySearch($event)"
               (selected)="onAgencySelected($event)" />
             <p class="mt-1 text-xs text-gray-400">Sélectionnez l'agence à débiter</p>
           </div>

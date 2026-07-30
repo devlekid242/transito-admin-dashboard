@@ -2,6 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { catchError, of } from 'rxjs';
+import { SearchSelectItem } from '../shared/search-select.component';
 
 // Types and interfaces
 export type RefundStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
@@ -118,6 +119,11 @@ export interface CreateRefundPayload {
   adminNote?: string;
 }
 
+export interface LookupResponse {
+  success: boolean;
+  data: SearchSelectItem[];
+}
+
 export interface FilterOptions {
   status?: RefundStatus | 'ALL';
   agencyId?: number;
@@ -176,6 +182,14 @@ export class RefundService {
   readonly currentPage = signal<number>(1);
   readonly perPage = signal<number>(20);
   readonly totalPages = signal<number>(1);
+
+  // Search-select lookup state (manual refund creation form)
+  readonly clientResults = signal<SearchSelectItem[]>([]);
+  readonly clientSearchLoading = signal<boolean>(false);
+  readonly reservationResults = signal<SearchSelectItem[]>([]);
+  readonly reservationSearchLoading = signal<boolean>(false);
+  readonly agencyResults = signal<SearchSelectItem[]>([]);
+  readonly agencySearchLoading = signal<boolean>(false);
 
   // Computed signals
   readonly filteredRefunds = computed<RefundRequest[]>(() => {
@@ -436,6 +450,71 @@ export class RefundService {
           this.loading.set(false);
         },
       });
+  }
+
+  /**
+   * Search standard clients (excludes admin/partner accounts) for the
+   * manual refund creation form's user search-select.
+   */
+  searchClients(query: string) {
+    this.clientSearchLoading.set(true);
+
+    this.http
+      .get<LookupResponse>(`${this.apiBaseUrl}/admin/refunds/lookup/clients`, {
+        params: { q: query },
+      })
+      .pipe(catchError(() => of(null)))
+      .subscribe((response) => {
+        this.clientResults.set(response?.success ? response.data : []);
+        this.clientSearchLoading.set(false);
+      });
+  }
+
+  /**
+   * Search reservations for the manual refund creation form's reservation
+   * search-select. Optionally scoped to a previously selected client.
+   */
+  searchReservations(query: string, userId?: number | null) {
+    this.reservationSearchLoading.set(true);
+
+    const params: Record<string, string> = { q: query };
+    if (userId) {
+      params['userId'] = userId.toString();
+    }
+
+    this.http
+      .get<LookupResponse>(`${this.apiBaseUrl}/admin/refunds/lookup/reservations`, { params })
+      .pipe(catchError(() => of(null)))
+      .subscribe((response) => {
+        this.reservationResults.set(response?.success ? response.data : []);
+        this.reservationSearchLoading.set(false);
+      });
+  }
+
+  /**
+   * Search agencies for the manual refund creation form's agency search-select.
+   */
+  searchAgencies(query: string) {
+    this.agencySearchLoading.set(true);
+
+    this.http
+      .get<LookupResponse>(`${this.apiBaseUrl}/admin/refunds/lookup/agencies`, {
+        params: { q: query },
+      })
+      .pipe(catchError(() => of(null)))
+      .subscribe((response) => {
+        this.agencyResults.set(response?.success ? response.data : []);
+        this.agencySearchLoading.set(false);
+      });
+  }
+
+  /**
+   * Reset all lookup result sets — call when the create-refund modal closes.
+   */
+  resetLookups() {
+    this.clientResults.set([]);
+    this.reservationResults.set([]);
+    this.agencyResults.set([]);
   }
 
   /**

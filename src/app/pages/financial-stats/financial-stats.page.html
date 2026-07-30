@@ -1,118 +1,144 @@
 <app-page-header
-	title="Statistiques 
-  financières"
+	title="Statistiques financières"
 	subtitle="Vue complète de la santé financière de la plateforme Tansico."
 	[actions]="true">
 	<ng-template #buttonAction>
 		<div class="flex items-center gap-2">
 			@for (p of periods; track p.value) {
 			<button
-				(click)="activePeriod.set(p.value)"
+				(click)="onPeriodChange(p.value)"
 				class="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
-				[class.bg-green-600]="activePeriod() === p.value"
-				[class.text-white]="activePeriod() === p.value"
-				[class.bg-gray-100]="activePeriod() !== p.value"
-				[class.text-gray-600]="activePeriod() !== p.value"
-				[class.hover:bg-gray-200]="activePeriod() !== p.value">
+				[class.bg-green-600]="dateFilter().period === p.value"
+				[class.text-white]="dateFilter().period === p.value"
+				[class.bg-gray-100]="dateFilter().period !== p.value"
+				[class.text-gray-600]="dateFilter().period !== p.value"
+				[class.hover:bg-gray-200]="dateFilter().period !== p.value">
 				{{ p.label }}
 			</button>
 			}
 			<input
-				type="text"
-				placeholder="Personnaliser..."
+				type="date"
+				[value]="dateFilter().startDate"
+				(change)="onStartDateChange($event)"
 				class="w-36 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+			<input
+				type="date"
+				[value]="dateFilter().endDate"
+				(change)="onEndDateChange($event)"
+				class="w-36 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+			<button
+				(click)="applyCustomDateRange()"
+				class="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700">
+				Appliquer
+			</button>
 		</div>
 	</ng-template>
 </app-page-header>
 
+<!-- Loading state -->
+@if (loading()) {
+<div class="flex items-center justify-center py-8">
+  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+  <span class="ml-3">Chargement des données...</span>
+</div>
+}
+
+<!-- Error state -->
+@if (error()) {
+<div class="rounded-lg bg-red-50 border border-red-200 p-4 text-red-700">
+  {{ error() }}
+</div>
+}
+
 <!-- Financial KPIs -->
+@if (data()) {
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 	<app-stat-card
-		label="Chiffre d'affaires"
-		[value]="fcfa(data.financialKpis.chiffreAffaires)"
+		label="GMV (Valeur brute)"
+		[value]="fcfa(grossMerchandiseValue())"
 		icon="fa-chart-line"
 		iconBg="bg-green-600"
-		trend="+23%"
-		[trendUp]="true"
+		[trend]="getGMVTrend()"
+		[trendUp]="gmvGrowthRate() >= 0"
 		accentBar="bg-green-500" />
 	<app-stat-card
-		label="Bénéfice"
-		[value]="fcfa(data.financialKpis.benefice)"
+		label="Solde plateforme"
+		[value]="fcfa(platformBalance())"
 		icon="fa-money-bill-trend-up"
 		iconBg="bg-emerald-600"
-		trend="+34%"
-		[trendUp]="true"
+		[trend]="getPlatformBalanceTrend()"
+		[trendUp]="gmvGrowthRate() >= 0"
 		accentBar="bg-emerald-500" />
 	<app-stat-card
-		label="Commissions"
-		[value]="fcfa(data.financialKpis.commissions)"
-		icon="fa-percent"
+		label="Solde portefeuilles"
+		[value]="fcfa(totalWalletBalance())"
+		icon="fa-vault"
 		iconBg="bg-violet-600"
-		trend="+23%"
-		[trendUp]="true"
+		[trend]="getWalletBalanceTrend()"
+		[trendUp]="gmvGrowthRate() >= 0"
 		accentBar="bg-violet-500" />
 	<app-stat-card
 		label="Remboursements"
-		[value]="fcfa(data.financialKpis.remboursements)"
+		[value]="fcfa(totalRefunds())"
 		icon="fa-rotate-left"
 		iconBg="bg-red-600"
-		trend="-12%"
-		[trendUp]="true"
+		[trend]="'-12%'"
+		[trendUp]="false"
 		accentBar="bg-red-500" />
 	<app-stat-card
-		label="Solde plateforme"
-		[value]="fcfa(data.financialKpis.soldePlateforme)"
-		icon="fa-vault"
-		iconBg="bg-cyan-600"
-		trend="Stable"
-		[trendUp]="true"
-		accentBar="bg-cyan-500" />
-	<app-stat-card
-		label="Réservations"
-		[value]="str(data.reservationStats.total)"
-		icon="fa-ticket"
-		iconBg="bg-green-600"
-		trend="+12%"
-		[trendUp]="true"
-		accentBar="bg-green-500" />
-	<app-stat-card
-		label="Annulations"
-		[value]="str(data.reservationStats.cancelled)"
-		icon="fa-ban"
+		label="Remboursements en attente"
+		[value]="fcfa(pendingRefunds())"
+		icon="fa-hourglass-half"
 		iconBg="bg-amber-600"
-		trend="-0.5%"
+		trend="Attente"
 		[trendUp]="true"
 		accentBar="bg-amber-500" />
 	<app-stat-card
+		label="Volume transactions"
+		[value]="str(transactionVolume())"
+		icon="fa-ticket"
+		iconBg="bg-cyan-600"
+		[trend]="getGMVTrend()"
+		[trendUp]="gmvGrowthRate() >= 0"
+		accentBar="bg-cyan-500" />
+	<app-stat-card
+		label="Marge nette"
+		[value]="formatPercentage(netMargin())"
+		icon="fa-percent"
+		iconBg="bg-green-600"
+		[trend]="getGMVTrend()"
+		[trendUp]="gmvGrowthRate() >= 0"
+		accentBar="bg-green-500" />
+	<app-stat-card
 		label="Panier moyen"
-		[value]="fcfa(data.financialKpis.panierMoyen)"
+		[value]="fcfa(averageBasket())"
 		icon="fa-receipt"
 		iconBg="bg-amber-600"
-		trend="+5%"
-		[trendUp]="true"
+		[trend]="getGMVTrend()"
+		[trendUp]="gmvGrowthRate() >= 0"
 		accentBar="bg-amber-500" />
 </div>
 
-<!-- CA evolution -->
+<!-- GMV evolution -->
 <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
 	<div
 		class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-2">
 		<div class="mb-4">
 			<h3 class="text-base font-semibold text-gray-800">
-				Évolution du chiffre d'affaires
+				Évolution du GMV
 			</h3>
 			<p class="text-xs text-gray-500">
-				8 derniers mois (en millions FCFA)
+				Valeur brute sur la période sélectionnée (en FCFA)
 			</p>
 		</div>
 		<div class="h-60">
 			<app-line-chart
-				[labels]="data.revenueLabels"
-				[chartSeries]="[{ name: 'CA (M FCFA)', data: data.caSeries, color: '#2563eb', fill: '#2563eb', dotClass: 'bg-green-600' }]" />
+				[labels]="caChartLabels() || []"
+				[chartSeries]="caChartSeries() || []" />
 		</div>
 	</div>
 
-	<!-- Margin info card -->
+	<!-- Margin and transaction info cards -->
 	<div class="space-y-4">
 		<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
 			<h3 class="mb-4 text-base font-semibold text-gray-800">
@@ -137,19 +163,16 @@
 							stroke="#16a34a"
 							stroke-width="8"
 							stroke-dasharray="251.3"
-							[attr.stroke-dashoffset]="251.3 * (1 - data.financialKpis.marge / 100)"
+							[attr.stroke-dashoffset]="251.3 * (1 - netMargin() / 100)"
 							stroke-linecap="round"
 							class="transition-all duration-700" />
 					</svg>
-					<span class="absolute text-lg font-bold text-gray-900"
-						>{{ data.financialKpis.marge }}%</span
-					>
+					<span class="absolute text-lg font-bold text-gray-900">{{ formatPercentage(netMargin()) }}</span>
 				</div>
 				<div>
-					<p class="text-sm text-gray-500">Marge ce mois</p>
+					<p class="text-sm text-gray-500">Marge globale</p>
 					<p class="text-xs text-green-600">
-						<i class="fa-solid fa-arrow-trend-up"></i> +3pp vs mois
-						précédent
+						<i class="fa-solid fa-arrow-trend-up"></i> {{ getGMVTrend() }} vs période précédente
 					</p>
 				</div>
 			</div>
@@ -159,9 +182,9 @@
 				Volume transactions
 			</h3>
 			<p class="text-3xl font-bold text-gray-900">
-				{{ data.financialKpis.volumeTransactions }}
+				{{ str(transactionVolume()) }}
 			</p>
-			<p class="mt-1 text-xs text-gray-500">Transactions ce mois</p>
+			<p class="mt-1 text-xs text-gray-500">Transactions sur la période</p>
 		</div>
 	</div>
 </div>
@@ -174,7 +197,7 @@
 		</h3>
 		<div class="h-56">
 			<app-bar-chart
-				[data]="agencyBarData()"
+				[data]="agencyBarData() || []"
 				[valueFormat]="'currency'" />
 		</div>
 	</div>
@@ -186,11 +209,8 @@
 		<div class="h-56">
 			<app-line-chart
 				[legend]="true"
-				[labels]="data.revenueLabels"
-				[chartSeries]="[
-              { name: 'Bénéfice', data: data.beneficeSeries, color: '#16a34a', dotClass: 'bg-green-600' },
-              { name: 'Commissions', data: data.commissionsSeries, color: '#9333ea', dotClass: 'bg-violet-600' }
-            ]" />
+				[labels]="benefitVsCommissionsLabels() || []"
+				[chartSeries]="benefitVsCommissionsSeries() || []" />
 		</div>
 	</div>
 </div>
@@ -217,28 +237,27 @@
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-50">
-				@for (a of data.revenueByAgency; track a.agency) {
+				@for (a of financialDetailByAgency(); track $index) {
 				<tr class="transition-colors hover:bg-gray-50">
 					<td class="px-5 py-4 font-semibold text-gray-800">
 						{{ a.agency }}
 					</td>
 					<td class="px-5 py-4 text-gray-600">
-						{{ fcfa(a.revenue) }}
+						{{ fcfa(a.ca) }}
 					</td>
 					<td class="px-5 py-4 text-gray-600">
-						{{ fcfa(round(a.revenue * 0.1)) }}
+						{{ fcfa(a.commission) }}
 					</td>
 					<td class="px-5 py-4 text-gray-600">
-						{{ fcfa(round(a.revenue * 0.02)) }}
+						{{ fcfa(a.commission * 0.2) }}
 					</td>
 					<td class="px-5 py-4 font-semibold text-gray-900">
-						{{ fcfa(round(a.revenue * 0.08)) }}
+						{{ fcfa(a.netRevenue) }}
 					</td>
 					<td class="px-5 py-4">
-						<span
-							class="rounded-lg bg-green-50 px-2 py-1 text-xs font-semibold text-green-700"
-							>8%</span
-						>
+						<span class="rounded-lg bg-green-50 px-2 py-1 text-xs font-semibold text-green-700">
+							{{ formatPercentage(a.margin) }}
+						</span>
 					</td>
 				</tr>
 				}
@@ -246,3 +265,4 @@
 		</table>
 	</div>
 </div>
+}
