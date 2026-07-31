@@ -3,32 +3,34 @@
 	subtitle="Suivi de tous les trajets de la plateforme avec manifeste passagers." />
 
 <!-- KPIs -->
+@if (kpis; as k) {
 <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
 	<app-stat-card
 		label="Total trajets"
-		[value]="str(kpis.total)"
+		[value]="str(k?.total ?? 0)"
 		icon="fa-route"
 		iconBg="bg-green-600"
 		accentBar="bg-green-500" />
 	<app-stat-card
 		label="En cours / Planifiés"
-		[value]="str(kpis.scheduled + kpis.inProgress)"
+		[value]="str((k?.scheduled ?? 0) + (k?.inProgress ?? 0))"
 		icon="fa-clock"
 		iconBg="bg-amber-600"
 		accentBar="bg-amber-500" />
 	<app-stat-card
 		label="Passagers transportés"
-		[value]="str(kpis.totalPassengers)"
+		[value]="str(k?.totalPassengers ?? 0)"
 		icon="fa-users"
 		iconBg="bg-emerald-600"
 		accentBar="bg-emerald-500" />
 	<app-stat-card
 		label="Revenu total"
-		[value]="fcfa(kpis.totalRevenue)"
+		[value]="fcfa(k?.totalRevenue ?? 0)"
 		icon="fa-coins"
 		iconBg="bg-green-600"
 		accentBar="bg-green-500" />
 </div>
+}
 
 <!-- Status filter -->
 <div
@@ -61,14 +63,10 @@
 			<td class="px-5 py-4 font-medium text-gray-800">{{ t.route }}</td>
 			<td class="px-5 py-4 text-gray-600">{{ t.agency }}</td>
 			<td class="px-5 py-4 text-gray-600">
-				{{ t.date }}<br /><span class="text-xs text-gray-400"
-					>{{ t.departure }} → {{ t.arrival }}</span
-				>
+				{{ t.date }}<br /><span class="text-xs text-gray-400">{{ t.departure }} → {{ t.arrival }}</span>
 			</td>
 			<td class="px-5 py-4 text-gray-600">
-				{{ t.busType }}<br /><span class="text-xs text-gray-400"
-					>{{ t.busPlate }}</span
-				>
+				{{ t.busType }}<br /><span class="text-xs text-gray-400">{{ t.busPlate }}</span>
 			</td>
 			<td class="px-5 py-4 text-gray-600">{{ t.driver }}</td>
 			<td class="px-5 py-4">
@@ -79,44 +77,15 @@
 							class="h-full rounded-full bg-green-500"
 							[style.width.%]="t.fillRate"></div>
 					</div>
-					<span class="text-xs font-semibold text-gray-600"
-						>{{ t.fillRate }}%</span
-					>
+					<span class="text-xs font-semibold text-gray-600">{{ t.fillRate }}%</span>
 				</div>
-				<span class="text-xs text-gray-400"
-					>{{ t.bookedSeats }}/{{ t.totalSeats }} places</span
-				>
+				<span class="text-xs text-gray-400">{{ t.bookedSeats }}/{{ t.totalSeats }} places</span>
 			</td>
 			<td class="px-5 py-4 font-semibold text-gray-900">
 				{{ fcfa(t.revenue) }}
 			</td>
 			<td class="px-5 py-4">
-				@switch (t.status) { @case ('SCHEDULED') {
-				<app-status-badge
-					variant="pending"
-					label="Planifié"
-					icon="fa-clock" />
-				} @case ('IN_PROGRESS') {
-				<app-status-badge
-					variant="info"
-					label="En cours"
-					icon="fa-spinner" />
-				} @case ('COMPLETED') {
-				<app-status-badge
-					variant="verified"
-					label="Terminé"
-					icon="fa-flag-checkered" />
-				} @case ('DELAYED') {
-				<app-status-badge
-					variant="missing"
-					label="Retardé"
-					icon="fa-triangle-exclamation" />
-				} @case ('CANCELLED') {
-				<app-status-badge
-					variant="rejected"
-					label="Annulé"
-					icon="fa-ban" />
-				} }
+            <app-status-badge [variant]="tripService.getStatusBadgeVariant(t.status)" [label]="tripService.getStatusLabel(t.status)" icon="fa-circle-check" />
 			</td>
 			<td class="px-5 py-4 text-right">
 				<a

@@ -4,7 +4,7 @@
 		>Utilisateurs</a
 	>
 	<i class="fa-solid fa-chevron-right text-xs text-gray-300"></i>
-	<span class="font-medium text-gray-700">{{ profile()!.user.name }}</span>
+	<span class="font-medium text-gray-700">{{ profile()!.user.fullName }}</span>
 </div>
 
 <!-- Profile header -->
@@ -14,14 +14,14 @@
 		<div
 			class="flex h-20 w-20 items-center justify-center rounded-full text-2xl font-bold text-white"
 			[class]="profile()!.user.avatarColor">
-			{{ initials(profile()!.user.name) }}
+			{{ initials(profile()!.user.fullName) }}
 		</div>
 		<div>
 			<h1 class="text-2xl font-bold text-gray-900">
-				{{ profile()!.user.name }}
+				{{ profile()!.user.fullName }}
 			</h1>
 			<p class="text-sm text-gray-500">
-				{{ profile()!.user.email }} · {{ profile()!.user.phone }}
+				{{ profile()!.user.email }} · {{ profile()!.user.phoneNumber }}
 			</p>
 			<div class="mt-1 flex items-center gap-2">
 				<span
@@ -29,14 +29,17 @@
 					[class.bg-green-50]="profile()!.user.role === 'CLIENT'"
 					[class.text-green-700]="profile()!.user.role === 'CLIENT'"
 					[class.bg-emerald-50]="profile()!.user.role === 'AGENT'"
-					[class.text-emerald-700]="profile()!.user.role === 'AGENT'">
+					[class.text-emerald-700]="profile()!.user.role === 'AGENT'"
+					[class.bg-violet-50]="profile()!.user.role === 'ADMIN'"
+					[class.text-violet-700]="profile()!.user.role === 'ADMIN'">
 					<i
 						class="fa-solid"
 						[class.fa-user]="profile()!.user.role === 'CLIENT'"
-						[class.fa-user-tie]="profile()!.user.role === 'AGENT'"></i>
-					{{ profile()!.user.role === 'CLIENT' ? 'Client' : 'Agent' }}
+						[class.fa-user-tie]="profile()!.user.role === 'AGENT'"
+						[class.fa-user-cog]="profile()!.user.role === 'ADMIN'"></i>
+					{{ profile()!.user.role === 'CLIENT' ? 'Client' : profile()!.user.role === 'AGENT' ? 'Agent' : 'Administrateur' }}
 				</span>
-				@if (profile()!.user.status === 'ACTIVE') {
+				@if (profile()!.user.status === 'active') {
 				<app-status-badge
 					variant="active"
 					label="Actif"
@@ -53,15 +56,15 @@
 	<button
 		(click)="toggleBlock()"
 		class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all active:scale-95"
-		[class.bg-red-50]="profile()!.user.status === 'ACTIVE'"
-		[class.text-red-600]="profile()!.user.status === 'ACTIVE'"
-		[class.bg-green-50]="profile()!.user.status === 'SUSPENDED'"
-		[class.text-green-600]="profile()!.user.status === 'SUSPENDED'">
+		[class.bg-red-50]="profile()!.user.status === 'active'"
+		[class.text-red-600]="profile()!.user.status === 'active'"
+		[class.bg-green-50]="profile()!.user.status !== 'active'"
+		[class.text-green-600]="profile()!.user.status !== 'active'">
 		<i
 			class="fa-solid"
-			[class.fa-ban]="profile()!.user.status === 'ACTIVE'"
-			[class.fa-unlock]="profile()!.user.status === 'SUSPENDED'"></i>
-		{{ profile()!.user.status === 'ACTIVE' ? 'Bloquer' : 'Débloquer' }}
+			[class.fa-ban]="profile()!.user.status === 'active'"
+			[class.fa-unlock]="profile()!.user.status !== 'active'"></i>
+		{{ profile()!.user.status === 'active' ? 'Bloquer' : 'Débloquer' }}
 	</button>
 </div>
 
@@ -105,190 +108,293 @@
 		accentBar="bg-cyan-500" />
 </div>
 
-<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-	<!-- Account info -->
-	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-		<h3
-			class="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800">
-			<i class="fa-solid fa-circle-info text-green-500"></i> Informations
-			du compte
-		</h3>
-		<dl class="space-y-3 text-sm">
-			<div class="flex justify-between">
-				<dt class="text-gray-500">ID</dt>
-				<dd class="font-mono font-medium text-gray-800">
-					{{ profile()!.user.id }}
-				</dd>
-			</div>
-			<div class="flex justify-between">
-				<dt class="text-gray-500">Email</dt>
-				<dd class="font-medium text-gray-800">
-					{{ profile()!.user.email }}
-				</dd>
-			</div>
-			<div class="flex justify-between">
-				<dt class="text-gray-500">Téléphone</dt>
-				<dd class="font-medium text-gray-800">
-					{{ profile()!.user.phone }}
-				</dd>
-			</div>
-			<div class="flex justify-between">
-				<dt class="text-gray-500">Rôle</dt>
-				<dd class="font-medium text-gray-800">
-					{{ profile()!.user.role === 'CLIENT' ? 'Client' : 'Agent' }}
-				</dd>
-			</div>
-			@if (profile()!.user.agency) {
-			<div class="flex justify-between">
-				<dt class="text-gray-500">Agence</dt>
-				<dd class="font-medium text-gray-800">
-					{{ profile()!.user.agency }}
-				</dd>
-			</div>
-			}
-			<div class="flex justify-between">
-				<dt class="text-gray-500">Inscrit le</dt>
-				<dd class="font-medium text-gray-800">
-					{{ profile()!.user.joinedAt }}
-				</dd>
-			</div>
-			<div class="flex justify-between">
-				<dt class="text-gray-500">Trajet préféré</dt>
-				<dd class="font-medium text-gray-800 text-right">
-					{{ profile()!.stats.favoriteRoute }}
-				</dd>
-			</div>
-		</dl>
+<!-- Tabs -->
+<div class="mt-6">
+	<div class="border-b border-gray-200">
+		<nav class="-mb-px flex gap-8" aria-label="Tabs">
+			<button
+				(click)="setActiveTab('info')"
+				[class.border-green-500]="activeTab() === 'info'"
+				[class.text-green-600]="activeTab() === 'info'"
+				[class.border-transparent]="activeTab() !== 'info'"
+				[class.text-gray-500]="activeTab() !== 'info'"
+				class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors"
+				aria-current="activeTab() === 'info' ? 'page' : undefined">
+				<i class="fa-solid fa-circle-info mr-1"></i> Informations
+			</button>
+			<button
+				(click)="setActiveTab('reservations')"
+				[class.border-green-500]="activeTab() === 'reservations'"
+				[class.text-green-600]="activeTab() === 'reservations'"
+				[class.border-transparent]="activeTab() !== 'reservations'"
+				[class.text-gray-500]="activeTab() !== 'reservations'"
+				class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors">
+				<i class="fa-solid fa-ticket mr-1"></i> Réservations
+			</button>
+			<button
+				(click)="setActiveTab('cancellations')"
+				[class.border-green-500]="activeTab() === 'cancellations'"
+				[class.text-green-600]="activeTab() === 'cancellations'"
+				[class.border-transparent]="activeTab() !== 'cancellations'"
+				[class.text-gray-500]="activeTab() !== 'cancellations'"
+				class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors">
+				<i class="fa-solid fa-rotate-left mr-1"></i> Annulations
+			</button>
+			<button
+				(click)="setActiveTab('transactions')"
+				[class.border-green-500]="activeTab() === 'transactions'"
+				[class.text-green-600]="activeTab() === 'transactions'"
+				[class.border-transparent]="activeTab() !== 'transactions'"
+				[class.text-gray-500]="activeTab() !== 'transactions'"
+				class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors">
+				<i class="fa-solid fa-money-bill-transfer mr-1"></i> Transactions
+			</button>
+		</nav>
 	</div>
+</div>
 
-	<!-- Reservation history -->
-	<div
-		class="rounded-xl border border-gray-100 bg-white shadow-sm lg:col-span-2">
-		<div class="border-b border-gray-100 px-5 py-4">
-			<h3 class="text-base font-semibold text-gray-800">
-				Historique des réservations
+<!-- Tab Content -->
+<div class="mt-4">
+	<!-- Info Tab -->
+	@if (activeTab() === 'info') {
+	<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+		<!-- Account info -->
+		<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+			<h3
+				class="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800">
+				<i class="fa-solid fa-circle-info text-green-500"></i> Informations
+				du compte
 			</h3>
+			<dl class="space-y-3 text-sm">
+				<div class="flex justify-between">
+					<dt class="text-gray-500">ID</dt>
+					<dd class="font-mono font-medium text-gray-800">
+						{{ profile()!.user.id }}
+					</dd>
+				</div>
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Email</dt>
+					<dd class="font-medium text-gray-800">
+						{{ profile()!.user.email }}
+					</dd>
+				</div>
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Téléphone</dt>
+					<dd class="font-medium text-gray-800">
+						{{ profile()!.user.phoneNumber }}
+					</dd>
+				</div>
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Rôle</dt>
+					<dd class="font-medium text-gray-800">
+						{{ profile()!.user.role === 'CLIENT' ? 'Client' : profile()!.user.role === 'AGENT' ? 'Agent' : 'Administrateur' }}
+					</dd>
+				</div>
+				@if (profile()!.user.agency) {
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Agence</dt>
+					<dd class="font-medium text-gray-800">
+						{{ profile()!.user.agency?.name ?? '—' }}
+					</dd>
+				</div>
+				}
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Inscrit le</dt>
+					<dd class="font-medium text-gray-800">
+						{{ formatDate(profile()!.user.createdAt) }}
+					</dd>
+				</div>
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Dernière connexion</dt>
+					<dd class="font-medium text-gray-800">
+						{{ profile()!.user.lastLoginAt ? formatDateTime(profile()!.user.lastLoginAt!) : '—' }}
+					</dd>
+				</div>
+				@if (profile()!.user.villeResidence) {
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Ville</dt>
+					<dd class="font-medium text-gray-800">
+						{{ profile()!.user.villeResidence }}
+					</dd>
+				</div>
+				}
+				@if (profile()!.user.quartier) {
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Quartier</dt>
+					<dd class="font-medium text-gray-800">
+						{{ profile()!.user.quartier }}
+					</dd>
+				</div>
+				}
+				@if (profile()!.user.emergencyContactName) {
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Contact d'urgence</dt>
+					<dd class="font-medium text-gray-800">
+						{{ profile()!.user.emergencyContactName }} - {{ profile()!.user.emergencyContactPhone }}
+					</dd>
+				</div>
+				}
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Trajet préféré</dt>
+					<dd class="font-medium text-gray-800 text-right">
+						{{ profile()!.stats.favoriteRoute }}
+					</dd>
+				</div>
+			</dl>
 		</div>
-		<div class="max-h-80 divide-y divide-gray-50 overflow-y-auto">
-			@for (r of profile()!.reservations; track r.id) {
-			<div
-				class="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-gray-50">
-				<div
-					class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-50">
-					<i class="fa-solid fa-ticket text-green-600 text-sm"></i>
+
+		<!-- Additional Info -->
+		@if (profile()!.user.role === 'AGENT' && profile()!.user.agentRole) {
+		<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+			<h3 class="mb-4 text-base font-semibold text-gray-800">Informations Agent</h3>
+			<dl class="space-y-3 text-sm">
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Rôle Agent</dt>
+					<dd class="font-medium text-gray-800">{{ profile()!.user.agentRole }}</dd>
 				</div>
-				<div class="min-w-0 flex-1">
-					<p class="truncate text-sm font-semibold text-gray-800">
-						{{ r.route }}
-					</p>
-					<p class="text-xs text-gray-400">
-						{{ r.ref }} · {{ r.date }} · {{ r.agency }}
-					</p>
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Statut Agent</dt>
+					<dd class="font-medium text-gray-800">{{ profile()!.user.agentStatus }}</dd>
 				</div>
-				<div class="text-right">
-					<p class="text-sm font-semibold text-gray-700">
-						{{ fcfa(r.amount) }}
-					</p>
-					@switch (r.status) { @case ('CONFIRMED') {
-					<span class="text-xs font-medium text-green-600"
-						>Confirmée</span
-					>
-					} @case ('COMPLETED') {
-					<span class="text-xs font-medium text-emerald-600"
-						>Terminée</span
-					>
-					} @case ('CANCELLED') {
-					<span class="text-xs font-medium text-red-600"
-						>Annulée</span
-					>
-					} @case ('PENDING') {
-					<span class="text-xs font-medium text-amber-600"
-						>En attente</span
-					>
-					} @case ('NO_SHOW') {
-					<span class="text-xs font-medium text-orange-600"
-						>No-show</span
-					>
-					} }
+			</dl>
+		</div>
+		}
+
+		@if (profile()!.user.role === 'ADMIN' && profile()!.user.adminRole) {
+		<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+			<h3 class="mb-4 text-base font-semibold text-gray-800">Informations Admin</h3>
+			<dl class="space-y-3 text-sm">
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Rôle Admin</dt>
+					<dd class="font-medium text-gray-800">{{ profile()!.user.adminRole }}</dd>
 				</div>
-			</div>
-			} @empty {
-			<p class="px-5 py-8 text-center text-sm text-gray-400">
-				Aucune réservation.
-			</p>
-			}
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Statut Admin</dt>
+					<dd class="font-medium text-gray-800">{{ profile()!.user.adminStatus }}</dd>
+				</div>
+				@if (profile()!.user.adminPermissions && profile()!.user.adminPermissions!.length > 0) {
+				<div class="flex justify-between">
+					<dt class="text-gray-500">Permissions</dt>
+					<dd class="font-medium text-gray-800">{{ profile()!.user.adminPermissions!.join(', ') }}</dd>
+				</div>
+				}
+			</dl>
+		</div>
+		}
+	</div>
+	}
+
+	<!-- Reservations Tab -->
+	@if (activeTab() === 'reservations') {
+	<div class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+		<div class="border-b border-gray-100 px-5 py-4">
+			<h3 class="text-base font-semibold text-gray-800">Historique des réservations</h3>
+		</div>
+		<div class="max-h-96 overflow-y-auto">
+			<app-data-table
+				[columns]="reservationColumns"
+				[rows]="profile()!.reservations"
+				[trackKey]="'id'"
+				[pageSize]="10"
+				[emptyMessage]="'Aucune réservation.'">
+				
+				<ng-template #rowTemplate let-row="row">
+					<td class="px-5 py-4">
+						<span class="font-medium text-gray-800">{{ row.reference }}</span>
+					</td>
+					<td class="px-5 py-4 text-gray-600">{{ row.route }}</td>
+					<td class="px-5 py-4 text-gray-600">{{ row.date }}</td>
+					<td class="px-5 py-4 text-gray-600">{{ row.departure }}</td>
+					<td class="px-5 py-4 text-gray-600">{{ row.agency }}</td>
+					<td class="px-5 py-4 text-right font-medium" [class.text-green-600]="row.amount > 0">{{ fcfa(row.amount) }}</td>
+					<td class="px-5 py-4">
+						@switch (row.status) { 
+							@case ('COMPLETED') { <app-status-badge variant="approved" label="Terminée" icon="fa-circle-check" /> }
+							@case ('CONFIRMED') { <app-status-badge variant="active" label="Confirmée" icon="fa-check" /> }
+							@case ('CANCELLED') { <app-status-badge variant="rejected" label="Annulée" icon="fa-xmark" /> }
+							@case ('NO_SHOW') { <app-status-badge variant="rejected" label="No-show" icon="fa-user-xmark" /> }
+							@case ('PENDING') { <app-status-badge variant="pending" label="En attente" icon="fa-hourglass-half" /> }
+							@default { <app-status-badge variant="pending" [label]="row.status" icon="fa-question" /> }
+						}
+					</td>
+				</ng-template>
+			</app-data-table>
 		</div>
 	</div>
+	}
+
+	<!-- Cancellations Tab -->
+	@if (activeTab() === 'cancellations') {
+	<div class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+		<div class="border-b border-gray-100 px-5 py-4">
+			<h3 class="text-base font-semibold text-gray-800">Historique des annulations</h3>
+		</div>
+		<div class="max-h-96 overflow-y-auto">
+			<app-data-table
+				[columns]="reservationColumns"
+				[rows]="profile()!.cancellations"
+				[trackKey]="'id'"
+				[pageSize]="10"
+				[emptyMessage]="'Aucune annulation.'">
+				
+				<ng-template #rowTemplate let-row="row">
+					<td class="px-5 py-4">
+						<span class="font-medium text-gray-800">{{ row.reference }}</span>
+					</td>
+					<td class="px-5 py-4 text-gray-600">{{ row.route }}</td>
+					<td class="px-5 py-4 text-gray-600">{{ row.date }}</td>
+					<td class="px-5 py-4 text-gray-600">{{ row.departure }}</td>
+					<td class="px-5 py-4 text-gray-600">{{ row.agency }}</td>
+					<td class="px-5 py-4 text-right font-medium" [class.text-red-600]="row.amount > 0">{{ fcfa(row.amount) }}</td>
+					<td class="px-5 py-4">
+						@app-status-badge variant="rejected" label="Annulée" icon="fa-rotate-left" />
+					</td>
+				</ng-template>
+			</app-data-table>
+		</div>
+	</div>
+	}
+
+	<!-- Transactions Tab -->
+	@if (activeTab() === 'transactions') {
+	<div class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+		<div class="border-b border-gray-100 px-5 py-4">
+			<h3 class="text-base font-semibold text-gray-800">Historique des transactions</h3>
+		</div>
+		<div class="overflow-x-auto">
+			<app-data-table
+				[columns]="transactionColumns"
+				[rows]="profile()!.transactions"
+				[trackKey]="'id'"
+				[pageSize]="10"
+				[emptyMessage]="'Aucune transaction.'">
+				
+				<ng-template #rowTemplate let-row="row">
+					<td class="px-5 py-4 font-mono text-xs text-gray-700">{{ row.id }}</td>
+					<td class="px-5 py-4 text-gray-600">{{ typeLabel(row.type) }}</td>
+					<td class="px-5 py-4 text-gray-700">{{ row.label }}</td>
+					<td class="px-5 py-4 text-right font-semibold"
+						[class.text-green-600]="row.amount > 0"
+						[class.text-red-600]="row.amount < 0">
+						{{ row.amount > 0 ? '+' : '' }}{{ fcfa(row.amount) }}
+					</td>
+					<td class="px-5 py-4 text-gray-500">{{ row.date }}</td>
+					<td class="px-5 py-4">
+						@switch (row.status) { 
+							@case ('SUCCESS') { <app-status-badge variant="approved" label="Succès" icon="fa-check" /> }
+							@case ('PENDING') { <app-status-badge variant="pending" label="En attente" icon="fa-hourglass-half" /> }
+							@case ('FAILED') { <app-status-badge variant="rejected" label="Échec" icon="fa-xmark" /> }
+							@case ('REFUNDED') { <app-status-badge variant="active" label="Remboursé" icon="fa-rotate-left" /> }
+							@default { <app-status-badge variant="pending" [label]="row.status" icon="fa-question" /> }
+						}
+					</td>
+				</ng-template>
+			</app-data-table>
+		</div>
+	</div>
+	}
 </div>
 
-<!-- Transaction history -->
-<div
-	class="mt-6 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-	<div class="border-b border-gray-100 px-5 py-4">
-		<h3 class="text-base font-semibold text-gray-800">
-			Historique des transactions
-		</h3>
-	</div>
-	<div class="overflow-x-auto">
-		<table class="w-full text-left text-sm">
-			<thead
-				class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-				<tr>
-					<th class="px-5 py-3 font-semibold">ID</th>
-					<th class="px-5 py-3 font-semibold">Type</th>
-					<th class="px-5 py-3 font-semibold">Description</th>
-					<th class="px-5 py-3 font-semibold">Montant</th>
-					<th class="px-5 py-3 font-semibold">Date</th>
-					<th class="px-5 py-3 font-semibold">Statut</th>
-				</tr>
-			</thead>
-			<tbody class="divide-y divide-gray-50">
-				@for (t of profile()!.transactions; track t.id) {
-				<tr class="transition-colors hover:bg-gray-50">
-					<td class="px-5 py-4 font-mono text-xs text-gray-700">
-						{{ t.id }}
-					</td>
-					<td class="px-5 py-4 text-gray-600">
-						{{ typeLabel(t.type) }}
-					</td>
-					<td class="px-5 py-4 text-gray-700">{{ t.label }}</td>
-					<td
-						class="px-5 py-4 font-semibold"
-						[class.text-green-600]="t.amount > 0"
-						[class.text-red-600]="t.amount < 0">
-						{{ t.amount > 0 ? '+' : '' }}{{ fcfa(t.amount) }}
-					</td>
-					<td class="px-5 py-4 text-gray-500">{{ t.date }}</td>
-					<td class="px-5 py-4">
-						@switch (t.status) { @case ('SUCCESS') {
-						<app-status-badge
-							variant="approved"
-							label="Succès"
-							icon="fa-check" />
-						} @case ('PENDING') {
-						<app-status-badge
-							variant="pending"
-							label="En attente"
-							icon="fa-hourglass-half" />
-						} @case ('FAILED') {
-						<app-status-badge
-							variant="rejected"
-							label="Échec"
-							icon="fa-xmark" />
-						} }
-					</td>
-				</tr>
-				} @empty {
-				<tr>
-					<td colspan="6" class="px-5 py-8 text-center text-gray-400">
-						Aucune transaction.
-					</td>
-				</tr>
-				}
-			</tbody>
-		</table>
-	</div>
-</div>
 } @else {
 <div class="flex flex-col items-center justify-center py-20 text-gray-400">
 	<i class="fa-solid fa-user-slash text-4xl"></i>

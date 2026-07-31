@@ -1,91 +1,168 @@
 <app-page-header title="Gestion des utilisateurs" subtitle="Gérez les clients et agents, bloquez ou débloquez les comptes problématiques." />
 
-    <!-- KPIs -->
-    <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <app-stat-card label="Total utilisateurs" [value]="formatNumber(data.kpis.totalUsers)" icon="fa-users" iconBg="bg-green-600" accentBar="bg-green-500" />
-      <app-stat-card label="Actifs" [value]="formatNumber(data.kpis.activeUsers)" icon="fa-user-check" iconBg="bg-green-600" accentBar="bg-green-500" />
-      <app-stat-card label="Bloqués" [value]="str(data.kpis.blockedUsers)" icon="fa-ban" iconBg="bg-red-600" accentBar="bg-red-500" />
-      <app-stat-card label="Nouveaux cette sem." [value]="formatNumber(data.kpis.newUsersThisWeek)" icon="fa-user-plus" iconBg="bg-cyan-600" accentBar="bg-cyan-500" />
-    </div>
+<!-- KPIs -->
+<div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+  <app-stat-card 
+    label="Total utilisateurs" 
+    [value]="str(userKpis()?.totalUsers ?? 0)" 
+    icon="fa-users" 
+    iconBg="bg-green-600" 
+    accentBar="bg-green-500" />
+  <app-stat-card 
+    label="Actifs" 
+    [value]="str(userKpis()?.activeUsers ?? 0)" 
+    icon="fa-user-check" 
+    iconBg="bg-green-600" 
+    accentBar="bg-green-500" />
+  <app-stat-card 
+    label="Bloqués" 
+    [value]="str(userKpis()?.blockedUsers ?? 0)" 
+    icon="fa-ban" 
+    iconBg="bg-red-600" 
+    accentBar="bg-red-500" />
+  <app-stat-card 
+    label="Nouveaux cette sem." 
+    [value]="str(userKpis()?.newUsersThisWeek ?? 0)" 
+    icon="fa-user-plus" 
+    iconBg="bg-cyan-600" 
+    accentBar="bg-cyan-500" />
+</div>
 
-    <!-- Toolbar -->
-    <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-      <div class="relative flex-1">
-        <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
-        <input #searchInput (input)="search.set(searchInput.value)" type="text" placeholder="Rechercher par email, téléphone ou nom..."
-          class="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-green-400 focus:ring-2 focus:ring-green-100" />
-      </div>
-      <select #roleFilter (change)="onRoleChange(roleFilter.value)"
-        class="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
-        <option value="ALL">Tous les rôles</option>
-        <option value="CLIENT">Clients</option>
-        <option value="AGENT">Agents</option>
-      </select>
-    </div>
+<!-- Toolbar -->
+<div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+  <div class="relative flex-1">
+    <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
+    <input 
+      [value]="userService.searchQuery()" 
+      (input)="onSearch($any($event.target).value)"
+      type="text" 
+      [placeholder]="searchPlaceholder"
+      class="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+  </div>
+  
+  <select 
+    [value]="userService.roleFilter()"
+    (change)="onRoleChange($any($event.target).value)"
+    class="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+    <option value="ALL">Tous les rôles</option>
+    <option value="CLIENT">Clients</option>
+    <option value="AGENT">Agents</option>
+    <option value="ADMIN">Administrateurs</option>
+  </select>
+  
+  <select 
+    [value]="userService.statusFilter()"
+    (change)="onStatusChange($any($event.target).value)"
+    class="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+    <option value="ALL">Tous les statuts</option>
+    <option value="active">Actifs</option>
+    <option value="suspended">Bloqués</option>
+    <option value="inactive">Inactifs</option>
+  </select>
+</div>
 
-    <!-- Users table -->
-    <div class="mt-5 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-            <tr>
-              <th class="px-5 py-3 font-semibold">Utilisateur</th>
-              <th class="px-5 py-3 font-semibold">Rôle</th>
-              <th class="px-5 py-3 font-semibold">Agence</th>
-              <th class="px-5 py-3 font-semibold">Inscrit le</th>
-              <th class="px-5 py-3 font-semibold">Réservations</th>
-              <th class="px-5 py-3 font-semibold">Annulations</th>
-              <th class="px-5 py-3 font-semibold">Statut</th>
-              <th class="px-5 py-3 text-right font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-50">
-            @for (u of filteredUsers(); track u.id) {
-              <tr class="transition-colors hover:bg-gray-50">
-                <td class="px-5 py-4">
-                  <a [routerLink]="['/moderation/users', u.id]" class="flex items-center gap-3 hover:text-green-600">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white" [class]="u.avatarColor">{{ initials(u.name) }}</div>
-                    <div><p class="font-semibold text-gray-800">{{ u.name }}</p><p class="text-xs text-gray-400">{{ u.email }}</p></div>
-                  </a>
-                </td>
-                <td class="px-5 py-4">
-                  <span class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold"
-                    [class.bg-green-50]="u.role === 'CLIENT'" [class.text-green-700]="u.role === 'CLIENT'"
-                    [class.bg-emerald-50]="u.role === 'AGENT'" [class.text-emerald-700]="u.role === 'AGENT'">
-                    <i class="fa-solid" [class.fa-user]="u.role === 'CLIENT'" [class.fa-user-tie]="u.role === 'AGENT'"></i>
-                    {{ u.role === 'CLIENT' ? 'Client' : 'Agent' }}
-                  </span>
-                </td>
-                <td class="px-5 py-4 text-gray-600">{{ u.agency || '—' }}</td>
-                <td class="px-5 py-4 text-gray-600">{{ u.joinedAt }}</td>
-                <td class="px-5 py-4 text-gray-600">{{ u.reservations }}</td>
-                <td class="px-5 py-4">
-                  <span class="font-semibold" [class.text-red-600]="u.cancellations >= 3" [class.text-gray-700]="u.cancellations < 3">{{ u.cancellations }}</span>
-                  @if (u.cancellations >= 3) { <i class="fa-solid fa-triangle-exclamation ml-1 text-xs text-red-500"></i> }
-                </td>
-                <td class="px-5 py-4">
-                  @if (u.status === 'ACTIVE') { <app-status-badge variant="active" label="Actif" icon="fa-circle-check" /> }
-                  @else { <app-status-badge variant="suspended" label="Bloqué" icon="fa-ban" /> }
-                </td>
-                <td class="px-5 py-4 text-right">
-                  <div class="flex items-center justify-end gap-2">
-                    <a [routerLink]="['/moderation/users', u.id]" class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600" title="Voir le profil">
-                      <i class="fa-solid fa-eye"></i>
-                    </a>
-                    <button (click)="toggleBlock(u)"
-                      class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95"
-                      [class.bg-red-50]="u.status === 'ACTIVE'" [class.text-red-600]="u.status === 'ACTIVE'" [class.hover:bg-red-100]="u.status === 'ACTIVE'"
-                      [class.bg-green-50]="u.status === 'SUSPENDED'" [class.text-green-600]="u.status === 'SUSPENDED'" [class.hover:bg-green-100]="u.status === 'SUSPENDED'">
-                      <i class="fa-solid" [class.fa-ban]="u.status === 'ACTIVE'" [class.fa-unlock]="u.status === 'SUSPENDED'"></i>
-                      {{ u.status === 'ACTIVE' ? 'Bloquer' : 'Débloquer' }}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            } @empty {
-              <tr><td colspan="8" class="px-5 py-12 text-center text-gray-400">Aucun utilisateur trouvé.</td></tr>
-            }
-          </tbody>
-        </table>
+<!-- Users Data Table -->
+<div class="mt-5">
+  <app-data-table 
+    [columns]="columns" 
+    [rows]="users()" 
+    [trackKey]="'id'"
+    [pageSize]="10"
+    [searchPlaceholder]="searchPlaceholder"
+    [searchKeys]="searchKeys"
+    [emptyMessage]="emptyMessage">
+    
+    <!-- Custom row template -->
+    <ng-template #rowTemplate let-row="row">
+      <!-- User Cell -->
+      <td class="px-5 py-4">
+        <a [routerLink]="['/moderation/users', row.id]" class="flex items-center gap-3 hover:text-green-600">
+          <div class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white" [class]="row.avatarColor">
+            {{ getInitials(row.fullName) }}
+          </div>
+          <div>
+            <p class="font-semibold text-gray-800">{{ row.fullName }}</p>
+            <p class="text-xs text-gray-400">{{ row.phoneNumber }}</p>
+          </div>
+        </a>
+      </td>
+      
+      <!-- Role Cell -->
+      <td class="px-5 py-4">
+        <span class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold" 
+          [class]="getRoleBadgeClasses(row.role).bg + ' ' + getRoleBadgeClasses(row.role).text">
+          <i class="fa-solid" [class]="getRoleIcon(row.role)"></i>
+          {{ getRoleLabel(row.role) }}
+        </span>
+      </td>
+      
+      <!-- Agency Cell -->
+      <td class="px-5 py-4 text-gray-600">
+        {{ row.agency?.name ?? '—' }}
+      </td>
+      
+      <!-- Created At Cell -->
+      <td class="px-5 py-4 text-gray-600">
+        {{ formatDate(row.createdAt) }}
+      </td>
+      
+      <!-- Reservations Count Cell -->
+      <td class="px-5 py-4 text-gray-600">
+        {{ row.reservationsCount }}
+      </td>
+      
+      <!-- Cancellations Count Cell -->
+      <td class="px-5 py-4">
+        <span class="font-semibold" 
+          [class.text-red-600]="row.cancellationsCount >= 3" 
+          [class.text-gray-700]="row.cancellationsCount < 3">
+          {{ row.cancellationsCount }}
+        </span>
+        @if (row.cancellationsCount >= 3) { 
+          <i class="fa-solid fa-triangle-exclamation ml-1 text-xs text-red-500"></i> 
+        }
+      </td>
+      
+      <!-- Status Cell -->
+      <td class="px-5 py-4">
+        @if (row.status === 'active') { 
+          <app-status-badge variant="active" label="Actif" icon="fa-circle-check" /> 
+        } @else { 
+          <app-status-badge variant="suspended" label="Bloqué" icon="fa-ban" /> 
+        }
+      </td>
+      
+      <!-- Actions Cell -->
+      <td class="px-5 py-4 text-right">
+        <div class="flex items-center justify-end gap-2">
+          <a [routerLink]="['/moderation/users', row.id]" 
+             class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600" 
+             title="Voir le profil">
+            <i class="fa-solid fa-eye"></i>
+          </a>
+          <button (click)="toggleBlock(row)"
+            class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95"
+            [class.bg-red-50]="row.status === 'active'" 
+            [class.text-red-600]="row.status === 'active'" 
+            [class.hover:bg-red-100]="row.status === 'active'"
+            [class.bg-green-50]="row.status !== 'active'" 
+            [class.text-green-600]="row.status !== 'active'" 
+            [class.hover:bg-green-100]="row.status !== 'active'">
+            <i class="fa-solid" 
+               [class.fa-ban]="row.status === 'active'" 
+               [class.fa-unlock]="row.status !== 'active'"></i>
+            {{ row.status === 'active' ? 'Bloquer' : 'Débloquer' }}
+          </button>
+        </div>
+      </td>
+    </ng-template>
+    
+    <!-- Custom empty template -->
+    <ng-template #emptyTemplate>
+      <div class="flex flex-col items-center justify-center py-12 text-gray-400">
+        <i class="fa-solid fa-users-slash text-4xl mb-3"></i>
+        <p>{{ emptyMessage }}</p>
       </div>
-    </div>
+    </ng-template>
+  </app-data-table>
+</div>

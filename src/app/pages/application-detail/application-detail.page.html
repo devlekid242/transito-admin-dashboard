@@ -1,4 +1,30 @@
-@if (app(); as a) {
+@if (loading()) {
+  <div class="flex items-center justify-center py-20">
+    <i class="fa-solid fa-spinner fa-spin text-4xl text-green-600"></i>
+  </div>
+} @else if (app(); as a) {
+  <!-- Success message -->
+  @if (actionSuccess()) {
+    <div class="mb-4 flex items-center gap-3 rounded-lg bg-green-50 p-4">
+      <i class="fa-solid fa-circle-check text-green-600"></i>
+      <p class="text-sm font-medium text-green-800">{{ actionSuccess() }}</p>
+      <button (click)="clearMessages()" class="ml-auto text-green-600 hover:text-green-800">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  }
+  
+  <!-- Error message -->
+  @if (actionError()) {
+    <div class="mb-4 flex items-center gap-3 rounded-lg bg-red-50 p-4">
+      <i class="fa-solid fa-circle-exclamation text-red-600"></i>
+      <p class="text-sm font-medium text-red-800">{{ actionError() }}</p>
+      <button (click)="clearMessages()" class="ml-auto text-red-600 hover:text-red-800">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  }
+
   <div class="mb-6 flex items-center gap-2 text-sm text-gray-500">
     <a routerLink="/moderation/applications" class="hover:text-gray-700">Candidatures</a>
     <i class="fa-solid fa-chevron-right text-xs"></i>
@@ -19,12 +45,7 @@
       </div>
     </div>
     <div class="flex items-center gap-3">
-      @switch (a.status) {
-        @case ('PENDING') { <app-status-badge variant="pending" label="En attente" icon="fa-clock" /> }
-        @case ('UNDER_REVIEW') { <app-status-badge variant="info" label="En revue" icon="fa-magnifying-glass" /> }
-        @case ('APPROVED') { <app-status-badge variant="approved" label="Approuvée" icon="fa-circle-check" /> }
-        @case ('REJECTED') { <app-status-badge variant="rejected" label="Rejetée" icon="fa-circle-xmark" /> }
-      }
+      <app-status-badge [variant]="getStatusBadgeVariant(a.status)" [label]="getStatusLabel(a.status)" [icon]="getStatusIcon(a.status)" />
     </div>
   </div>
 
@@ -85,6 +106,13 @@
             </span>
           }
         </div>
+        
+        @if (a.reviewerNotes) {
+          <div class="mt-5">
+            <h4 class="mb-2 text-sm font-semibold text-gray-700">Notes du réviseur</h4>
+            <p class="text-sm leading-relaxed text-gray-600">{{ a.reviewerNotes }}</p>
+          </div>
+        }
       </div>
 
       <!-- Documents -->
@@ -98,7 +126,7 @@
               </div>
               <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-medium text-gray-800">{{ doc.name }}</p>
-                <p class="text-xs text-gray-400">{{ doc.type }} · {{ doc.size }} · {{ doc.uploadedAt }}</p>
+                <p class="text-xs text-gray-400">{{ docLabel(doc.type) }} · {{ doc.size }} · {{ formatDateTime(doc.uploadedAt) }}</p>
               </div>
               <button class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700">
                 <i class="fa-solid fa-download"></i>
@@ -129,7 +157,22 @@
     <div class="space-y-4">
       <div class="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
         <h3 class="mb-4 text-base font-semibold text-gray-800">Actions de revue</h3>
-        @if (a.status === 'PENDING' || a.status === 'UNDER_REVIEW') {
+        @if (a.status === 'PENDING') {
+          <div class="space-y-3">
+            <button (click)="startReview()"
+              class="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 active:scale-95">
+              <i class="fa-solid fa-magnifying-glass"></i> Mettre en revue
+            </button>
+            <button (click)="showApproveModal.set(true)"
+              class="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 active:scale-95">
+              <i class="fa-solid fa-circle-check"></i> Approuver la candidature
+            </button>
+            <button (click)="showRejectModal.set(true)"
+              class="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 active:scale-95">
+              <i class="fa-solid fa-circle-xmark"></i> Rejeter la candidature
+            </button>
+          </div>
+        } @else if (a.status === 'UNDER_REVIEW') {
           <div class="space-y-3">
             <button (click)="showApproveModal.set(true)"
               class="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 active:scale-95">
@@ -168,6 +211,15 @@
           <p class="text-sm font-medium text-green-800">Confirmer l'approbation</p>
           <p class="mt-1 text-xs text-green-700">L'agence <strong>{{ a.agencyName }}</strong> sera approuvée et pourra publier ses trajets sur la plateforme.</p>
         </div>
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-gray-700">Notes du réviseur (optionnel)</label>
+        <textarea
+          [value]="reviewerNotes()"
+          (input)="reviewerNotes.set($any($event.target).value)"
+          rows="3"
+          placeholder="Ajouter des notes pour référence interne..."
+          class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100"></textarea>
       </div>
       <div class="flex justify-end gap-3">
         <button type="button" (click)="showApproveModal.set(false)" class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50">Annuler</button>

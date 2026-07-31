@@ -68,13 +68,7 @@
         <div>
           <p class="text-xs text-gray-400">Statut</p>
           <p class="mt-1">
-            @switch (t.status) {
-              @case ('SCHEDULED') { <app-status-badge variant="pending" label="Planifié" icon="fa-clock" /> }
-              @case ('IN_PROGRESS') { <app-status-badge variant="info" label="En cours" icon="fa-spinner" /> }
-              @case ('COMPLETED') { <app-status-badge variant="verified" label="Terminé" icon="fa-flag-checkered" /> }
-              @case ('DELAYED') { <app-status-badge variant="missing" label="Retardé" icon="fa-triangle-exclamation" /> }
-              @case ('CANCELLED') { <app-status-badge variant="rejected" label="Annulé" icon="fa-ban" /> }
-            }
+            <app-status-badge [variant]="getStatusBadgeVariant(t.status)" [label]="getStatusLabel(t.status)" icon="fa-circle-check" />
           </p>
         </div>
       </div>
@@ -169,11 +163,7 @@
               <td class="px-5 py-4 text-gray-600">{{ p.paymentMethod }}</td>
               <td class="px-5 py-4 font-semibold text-gray-900">{{ fcfa(p.amount) }}</td>
               <td class="px-5 py-4">
-                @switch (p.status) {
-                  @case ('BOARDED') { <app-status-badge variant="verified" label="Embarqué" icon="fa-circle-check" /> }
-                  @case ('BOARDING') { <app-status-badge variant="pending" label="En attente" icon="fa-hourglass-half" /> }
-                  @case ('NO_SHOW') { <app-status-badge variant="rejected" label="No-show" icon="fa-user-xmark" /> }
-                }
+                <app-status-badge [variant]="getPassengerStatusBadgeVariant(p.status)" [label]="getPassengerStatusLabel(p.status)" icon="fa-circle-check" />
               </td>
             </tr>
           } @empty {

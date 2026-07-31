@@ -8,14 +8,41 @@
       <app-stat-card label="Rejetées" [value]="str(rejectedCount())" icon="fa-circle-xmark" iconBg="bg-red-600" accentBar="bg-red-500" />
     </div>
 
+    <!-- Toolbar -->
+    <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div class="relative flex-1">
+        <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
+        <input 
+          [value]="applicationService.searchQuery()" 
+          (input)="onSearch($any($event.target).value)"
+          type="text" 
+          [placeholder]="searchPlaceholder"
+          class="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+      </div>
+      
+      <select 
+        [value]="applicationService.statusFilter()"
+        (change)="onStatusChange($any($event.target).value)"
+        class="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+        <option value="ALL">Tous les statuts</option>
+        <option value="PENDING">En attente</option>
+        <option value="UNDER_REVIEW">En revue</option>
+        <option value="APPROVED">Approuvées</option>
+        <option value="REJECTED">Rejetées</option>
+      </select>
+    </div>
+
     <!-- DataTable -->
     <div class="mt-5">
       <app-data-table
         [columns]="columns"
-        [rows]="data.applications()"
+        [rows]="applications()"
         [searchKeys]="['ref', 'agencyName', 'city', 'legalRepresentative']"
         searchPlaceholder="Rechercher par réf, agence, ville, représentant..."
-        [pageSize]="8">
+        [pageSize]="10"
+        [loading]="loading()"
+        [emptyMessage]="emptyMessage">
+        
         <ng-template #rowTemplate let-a>
           <td class="px-5 py-4 font-mono text-xs font-semibold text-gray-700">{{ a.ref }}</td>
           <td class="px-5 py-4">
@@ -27,18 +54,26 @@
           <td class="px-5 py-4 text-gray-600">{{ a.submittedAt }}</td>
           <td class="px-5 py-4">
             @switch (a.status) {
-              @case ('PENDING') { <app-status-badge variant="pending" label="En attente" icon="fa-clock" /> }
-              @case ('UNDER_REVIEW') { <app-status-badge variant="info" label="En revue" icon="fa-magnifying-glass" /> }
-              @case ('APPROVED') { <app-status-badge variant="approved" label="Approuvée" icon="fa-circle-check" /> }
-              @case ('REJECTED') { <app-status-badge variant="rejected" label="Rejetée" icon="fa-circle-xmark" /> }
+              @case ('PENDING') { <app-status-badge [variant]="getStatusBadgeVariant(a.status)" [label]="getStatusLabel(a.status)" icon="fa-clock" /> }
+              @case ('UNDER_REVIEW') { <app-status-badge [variant]="getStatusBadgeVariant(a.status)" [label]="getStatusLabel(a.status)" icon="fa-magnifying-glass" /> }
+              @case ('APPROVED') { <app-status-badge [variant]="getStatusBadgeVariant(a.status)" [label]="getStatusLabel(a.status)" icon="fa-circle-check" /> }
+              @case ('REJECTED') { <app-status-badge [variant]="getStatusBadgeVariant(a.status)" [label]="getStatusLabel(a.status)" icon="fa-circle-xmark" /> }
             }
           </td>
+          <td class="px-5 py-4 text-gray-600">{{ a.documentsCount }} documents</td>
           <td class="px-5 py-4 text-right">
             <a [routerLink]="['/moderation/applications', a.id]"
               class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-gray-800">
               <i class="fa-solid fa-eye"></i> Détails
             </a>
           </td>
+        </ng-template>
+        
+        <ng-template #emptyTemplate>
+          <div class="flex flex-col items-center justify-center py-12 text-gray-400">
+            <i class="fa-solid fa-file-lines text-4xl mb-3"></i>
+            <p>{{ emptyMessage }}</p>
+          </div>
         </ng-template>
       </app-data-table>
     </div>

@@ -1,170 +1,430 @@
 <app-page-header title="Historique des réservations" subtitle="Toutes les réservations de la plateforme, tous agences confondus." />
 
-    <!-- KPIs -->
-    <div class="grid grid-cols-2 gap-4 lg:grid-cols-5">
-      <app-stat-card label="Total" [value]="str(rs.total)" icon="fa-ticket" iconBg="bg-green-600" accentBar="bg-green-500" />
-      <app-stat-card label="Confirmées" [value]="str(rs.confirmed)" icon="fa-circle-check" iconBg="bg-green-600" accentBar="bg-green-500" />
-      <app-stat-card label="Terminées" [value]="str(rs.completed)" icon="fa-flag-checkered" iconBg="bg-emerald-600" accentBar="bg-emerald-500" />
-      <app-stat-card label="Annulées" [value]="str(rs.cancelled)" icon="fa-rotate-left" iconBg="bg-red-600" accentBar="bg-red-500" />
-      <app-stat-card label="No-show" [value]="str(rs.noShow)" icon="fa-user-xmark" iconBg="bg-amber-600" accentBar="bg-amber-500" />
-    </div>
+<!-- KPIs -->
+<div class="grid grid-cols-2 gap-4 lg:grid-cols-5">
+  <app-stat-card label="Total" [value]="str(rs?.total ?? 0)" icon="fa-ticket" iconBg="bg-green-600" accentBar="bg-green-500" />
+  <app-stat-card label="Confirmées" [value]="str(rs?.confirmed ?? 0)" icon="fa-circle-check" iconBg="bg-green-600" accentBar="bg-green-500" />
+  <app-stat-card label="Terminées" [value]="str(rs?.completed ?? 0)" icon="fa-flag-checkered" iconBg="bg-emerald-600" accentBar="bg-emerald-500" />
+  <app-stat-card label="Annulées" [value]="str(rs?.cancelled ?? 0)" icon="fa-rotate-left" iconBg="bg-red-600" accentBar="bg-red-500" />
+  <app-stat-card label="No-show" [value]="str(rs?.noShow ?? 0)" icon="fa-user-xmark" iconBg="bg-amber-600" accentBar="bg-amber-500" />
+</div>
 
-    <!-- Action bar -->
-    <div class="mt-5 flex justify-end">
-      <button (click)="openForm()"
-        class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95">
-        <i class="fa-solid fa-plus"></i> Créer une réservation
+<!-- Quick Stats Bar -->
+<div class="mt-4 flex flex-wrap gap-3 text-sm text-gray-600">
+  <div class="flex items-center gap-1.5">
+    <i class="fa-solid fa-calendar-day text-amber-600"></i>
+    <span>Aujourd'hui: {{ rs?.todayVolume ?? 0 }} réservations</span>
+  </div>
+  <div class="flex items-center gap-1.5">
+    <i class="fa-solid fa-hourglass-half text-amber-600"></i>
+    <span>En attente: {{ rs?.pendingPayments ?? 0 }} paiements</span>
+  </div>
+  <div class="flex items-center gap-1.5">
+    <i class="fa-solid fa-coins text-green-600"></i>
+    <span>Revenu: {{ fcfa(rs?.totalRevenue ?? 0) }}</span>
+  </div>
+  <div class="flex items-center gap-1.5">
+    <i class="fa-solid fa-chart-line text-cyan-600"></i>
+    <span>Cette semaine: +{{ rs?.newThisWeek ?? 0 }}</span>
+  </div>
+</div>
+
+<!-- Toolbar with Filters -->
+<div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <!-- Left side: Date range and filters -->
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+    <!-- Date Range Picker -->
+    <div class="flex items-center gap-2">
+      <i class="fa-solid fa-calendar text-gray-400"></i>
+      <input type="date" [value]="dateRange()?.start" (change)="onDateRangeChange({ start: $any($event.target).value, end: dateRange()?.end || '' })" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 w-40" placeholder="Date de début" />
+      <span class="text-gray-400">→</span>
+      <input type="date" [value]="dateRange()?.end" (change)="onDateRangeChange({ start: dateRange()?.start || '', end: $any($event.target).value })" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 w-40" placeholder="Date de fin" />
+      <button (click)="onDateRangeChange(null)" class="text-gray-400 hover:text-gray-600 text-sm" title="Effacer">
+        <i class="fa-solid fa-times"></i>
       </button>
     </div>
 
-    <!-- DataTable -->
-    <div class="mt-4">
-      <app-data-table
-        [columns]="columns"
-        [rows]="data.reservations()"
-        [searchKeys]="['ref', 'passenger', 'agency', 'route']"
-        searchPlaceholder="Rechercher par réf, passager, agence, trajet..."
-        [pageSize]="10">
-        <ng-template #rowTemplate let-r>
-          <td class="px-5 py-4 font-mono text-xs font-semibold text-gray-700">{{ r.ref }}</td>
-          <td class="px-5 py-4 text-gray-700">{{ r.passenger }}</td>
-          <td class="px-5 py-4 text-gray-600">{{ r.agency }}</td>
-          <td class="px-5 py-4 text-gray-600">{{ r.route }}</td>
-          <td class="px-5 py-4 text-gray-500">{{ r.date }} · {{ r.departure }}</td>
-          <td class="px-5 py-4 text-gray-600">{{ r.seats }}</td>
-          <td class="px-5 py-4 font-semibold text-gray-900">{{ fcfa(r.amount) }}</td>
-          <td class="px-5 py-4 text-gray-600">{{ r.paymentMethod }}</td>
-          <td class="px-5 py-4">
-            @switch (r.status) {
-              @case ('CONFIRMED') { <app-status-badge variant="approved" label="Confirmée" icon="fa-circle-check" /> }
-              @case ('PENDING') { <app-status-badge variant="pending" label="En attente" icon="fa-hourglass-half" /> }
-              @case ('COMPLETED') { <app-status-badge variant="verified" label="Terminée" icon="fa-flag-checkered" /> }
-              @case ('CANCELLED') { <app-status-badge variant="rejected" label="Annulée" icon="fa-rotate-left" /> }
-              @case ('NO_SHOW') { <app-status-badge variant="missing" label="No-show" icon="fa-user-xmark" /> }
-            }
-          </td>
-        </ng-template>
-      </app-data-table>
+    <!-- Status Filter -->
+    <select [value]="statusFilter()" (change)="onStatusFilterChange($any($event.target).value)" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 min-w-[150px]">
+      @for (option of statusOptions; track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+      }
+    </select>
+
+    <!-- Agency Filter -->
+    <select [value]="agencyFilter() ?? ''" (change)="onAgencyFilterChange($any($event.target).value ? Number($any($event.target).value) : null)" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 min-w-[150px]">
+      <option value="">Toutes les agences</option>
+      @for (agency of agencyItems(); track agency.id) {
+        <option [value]="agency.id">{{ agency.label }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Right side: Search and Create button -->
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+    <div class="relative flex-1">
+      <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
+      <input [value]="searchQuery()" (input)="onSearchChange($any($event.target).value)" type="text" [placeholder]="searchPlaceholder" class="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-green-400 focus:ring-2 focus:ring-green-100 sm:w-64" />
     </div>
 
-    <!-- Create Reservation Modal -->
-    <app-modal title="Créer une réservation" subtitle="Création manuelle d'une réservation en cas d'erreur système." [open]="showForm()" (close)="closeForm()" size="md">
-      @if (formSuccess()) {
-        <div class="flex items-center gap-3 rounded-lg bg-green-50 p-4">
-          <i class="fa-solid fa-circle-check text-green-600"></i>
-          <p class="text-sm font-medium text-green-800">{{ formSuccess() }}</p>
+    <button (click)="openForm()" class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95 whitespace-nowrap">
+      <i class="fa-solid fa-plus"></i> Créer une réservation
+    </button>
+  </div>
+</div>
+
+<!-- Active Filters Display -->
+@if (dateRange() || statusFilter() !== 'ALL' || agencyFilter() || searchQuery()) {
+<div class="mt-3 flex flex-wrap gap-2 text-xs">
+  @if (dateRange()) {
+    <span class="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-green-700">
+      <i class="fa-solid fa-calendar"></i> {{ dateRange()?.start }} → {{ dateRange()?.end }}
+    </span>
+  }
+  @if (statusFilter() !== 'ALL') {
+    <span class="flex items-center gap-1.5 rounded-full bg-cyan-50 px-3 py-1 text-cyan-700">
+      <i class="fa-solid fa-tag"></i> {{ getStatusLabel(statusFilter()) }}
+    </span>
+  }
+  @if (agencyFilter()) {
+    <span class="flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1 text-violet-700">
+      <i class="fa-solid fa-building"></i> {{ getAgencyFilterLabel() }}
+    </span>
+  }
+  @if (searchQuery()) {
+    <span class="flex items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1 text-gray-700">
+      <i class="fa-solid fa-magnifying-glass"></i> "{{ searchQuery() }}"
+    </span>
+  }
+</div>
+}
+
+<!-- DataTable -->
+<div class="mt-4">
+  <app-data-table [columns]="columns" [rows]="filteredReservations()" [searchKeys]="searchKeys" [searchPlaceholder]="searchPlaceholder" [emptyMessage]="emptyMessage" [pageSize]="10">
+    <ng-template #rowTemplate let-r="row">
+      <!-- Reference -->
+      <td class="px-5 py-4">
+        <div class="flex flex-col">
+          <span class="font-mono text-xs font-semibold text-gray-700">{{ r.reference }}</span>
+          <span class="text-xs text-gray-400">{{ formatReservationDate(r.createdAt) }}</span>
         </div>
-      } @else {
-        <form (ngSubmit)="submitReservation()" class="space-y-4">
-          @if (formError()) {
-            <div class="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-              <i class="fa-solid fa-circle-exclamation"></i> {{ formError() }}
+      </td>
+
+      <!-- Passenger -->
+      <td class="px-5 py-4">
+        @if (r.user) {
+          <div class="flex items-center gap-3">
+            <div class="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white" [class]="getAvatarColor(r.user.id)">
+              {{ getInitials(r.user.fullName) }}
             </div>
-          }
-
-          <!-- Client search-select -->
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700">Client</label>
-            <app-search-select
-              [items]="userItems()"
-              placeholder="Rechercher un client..."
-              (selected)="onUserSelected($event)"
-            />
+            <div>
+              <p class="font-medium text-gray-800">{{ r.user.fullName }}</p>
+              <p class="text-xs text-gray-400">{{ r.user.phoneNumber }}</p>
+            </div>
           </div>
+        } @else {
+          <span class="text-gray-400">Inconnu</span>
+        }
+      </td>
 
-          <!-- Agency -->
+      <!-- Agency -->
+      <td class="px-5 py-4 text-gray-600">{{ r.agency?.name ?? '—' }}</td>
+
+      <!-- Route -->
+      <td class="px-5 py-4">
+        <div class="flex flex-col">
+          <span class="font-medium text-gray-800">{{ r.trip?.route ?? '—' }}</span>
+          <span class="text-xs text-gray-400">{{ r.trip?.departure ?? '—' }}</span>
+        </div>
+      </td>
+
+      <!-- Date -->
+      <td class="px-5 py-4 text-gray-600">{{ getReservationDate(r) }}</td>
+
+      <!-- Seats -->
+      <td class="px-5 py-4 text-center">
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-700">{{ r.ticketsCount }}</span>
+      </td>
+
+      <!-- Amount -->
+      <td class="px-5 py-4 text-right font-semibold text-gray-900">{{ fcfa(r.totalAmount) }}</td>
+
+      <!-- Payment Method -->
+      <td class="px-5 py-4 text-gray-600">{{ getPaymentMethodLabel(r.paymentMethod) }}</td>
+
+      <!-- Status -->
+      <td class="px-5 py-4">
+        <app-status-badge [variant]="getReservationStatusBadgeVariant(r)" [label]="getReservationStatusLabel(r)" icon="fa-circle-check" />
+      </td>
+
+      <!-- Actions -->
+      <td class="px-5 py-4 text-right">
+        <div class="flex items-center justify-end gap-2">
+          <button (click)="viewReservation(r.id)" class="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600" title="Voir">
+            <i class="fa-solid fa-eye"></i>
+          </button>
+          <button (click)="editReservation(r.id)" class="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-cyan-600" title="Modifier">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
+          @if (r.status !== 'CANCELLED' && r.status !== 'COMPLETED') {
+            <button (click)="cancelReservationDirect(r.id)" class="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-red-600" title="Annuler">
+              <i class="fa-solid fa-ban"></i>
+            </button>
+          }
+        </div>
+      </td>
+    </ng-template>
+
+    <ng-template #emptyTemplate>
+      <div class="flex flex-col items-center justify-center py-12 text-gray-400">
+        <i class="fa-solid fa-ticket-simple text-4xl mb-3"></i>
+        <p>{{ emptyMessage }}</p>
+      </div>
+    </ng-template>
+  </app-data-table>
+</div>
+
+<!-- DETAIL MODAL -->
+<app-modal title="Détails de la réservation" [open]="showDetailModal()" (close)="closeDetailModal()" size="lg">
+  @if (currentReservation()) {
+    <div class="space-y-6">
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="flex h-14 w-14 items-center justify-center rounded-xl text-xl font-bold text-white" [class]="getAvatarColor(currentReservation()!.user?.id ?? 0)">
+            {{ getInitials(currentReservation()!.user?.fullName ?? '?') }}
+          </div>
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700">Agence</label>
-            <select
-              [value]="agency()"
-              (change)="agency.set($any($event.target).value)"
-              class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
-              <option value="">Sélectionner une agence</option>
-              @for (a of data.agencies(); track a.id) {
-                <option [value]="a.name">{{ a.name }} — {{ a.city }}</option>
+            <h2 class="text-xl font-bold text-gray-900">{{ currentReservation()!.reference }}</h2>
+            <p class="text-sm text-gray-500">{{ getReservationStatusLabel(currentReservation()!) }} · {{ formatDateTime(currentReservation()!.createdAt) }}</p>
+          </div>
+        </div>
+        <app-status-badge [variant]="getReservationStatusBadgeVariant(currentReservation()!)" [label]="getReservationStatusLabel(currentReservation()!)" icon="fa-circle-check" />
+      </div>
+
+      <!-- Info Cards -->
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+          <h3 class="mb-3 text-sm font-semibold text-gray-800"><i class="fa-solid fa-user text-green-500 mr-1"></i> Passager</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Nom</span><span class="font-medium">{{ currentReservation()!.user?.fullName ?? '—' }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Téléphone</span><span class="font-medium">{{ currentReservation()!.user?.phoneNumber ?? '—' }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Email</span><span class="font-medium">{{ currentReservation()!.user?.email ?? '—' }}</span></div>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+          <h3 class="mb-3 text-sm font-semibold text-gray-800"><i class="fa-solid fa-route text-emerald-500 mr-1"></i> Trajet</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Agence</span><span class="font-medium">{{ currentReservation()!.agency?.name ?? '—' }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Trajet</span><span class="font-medium">{{ currentReservation()!.trip?.route ?? '—' }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Date</span><span class="font-medium">{{ getReservationDate(currentReservation()!) }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Départ</span><span class="font-medium">{{ currentReservation()!.trip?.departure ?? '—' }}</span></div>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+          <h3 class="mb-3 text-sm font-semibold text-gray-800"><i class="fa-solid fa-money-bill text-violet-500 mr-1"></i> Paiement</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Montant</span><span class="font-bold text-green-600">{{ fcfa(currentReservation()!.totalAmount) }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Méthode</span><span class="font-medium">{{ getPaymentMethodLabel(currentReservation()!.paymentMethod) }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Statut</span><app-status-badge variant="approved" [label]="getPaymentStatusLabel(currentReservation()!.paymentStatus)" icon="fa-circle-check" /></div>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+          <h3 class="mb-3 text-sm font-semibold text-gray-800"><i class="fa-solid fa-ticket text-cyan-500 mr-1"></i> Billets</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Nombre</span><span class="font-medium">{{ currentReservation()!.ticketsCount }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Places</span><span class="font-medium">{{ currentReservation()!.seats }}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-3">
+        <button (click)="editReservation(currentReservation()!.id)" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">
+          <i class="fa-solid fa-pen-to-square"></i> Modifier
+        </button>
+        @if (currentReservation()!.status !== 'CANCELLED' && currentReservation()!.status !== 'COMPLETED') {
+          <button (click)="openCancelModal(currentReservation()!.id)" class="inline-flex items-center gap-2 rounded-lg bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100">
+            <i class="fa-solid fa-ban"></i> Annuler
+          </button>
+        }
+        <button (click)="closeDetailModal()" class="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200">
+          <i class="fa-solid fa-times"></i> Fermer
+        </button>
+      </div>
+    </div>
+  }
+</app-modal>
+
+<!-- CANCEL MODAL -->
+<app-modal title="Annuler la réservation" [open]="showCancelModal()" (close)="closeCancelModal()" size="md">
+  @if (currentReservation()) {
+    <div class="space-y-4">
+      <div class="flex items-start gap-3 rounded-lg bg-amber-50 p-4">
+        <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5"></i>
+        <div>
+          <p class="font-medium text-gray-800">Annuler {{ currentReservation()!.reference }} ?</p>
+          <p class="text-sm text-gray-600 mt-1">Cette action est irréversible.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700">Raison</label>
+          <select [value]="cancelReason()" (change)="cancelReason.set($any($event.target).value)" class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 focus:border-red-400 focus:ring-2 focus:ring-red-100">
+            <option value="">Sélectionner...</option>
+            <option value="Demande du client">Demande du client</option>
+            <option value="Annulation administrative">Annulation administrative</option>
+            <option value="Trajet annulé">Trajet annulé</option>
+            <option value="Erreur">Erreur de réservation</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input type="checkbox" [checked]="cancelRefund()" (change)="cancelRefund.set($any($event.target).checked)" id="refund-checkbox" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500" />
+          <label for="refund-checkbox" class="text-sm font-medium text-gray-700">Rembourser le client</label>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <button (click)="closeCancelModal()" class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">Annuler</button>
+        <button (click)="confirmCancel()" [disabled]="!cancelReason()" class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+          <i class="fa-solid fa-ban"></i> Confirmer
+        </button>
+      </div>
+    </div>
+  }
+</app-modal>
+
+<!-- CREATE RESERVATION MODAL -->
+<app-modal [title]="formMode() === 'create' ? 'Créer une réservation' : 'Modifier la réservation'" [subtitle]="formMode() === 'create' ? 'Création manuelle d\'une réservation.' : 'Modification de la réservation.'" [open]="showForm()" (close)="closeForm()" size="lg">
+  @if (formSuccess()) {
+    <div class="flex items-center gap-3 rounded-lg bg-green-50 p-4">
+      <i class="fa-solid fa-circle-check text-green-600"></i>
+      <p class="text-sm font-medium text-green-800">{{ formSuccess() }}</p>
+    </div>
+  } @else {
+    <form (ngSubmit)="submitReservation()" class="space-y-4">
+      @if (formError()) {
+        <div class="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          <i class="fa-solid fa-circle-exclamation"></i> {{ formError() }}
+        </div>
+      }
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700">Client <span class="text-red-500">*</span></label>
+          <app-search-select [items]="userSearchItems()" placeholder="Rechercher un client..." (selected)="onUserSelected($event)" (search)="onUserSearch($event)" [loading]="reservationService.loadingUsers()" />
+        </div>
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700">Agence <span class="text-red-500">*</span></label>
+          <app-search-select [items]="agencyItems()" placeholder="Rechercher une agence..." (selected)="onAgencySelected($event)" (search)="onAgencySearch($event)" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700">Trajet <span class="text-red-500">*</span></label>
+          <app-search-select [items]="tripSearchItems()" placeholder="Rechercher un trajet..." (selected)="onTripSelected($event)" (search)="onTripSearch($event)" [loading]="reservationService.loadingTrips()" [disabled]="!selectedAgency()" />
+        </div>
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700">Montant (FCFA) <span class="text-red-500">*</span></label>
+          <input [value]="amount()" (input)="amount.set(+$any($event.target).value)" type="number" min="0" step="100" placeholder="ex: 5000" class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700">Nom du passager</label>
+          <input [value]="passengerName()" (input)="passengerName.set($any($event.target).value)" type="text" placeholder="ex: Jean Dupont" class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+        </div>
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700">Téléphone</label>
+          <input [value]="passengerPhone()" (input)="passengerPhone.set($any($event.target).value)" type="tel" placeholder="ex: +221 77 123 45 67" class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+        </div>
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700">CNI / Passeport</label>
+          <input [value]="passengerCni()" (input)="passengerCni.set($any($event.target).value)" type="text" placeholder="ex: 1234567890123" class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+        </div>
+      </div>
+
+      <div>
+        <div class="mb-1.5 flex items-center justify-between">
+          <label class="text-sm font-medium text-gray-700">Places</label>
+          <div class="flex items-center gap-2">
+            <button type="button" (click)="onSeatCountChange(seatCount() - 1)" [disabled]="seatCount() <= 1" class="h-8 w-8 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+              <i class="fa-solid fa-minus"></i>
+            </button>
+            <span class="text-sm font-medium">{{ seatCount() }}</span>
+            <button type="button" (click)="onSeatCountChange(seatCount() + 1)" class="h-8 w-8 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+        </div>
+        @if (seatCount() > 0) {
+          <div class="space-y-2">
+            @for (i of seatIndexes(); track i) {
+              <input [value]="seatNumbers()[i] ?? ''" (input)="onSeatNumberChange(i, +$any($event.target).value || null)" type="number" min="1" placeholder="Siège #{{ i + 1 }}" class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+            }
+          </div>
+        }
+      </div>
+
+      <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+        <h3 class="mb-3 text-sm font-semibold text-gray-800"><i class="fa-solid fa-credit-card text-violet-500 mr-1"></i> Paiement</h3>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-gray-700">Méthode <span class="text-red-500">*</span></label>
+            <select [value]="paymentMethod()" (change)="onPaymentMethodChange($any($event.target).value)" class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+              @for (method of paymentMethodOptions; track method.value) {
+                <option [value]="method.value">{{ method.label }}</option>
               }
             </select>
           </div>
-
-          <!-- Route -->
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700">Trajet</label>
-            <input
-              [value]="route()"
-              (input)="route.set($any($event.target).value)"
-              type="text"
-              placeholder="ex: Dakar → Touba"
-              class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+        </div>
+        
+        <!-- Payment Options Radio Buttons -->
+        <div class="mt-3">
+          <h4 class="mb-2 text-sm font-medium text-gray-800">Option de paiement</h4>
+          <div class="space-y-2">
+            @for (option of paymentOptions; track option.value) {
+              <div class="flex items-center gap-3">
+                <input type="radio" [id]="'payment-option-' + option.value" [value]="option.value" [checked]="paymentOption() === option.value" (change)="onPaymentOptionChange(option.value)" class="h-4 w-4 border-gray-300 text-green-600 focus:ring-green-500" />
+                <label [for]="'payment-option-' + option.value" class="flex-1 cursor-pointer text-sm font-medium text-gray-700">
+                  {{ option.label }}
+                </label>
+                <span class="text-xs text-gray-500">{{ option.description }}</span>
+              </div>
+            }
           </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <!-- Date -->
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-gray-700">Date</label>
-              <input
-                [value]="date()"
-                (input)="date.set($any($event.target).value)"
-                type="date"
-                class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
-            </div>
-            <!-- Departure -->
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-gray-700">Heure de départ</label>
-              <input
-                [value]="departure()"
-                (input)="departure.set($any($event.target).value)"
-                type="time"
-                class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
-            </div>
+        </div>
+        
+        @if (paymentOption() === 'link_existing' && selectedUser()) {
+          <div class="mt-3">
+            <label class="mb-1.5 block text-sm font-medium text-gray-700">Paiement existant</label>
+            <app-search-select [items]="paymentSearchItems()" placeholder="Rechercher un paiement..." (selected)="onPaymentSelected($event)" />
+            @if (selectedPayment()) {
+              <p class="mt-1 text-xs text-gray-500">Montant: {{ fcfa(selectedPayment()!['amount']) }} · {{ selectedPayment()!['operator'] }}</p>
+            }
           </div>
+        }
+        <div class="mt-3">
+          <label class="mb-1.5 block text-sm font-medium text-gray-700">Notes</label>
+          <textarea [value]="notes()" (input)="notes.set($any($event.target).value)" rows="2" placeholder="Notes..." class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 resize-none"></textarea>
+        </div>
+      </div>
 
-          <div class="grid grid-cols-2 gap-4">
-            <!-- Seats -->
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-gray-700">Nombre de places</label>
-              <input
-                [value]="seats()"
-                (input)="seats.set(+$any($event.target).value)"
-                type="number"
-                min="1"
-                class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
-            </div>
-            <!-- Amount -->
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-gray-700">Montant (FCFA)</label>
-              <input
-                [value]="amount()"
-                (input)="amount.set(+$any($event.target).value)"
-                type="number"
-                min="0"
-                class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
-            </div>
-          </div>
-
-          <!-- Payment method -->
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700">Moyen de paiement</label>
-            <select
-              [value]="paymentMethod()"
-              (change)="paymentMethod.set($any($event.target).value)"
-              class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
-              <option value="Wave">Wave</option>
-              <option value="Orange Money">Orange Money</option>
-              <option value="Carte bancaire">Carte bancaire</option>
-              <option value="Espèces">Espèces</option>
-            </select>
-          </div>
-
-          <div class="flex justify-end gap-3 pt-2">
-            <button type="button" (click)="closeForm()"
-              class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50">
-              Annuler
-            </button>
-            <button type="submit"
-              class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 active:scale-95">
-              <i class="fa-solid fa-check"></i> Créer la réservation
-            </button>
-          </div>
-        </form>
-      }
-    </app-modal>
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" (click)="closeForm()" class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">Annuler</button>
+        <button type="submit" [disabled]="isLoadingForm()" class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+          @if (isLoadingForm()) {<i class="fa-solid fa-spinner fa-spin"></i>} @else {<i class="fa-solid fa-check"></i>}
+          {{ formMode() === 'create' ? 'Créer' : 'Modifier' }}
+        </button>
+      </div>
+    </form>
+  }
+</app-modal>
