@@ -1,81 +1,126 @@
 <!-- Search bar -->
-    <div class="relative mb-4">
-      <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
-      <input #searchInput
-        [value]="search()"
-        (input)="onSearch(searchInput.value)"
-        type="text"
-        [placeholder]="searchPlaceholder()"
-        class="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-green-400 focus:ring-2 focus:ring-green-100" />
-    </div>
+<div class="relative mb-4">
+	<i
+		class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
+	<input
+		#searchInput
+		[value]="search()"
+		(input)="onSearch(searchInput.value)"
+		type="text"
+		[placeholder]="searchPlaceholder()"
+		class="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+</div>
 
-    <!-- Table -->
-    <div class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-            <tr>
-              @for (col of columns(); track col.key) {
-                <th class="px-5 py-3 font-semibold" [class.text-right]="col.align === 'right'" [class.text-center]="col.align === 'center'">{{ col.label }}</th>
-              }
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-50">
-            @for (row of paginatedRows(); track row[trackKey()]) {
-              <tr class="transition-colors hover:bg-gray-50">
-                @if (rowTemplate) {
-                  <ng-container [ngTemplateOutlet]="rowTemplate" [ngTemplateOutletContext]="{ $implicit: row, row: row }"></ng-container>
-                } @else {
-                  @for (col of columns(); track col.key) {
-                    <td class="px-5 py-4 text-gray-700" [class.text-right]="col.align === 'right'" [class.text-center]="col.align === 'center'">{{ row[col.key] }}</td>
-                  }
-                }
-              </tr>
-            } @empty {
-              <tr>
-                <td [attr.colspan]="columns().length" class="px-5 py-12 text-center text-gray-400">
-                  @if (emptyTemplate) {
-                    <ng-container [ngTemplateOutlet]="emptyTemplate"></ng-container>
-                  } @else {
-                    {{ emptyMessage() }}
-                  }
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+<!-- Table -->
+<div
+	class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+	<div class="overflow-x-auto">
+		<table class="w-full text-left text-sm">
+			<thead
+				class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+				<tr>
+					@for (col of columns(); track col.key) {
+						<th
+							class="px-5 py-3 font-semibold"
+							[class.text-right]="col.align === 'right'"
+							[class.text-center]="col.align === 'center'">
+							{{ col.label }}
+						</th>
+					}
+				</tr>
+			</thead>
+			<tbody class="divide-y divide-gray-50">
+				@if (loading()) {
+					<tr>
+						<td
+							[attr.colspan]="columns().length"
+							class="px-5 py-12 text-center text-gray-400">
+							<i class="fa-solid fa-spinner fa-spin text-xl"></i>
+						</td>
+					</tr>
+				} @else {
+					@for (row of paginatedRows(); track row[trackKey()]) {
+						<tr class="transition-colors hover:bg-gray-50">
+							@if (rowTemplate) {
+								<ng-container
+									[ngTemplateOutlet]="rowTemplate"
+									[ngTemplateOutletContext]="{
+										$implicit: row,
+										row: row,
+									}"></ng-container>
+							} @else {
+								@for (col of columns(); track col.key) {
+									<td
+										class="px-5 py-4 text-gray-700"
+										[class.text-right]="
+											col.align === 'right'
+										"
+										[class.text-center]="
+											col.align === 'center'
+										">
+										{{ row[col.key] }}
+									</td>
+								}
+							}
+						</tr>
+					} @empty {
+						<tr>
+							<td
+								[attr.colspan]="columns().length"
+								class="px-5 py-12 text-center text-gray-400">
+								@if (emptyTemplate) {
+									<ng-container
+										[ngTemplateOutlet]="
+											emptyTemplate
+										"></ng-container>
+								} @else {
+									{{ emptyMessage() }}
+								}
+							</td>
+						</tr>
+					}
+				}
+			</tbody>
+		</table>
+	</div>
 
-      <!-- Pagination -->
-      @if (totalPages() > 1) {
-        <div class="flex flex-col items-center justify-between gap-3 border-t border-gray-100 px-5 py-3 sm:flex-row">
-          <p class="text-xs text-gray-500">
-            {{ rangeStart() }}–{{ rangeEnd() }} sur {{ filteredRows().length }}
-          </p>
-          <div class="flex items-center gap-1">
-            <button (click)="prevPage()" [disabled]="currentPage() === 1"
-              class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-transparent">
-              <i class="fa-solid fa-chevron-left text-xs"></i>
-            </button>
-            @for (page of pages(); track page) {
-              @if (page === '...') {
-                <span class="px-2 text-gray-400">...</span>
-              } @else {
-                <button (click)="goToPage(page)"
-                  class="flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-semibold transition"
-                  [class.bg-gray-900]="page === currentPage()"
-                  [class.text-white]="page === currentPage()"
-                  [class.text-gray-600]="page !== currentPage()"
-                  [class.hover:bg-gray-100]="page !== currentPage()">
-                  {{ page }}
-                </button>
-              }
-            }
-            <button (click)="nextPage()" [disabled]="currentPage() === totalPages()"
-              class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-transparent">
-              <i class="fa-solid fa-chevron-right text-xs"></i>
-            </button>
-          </div>
-        </div>
-      }
-    </div>
+	<!-- Pagination -->
+	@if (totalPages() > 1) {
+		<div
+			class="flex flex-col items-center justify-between gap-3 border-t border-gray-100 px-5 py-3 sm:flex-row">
+			<p class="text-xs text-gray-500">
+				{{ rangeStart() }}–{{ rangeEnd() }} sur
+				{{ filteredRows().length }}
+			</p>
+			<div class="flex items-center gap-1">
+				<button
+					(click)="prevPage()"
+					[disabled]="currentPage() === 1"
+					class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-transparent">
+					<i class="fa-solid fa-chevron-left text-xs"></i>
+				</button>
+				@for (page of pages(); track page) {
+					@if (page === "...") {
+						<span class="px-2 text-gray-400">...</span>
+					} @else {
+						<button
+							(click)="goToPage(page)"
+							class="flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-semibold transition"
+							[class.bg-gray-900]="page === currentPage()"
+							[class.text-white]="page === currentPage()"
+							[class.text-gray-600]="page !== currentPage()"
+							[class.hover:bg-gray-100]="page !== currentPage()">
+							{{ page }}
+						</button>
+					}
+				}
+				<button
+					(click)="nextPage()"
+					[disabled]="currentPage() === totalPages()"
+					class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-transparent">
+					<i class="fa-solid fa-chevron-right text-xs"></i>
+				</button>
+			</div>
+		</div>
+	}
+</div>

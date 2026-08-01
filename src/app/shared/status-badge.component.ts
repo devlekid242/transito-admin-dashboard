@@ -12,6 +12,7 @@ export class StatusBadgeComponent {
   @Input({ required: true }) variant: BadgeVariant = 'pending';
   @Input({ required: true }) label = '';
   @Input() icon = '';
+  @Input() size: 'sm' | 'xs' | 'lg' = 'sm';
 
   private readonly variantMap: Record<BadgeVariant, string> = {
     pending: 'bg-yellow-100 text-yellow-800',

@@ -1,6 +1,108 @@
 <app-page-header
 	title="Statistiques modération"
-	subtitle="Indicateurs dédiés aux utilisateurs et agences de la plateforme." />
+	subtitle="Tableau de bord analytique de la plateforme - Statistiques utilisateurs, agences et réservations." />
+
+<!-- Global Filters -->
+<div class="mb-6 rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+	<div
+		class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+		<div class="flex flex-wrap gap-4">
+			<div class="flex items-center gap-2">
+				<i class="fa-solid fa-calendar text-gray-500"></i>
+				<select
+					(change)="onDatePresetChange($any($event.target).value)"
+					[value]="selectedDatePreset"
+					class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+					<option value="today">Aujourd'hui</option>
+					<option value="yesterday">Hier</option>
+					<option value="last7">7 derniers jours</option>
+					<option value="thisWeek">Cette semaine</option>
+					<option value="lastWeek">Semaine dernière</option>
+					<option value="thisMonth">Ce mois</option>
+					<option value="lastMonth">Mois dernier</option>
+					<option value="last30" selected>30 derniers jours</option>
+					<option value="last90">90 derniers jours</option>
+				</select>
+			</div>
+
+			<div class="flex items-center gap-2">
+				<i class="fa-solid fa-building text-gray-500"></i>
+				<select
+					(change)="onPeriodChange($any($event.target).value)"
+					[value]="selectedPeriod"
+					class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+					<option value="daily">Quotidien</option>
+					<option value="weekly">Hebdomadaire</option>
+					<option value="monthly" selected>Mensuel</option>
+				</select>
+			</div>
+		</div>
+
+		<div class="flex flex-wrap gap-3">
+			<button
+				(click)="onRefresh()"
+				[disabled]="loading"
+				class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50">
+				<i class="fa-solid fa-sync-alt"></i> Actualiser
+			</button>
+			<button
+				(click)="onResetFilters()"
+				class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+				<i class="fa-solid fa-filter-circle-xmark"></i> Réinitialiser
+			</button>
+		</div>
+	</div>
+
+	<!-- Agency Filter -->
+	@if (agencies && agencies.length > 0) {
+	<div class="mt-4">
+		<div class="flex flex-wrap items-center gap-4">
+			<span class="text-sm font-medium text-gray-600"
+				>Filtrer par agence:</span
+			>
+			<div class="flex flex-wrap gap-2">
+				@for (agency of agencies; track agency.id) {
+				<button
+					(click)="onAgencySelect(agency.id)"
+					[class.bg-green-600]="isAgencySelected(agency.id)"
+					[class.text-white]="isAgencySelected(agency.id)"
+					[class.bg-gray-100]="!isAgencySelected(agency.id)"
+					[class.text-gray-700]="!isAgencySelected(agency.id)"
+					class="inline-flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium transition hover:bg-gray-200">
+					<i
+						class="fa-solid fa-check-circle"
+						*ngIf="isAgencySelected(agency.id)"></i>
+					{{ agency.name }}
+				</button>
+				}
+			</div>
+		</div>
+		<div class="mt-2 flex gap-3">
+			<button
+				(click)="onSelectAllAgencies()"
+				class="text-xs text-green-600 hover:underline">
+				Tout sélectionner
+			</button>
+			<button
+				(click)="onClearAgencySelection()"
+				class="text-xs text-red-600 hover:underline">
+				Tout désélectionner
+			</button>
+		</div>
+	</div>
+	}
+</div>
+
+<!-- Loading indicator -->
+@if (loading || loadingPresets || loadingAgencies || loadingCharts) {
+<div class="flex items-center justify-center py-8">
+	<div class="flex items-center gap-3">
+		<div
+			class="h-8 w-8 animate-spin rounded-full border-4 border-green-600 border-t-transparent"></div>
+		<span class="text-gray-600">Chargement des statistiques...</span>
+	</div>
+</div>
+} @if (!loading && !loadingPresets && !loadingAgencies && !loadingCharts) {
 
 <!-- User KPIs -->
 <div class="mb-3 flex items-center gap-2">
@@ -9,41 +111,59 @@
 		Utilisateurs
 	</h2>
 </div>
-<div class="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-3">
+<div class="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-6">
 	<app-stat-card
 		label="Total"
-		[value]="str(ms.users.total)"
+		[value]="str(userStats?.total)"
 		icon="fa-users"
 		iconBg="bg-green-600"
 		accentBar="bg-green-500" />
 	<app-stat-card
 		label="Actifs"
-		[value]="str(ms.users.active)"
+		[value]="str(userStats?.active)"
 		icon="fa-user-check"
 		iconBg="bg-green-600"
 		accentBar="bg-green-500" />
 	<app-stat-card
 		label="Bloqués"
-		[value]="str(ms.users.blocked)"
+		[value]="str(userStats?.blocked)"
 		icon="fa-ban"
 		iconBg="bg-red-600"
 		accentBar="bg-red-500" />
 	<app-stat-card
 		label="Nouveaux (semaine)"
-		[value]="str(ms.users.newThisWeek)"
+		[value]="str(userStats?.newThisWeek)"
+		icon="fa-user-plus"
+		iconBg="bg-cyan-600"
+		accentBar="bg-cyan-500" />
+	<app-stat-card
+		label="Nouveaux (mois)"
+		[value]="str(userStats?.newThisMonth)"
 		icon="fa-user-plus"
 		iconBg="bg-cyan-600"
 		accentBar="bg-cyan-500" />
 	<app-stat-card
 		label="Clients"
-		[value]="str(ms.users.clients)"
+		[value]="str(userStats?.clients)"
 		icon="fa-user"
 		iconBg="bg-violet-600"
 		accentBar="bg-violet-500" />
 	<app-stat-card
 		label="Agents"
-		[value]="str(ms.users.agents)"
+		[value]="str(userStats?.agents)"
 		icon="fa-user-tie"
+		iconBg="bg-amber-600"
+		accentBar="bg-amber-500" />
+	<app-stat-card
+		label="Administrateurs"
+		[value]="str(userStats?.admins)"
+		icon="fa-user-shield"
+		iconBg="bg-red-600"
+		accentBar="bg-red-500" />
+	<app-stat-card
+		label="Taux annulation"
+		[value]="percent(userStats?.cancellationRate, 1)"
+		icon="fa-percentage"
 		iconBg="bg-amber-600"
 		accentBar="bg-amber-500" />
 </div>
@@ -55,41 +175,111 @@
 		Agences
 	</h2>
 </div>
-<div class="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-3">
+<div class="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-6">
 	<app-stat-card
 		label="Total"
-		[value]="str(ms.agencies.total)"
+		[value]="str(agencyStats?.total)"
 		icon="fa-building"
 		iconBg="bg-green-600"
 		accentBar="bg-green-500" />
 	<app-stat-card
 		label="Actives"
-		[value]="str(ms.agencies.active)"
+		[value]="str(agencyStats?.active)"
 		icon="fa-circle-check"
 		iconBg="bg-green-600"
 		accentBar="bg-green-500" />
 	<app-stat-card
 		label="Suspendues"
-		[value]="str(ms.agencies.suspended)"
+		[value]="str(agencyStats?.suspended)"
 		icon="fa-ban"
 		iconBg="bg-red-600"
 		accentBar="bg-red-500" />
 	<app-stat-card
 		label="KYC vérifié"
-		[value]="str(ms.agencies.kycVerified)"
+		[value]="str(agencyStats?.kycVerified)"
 		icon="fa-shield-check"
 		iconBg="bg-emerald-600"
 		accentBar="bg-emerald-500" />
 	<app-stat-card
 		label="KYC en attente"
-		[value]="str(ms.agencies.kycPending)"
+		[value]="str(agencyStats?.kycPending)"
 		icon="fa-clock"
 		iconBg="bg-amber-600"
 		accentBar="bg-amber-500" />
 	<app-stat-card
 		label="KYC manquant"
-		[value]="str(ms.agencies.kycMissing)"
+		[value]="str(agencyStats?.kycMissing)"
 		icon="fa-file-xmark"
+		iconBg="bg-red-600"
+		accentBar="bg-red-500" />
+	<app-stat-card
+		label="KYC rejeté"
+		[value]="str(agencyStats?.kycRejected)"
+		icon="fa-shield-xmark"
+		iconBg="bg-red-600"
+		accentBar="bg-red-500" />
+	<app-stat-card
+		label="Taux remplissage"
+		[value]="percent(agencyStats?.avgFillRate, 1)"
+		icon="fa-percentage"
+		iconBg="bg-emerald-600"
+		accentBar="bg-emerald-500" />
+</div>
+
+<!-- Reservation & Finance KPIs -->
+<div class="mb-3 mt-6 flex items-center gap-2">
+	<i class="fa-solid fa-chart-line text-blue-500"></i>
+	<h2 class="text-sm font-bold uppercase tracking-wide text-gray-600">
+		Réservations & Finances
+	</h2>
+</div>
+<div class="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-6">
+	<app-stat-card
+		label="Total réservations"
+		[value]="str(reservationStats?.total)"
+		icon="fa-ticket"
+		iconBg="bg-blue-600"
+		accentBar="bg-blue-500" />
+	<app-stat-card
+		label="Taux remplissage"
+		[value]="percent(reservationStats?.fillRate, 1)"
+		icon="fa-percentage"
+		iconBg="bg-emerald-600"
+		accentBar="bg-emerald-500" />
+	<app-stat-card
+		label="Taux annulation"
+		[value]="percent(reservationStats?.cancellationRate, 1)"
+		icon="fa-percentage"
+		iconBg="bg-amber-600"
+		accentBar="bg-amber-500" />
+	<app-stat-card
+		label="Revenu total"
+		[value]="fcfa(financeStats?.totalRevenue)"
+		icon="fa-coins"
+		iconBg="bg-green-600"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Transactions"
+		[value]="str(financeStats?.totalTransactions)"
+		icon="fa-credit-card"
+		iconBg="bg-violet-600"
+		accentBar="bg-violet-500" />
+	<app-stat-card
+		label="Paiements réussis"
+		[value]="str(financeStats?.successfulPayments)"
+		icon="fa-circle-check"
+		iconBg="bg-green-600"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Paiements en attente"
+		[value]="str(financeStats?.pendingPayments)"
+		icon="fa-clock"
+		iconBg="bg-amber-600"
+		accentBar="bg-amber-500" />
+	<app-stat-card
+		label="Paiements échoués"
+		[value]="str(financeStats?.failedPayments)"
+		icon="fa-circle-xmark"
 		iconBg="bg-red-600"
 		accentBar="bg-red-500" />
 </div>
@@ -101,7 +291,7 @@
 			Réservations par statut
 		</h3>
 		<app-donut-chart
-			[data]="ms.reservationsByStatus"
+			[data]="getReservationsByStatus()"
 			centerLabel="Total"
 			[size]="150" />
 	</div>
@@ -110,7 +300,7 @@
 			Répartition utilisateurs
 		</h3>
 		<app-donut-chart
-			[data]="ms.usersByType"
+			[data]="getUsersByType()"
 			centerLabel="Total"
 			[size]="150" />
 	</div>
@@ -126,8 +316,8 @@
 		</div>
 		<div class="h-56">
 			<app-line-chart
-				[labels]="data.revenueLabels"
-				[chartSeries]="[{ name: 'Nouveaux', data: ms.monthlyNewUsers, color: '#2563eb', fill: '#2563eb', dotClass: 'bg-green-600' }]" />
+				[labels]="getUserChartData().labels"
+				[chartSeries]="getUserChartData().series" />
 		</div>
 	</div>
 	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -135,12 +325,28 @@
 			<h3 class="text-base font-semibold text-gray-800">
 				Réservations mensuelles
 			</h3>
-			<p class="text-xs text-gray-500">8 derniers mois</p>
+			<p class="text-xs text-gray-500">Période sélectionnée</p>
 		</div>
 		<div class="h-56">
 			<app-line-chart
-				[labels]="data.revenueLabels"
-				[chartSeries]="[{ name: 'Réservations', data: ms.monthlyReservations, color: '#16a34a', fill: '#16a34a', dotClass: 'bg-green-600' }]" />
+				[labels]="getReservationChartData().labels"
+				[chartSeries]="getReservationChartData().series" />
+		</div>
+	</div>
+</div>
+
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-1">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4">
+			<h3 class="text-base font-semibold text-gray-800">
+				Revenu mensuel
+			</h3>
+			<p class="text-xs text-gray-500">Période sélectionnée</p>
+		</div>
+		<div class="h-56">
+			<app-line-chart
+				[labels]="getRevenueChartData().labels"
+				[chartSeries]="getRevenueChartData().series" />
 		</div>
 	</div>
 </div>
@@ -157,19 +363,25 @@
 				<tr>
 					<th class="px-5 py-3 font-semibold">Agence</th>
 					<th class="px-5 py-3 font-semibold">Réservations</th>
+					<th class="px-5 py-3 font-semibold">Revenu (FCFA)</th>
 					<th class="px-5 py-3 font-semibold">Taux remplissage</th>
+					<th class="px-5 py-3 font-semibold">Taux annulation</th>
 					<th class="px-5 py-3 font-semibold">KYC</th>
 					<th class="px-5 py-3 font-semibold">Statut</th>
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-50">
-				@for (a of data.agencies(); track a.id) {
+				@for (agency of getAgencyComparisonList(); track
+				agency.agencyId) {
 				<tr class="transition-colors hover:bg-gray-50">
 					<td class="px-5 py-4 font-semibold text-gray-800">
-						{{ a.name }}
+						{{ agency.agencyName }}
 					</td>
 					<td class="px-5 py-4 text-gray-600">
-						{{ str(data.getAgencyStats(a.id).reservations) }}
+						{{ str(agency.totalReservations) }}
+					</td>
+					<td class="px-5 py-4 text-gray-600">
+						{{ fcfa(agency.totalRevenue) }}
 					</td>
 					<td class="px-5 py-4">
 						<div class="flex items-center gap-2">
@@ -177,35 +389,27 @@
 								class="h-2 w-16 overflow-hidden rounded-full bg-gray-100">
 								<div
 									class="h-full rounded-full bg-green-500"
-									[style.width.%]="data.getAgencyStats(a.id).fillRate"></div>
+									[style.width.%]="agency.fillRate"></div>
 							</div>
 							<span class="text-xs text-gray-500"
-								>{{ data.getAgencyStats(a.id).fillRate }}%</span
+								>{{ percent(agency.fillRate, 1) }}</span
 							>
 						</div>
 					</td>
-					<td class="px-5 py-4">
-						<span
-							class="rounded-lg px-2 py-1 text-xs font-semibold"
-							[class.bg-green-50]="a.kyc === 'VERIFIED'"
-							[class.text-green-700]="a.kyc === 'VERIFIED'"
-							[class.bg-amber-50]="a.kyc === 'PENDING'"
-							[class.text-amber-700]="a.kyc === 'PENDING'"
-							[class.bg-red-50]="a.kyc === 'MISSING'"
-							[class.text-red-700]="a.kyc === 'MISSING'">
-							{{ a.kyc === 'VERIFIED' ? 'Vérifié' : a.kyc ===
-							'PENDING' ? 'En attente' : 'Manquant' }}
-						</span>
+					<td class="px-5 py-4 text-gray-600">
+						{{ percent(agency.cancellationRate, 1) }}
 					</td>
 					<td class="px-5 py-4">
-						<span
-							class="rounded-lg px-2 py-1 text-xs font-semibold"
-							[class.bg-green-50]="a.account === 'ACTIVE'"
-							[class.text-green-700]="a.account === 'ACTIVE'"
-							[class.bg-red-50]="a.account === 'SUSPENDED'"
-							[class.text-red-700]="a.account === 'SUSPENDED'">
-							{{ a.account === 'ACTIVE' ? 'Actif' : 'Suspendu' }}
-						</span>
+						<app-status-badge
+							[variant]="getStatusBadgeVariant(agency.kycStatus)"
+							[label]="getKycStatusLabel(agency.kycStatus)"
+							icon="fa-shield-halved" />
+					</td>
+					<td class="px-5 py-4">
+						<app-status-badge
+							[variant]="getAgencyStatusBadgeVariant(agency.status)"
+							[label]="getStatusLabel(agency.status)"
+							icon="fa-circle" />
 					</td>
 				</tr>
 				}
@@ -213,3 +417,146 @@
 		</table>
 	</div>
 </div>
+
+<!-- Leaderboards -->
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3 class="mb-4 text-base font-semibold text-gray-800">
+			<i class="fa-solid fa-trophy text-green-600 mr-2"></i>
+			Top Agences par Réservations
+		</h3>
+		<div class="space-y-3">
+			@for (agency of getTopByReservations(); track agency.agencyId; let i
+			= $index) { @if (i < 5) {
+			<div
+				class="flex items-center gap-3 rounded-lg border border-gray-100 p-3 transition hover:bg-gray-50">
+				<span
+					class="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-700"
+					>{{ i + 1 }}</span
+				>
+				<div class="flex-1">
+					<div class="font-semibold text-gray-800">
+						{{ agency.agencyName }}
+					</div>
+					<div class="text-xs text-gray-500">
+						{{ str(agency.totalReservations) }} réservations • {{
+						fcfa(agency.totalRevenue) }} revenu
+					</div>
+				</div>
+				<div class="flex items-center gap-2">
+					<app-status-badge
+						[variant]="getStatusBadgeVariant(agency.kycStatus)"
+						[label]="getKycStatusLabel(agency.kycStatus)"
+						size="xs" />
+				</div>
+			</div>
+			} }
+		</div>
+	</div>
+
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3 class="mb-4 text-base font-semibold text-gray-800">
+			<i class="fa-solid fa-chart-line text-violet-600 mr-2"></i>
+			Top Agences par Revenu
+		</h3>
+		<div class="space-y-3">
+			@for (agency of getTopByRevenue(); track agency.agencyId; let i =
+			$index) { @if (i < 5) {
+			<div
+				class="flex items-center gap-3 rounded-lg border border-gray-100 p-3 transition hover:bg-gray-50">
+				<span
+					class="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-sm font-bold text-violet-700"
+					>{{ i + 1 }}</span
+				>
+				<div class="flex-1">
+					<div class="font-semibold text-gray-800">
+						{{ agency.agencyName }}
+					</div>
+					<div class="text-xs text-gray-500">
+						{{ str(agency.totalReservations) }} réservations • {{
+						fcfa(agency.totalRevenue) }} revenu
+					</div>
+				</div>
+				<div class="flex items-center gap-2">
+					<app-status-badge
+						[variant]="getAgencyStatusBadgeVariant(agency.status)"
+						[label]="getStatusLabel(agency.status)"
+						size="xs" />
+				</div>
+			</div>
+			} }
+		</div>
+	</div>
+</div>
+
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3 class="mb-4 text-base font-semibold text-gray-800">
+			<i class="fa-solid fa-percent text-emerald-600 mr-2"></i>
+			Top Agences par Taux de Remplissage
+		</h3>
+		<div class="space-y-3">
+			@for (agency of getTopByFillRate(); track agency.agencyId; let i =
+			$index) { @if (i < 5) {
+			<div
+				class="flex items-center gap-3 rounded-lg border border-gray-100 p-3 transition hover:bg-gray-50">
+				<span
+					class="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700"
+					>{{ i + 1 }}</span
+				>
+				<div class="flex-1">
+					<div class="font-semibold text-gray-800">
+						{{ agency.agencyName }}
+					</div>
+					<div class="text-xs text-gray-500">
+						Taux de remplissage: {{ percent(agency.fillRate, 1) }}
+					</div>
+				</div>
+				<div class="flex items-center gap-2">
+					<app-status-badge
+						[variant]="getAgencyStatusBadgeVariant(agency.status)"
+						[label]="getStatusLabel(agency.status)"
+						size="xs" />
+				</div>
+			</div>
+			} }
+		</div>
+	</div>
+
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<h3 class="mb-4 text-base font-semibold text-gray-800">
+			<i class="fa-solid fa-shield-halved text-amber-600 mr-2"></i>
+			Top Agences par Faible Taux d'Annulation
+		</h3>
+		<div class="space-y-3">
+			@for (agency of getTopByLowestCancellation(); track agency.agencyId;
+			let i = $index) { @if (i < 5) {
+			<div
+				class="flex items-center gap-3 rounded-lg border border-gray-100 p-3 transition hover:bg-gray-50">
+				<span
+					class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-sm font-bold text-amber-700"
+					>{{ i + 1 }}</span
+				>
+				<div class="flex-1">
+					<div class="font-semibold text-gray-800">
+						{{ agency.agencyName }}
+					</div>
+					<div class="text-xs text-gray-500">
+						Taux d'annulation: {{ percent(agency.cancellationRate,
+						1) }}
+					</div>
+				</div>
+				<div class="flex items-center gap-2">
+					<app-status-badge
+						[variant]="getStatusBadgeVariant(agency.kycStatus)"
+						[label]="getKycStatusLabel(agency.kycStatus)"
+						size="xs" />
+				</div>
+			</div>
+			} }
+		</div>
+	</div>
+</div>
+
+}
+<!-- End of main content wrapper -->

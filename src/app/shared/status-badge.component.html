@@ -1,9 +1,15 @@
 <span
-      class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+      class="inline-flex items-center gap-1.5 rounded-full font-semibold"
       [class]="classes()"
+      [class.px-2]="size === 'xs'"
+      [class.py-0.5]="size === 'xs'"
+      [class.text-[10px]]= "size === 'xs'"
+      [class.px-3]="size !== 'xs'"
+      [class.py-1]="size !== 'xs'"
+      [class.text-xs]="size !== 'xs'"
     >
       @if (icon) {
-        <i class="fa-solid text-[10px]" [class]="icon"></i>
+        <i class="fa-solid" [class]="icon" [class.text-[8px]]= "size === 'xs'" [class.text-[10px]]= "size !== 'xs'"></i>
       }
       {{ label }}
     </span>

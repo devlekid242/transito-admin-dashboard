@@ -23,6 +23,8 @@ export class DataTableComponent<T> {
   readonly searchPlaceholder = input('Rechercher...');
   readonly searchKeys = input<string[]>([]);
   readonly emptyMessage = input('Aucune donnée trouvée.');
+  readonly loading = input(false);
+
 
   @ContentChild('rowTemplate') rowTemplate?: TemplateRef<any>;
   @ContentChild('emptyTemplate') emptyTemplate?: TemplateRef<any>;
