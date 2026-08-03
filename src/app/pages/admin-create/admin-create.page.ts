@@ -1,63 +1,139 @@
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { MockDataService, AdminUser, AdminRole } from '../../services/mock-data.service';
-import { PageHeaderComponent } from '../../shared/page-header.component';
+import { Component, inject, signal } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { Router, RouterLink } from "@angular/router";
+import { AdminService, AdminRoleType } from "../../services/admin.service";
+import { PageHeaderComponent } from "../../shared/page-header.component";
+
+interface AdminCreateForm {
+	fullName: string;
+	email: string;
+	phoneNumber: string;
+	password: string;
+	adminRole: AdminRoleType;
+	permissions: string[];
+	department: string;
+	notes: string;
+}
 
 @Component({
-  selector: 'app-admin-create',
-  imports: [CommonModule, RouterLink, PageHeaderComponent],
-  templateUrl: 'admin-create.page.html',
+	selector: "app-admin-create",
+	imports: [CommonModule, RouterLink, PageHeaderComponent],
+	templateUrl: "admin-create.page.html",
 })
 export class AdminCreatePage {
-  private data = inject(MockDataService);
-  readonly currentStep = signal(1);
-  readonly selectedRole = signal<AdminRole>('FINANCE');
+	private readonly router = inject(Router);
+	private readonly adminService = inject(AdminService);
 
-  readonly steps = [
-    { num: 1, title: 'Informations', desc: 'Identité' },
-    { num: 2, title: 'Rôle', desc: 'Permissions' },
-    { num: 3, title: 'Sécurité', desc: 'Mot de passe & 2FA' },
-    { num: 4, title: 'Terminé', desc: 'Création' },
-  ];
+	readonly currentStep = signal(1);
+	readonly form = signal<AdminCreateForm>({
+		fullName: "",
+		email: "",
+		phoneNumber: "",
+		password: "",
+		adminRole: "SUPPORT_ADMIN",
+		permissions: [],
+		department: "",
+		notes: "",
+	});
+	readonly saving = this.adminService.saving;
+	readonly lastError = this.adminService.lastError;
 
-  readonly roleOptions = [
-    { value: 'FINANCE' as AdminRole, label: 'Finance', desc: 'Gère les retraits, remboursements et finances' },
-    { value: 'MODERATION' as AdminRole, label: 'Modération', desc: 'Gère les agences, KYC et utilisateurs' },
-    { value: 'SUPPORT' as AdminRole, label: 'Support', desc: 'Répond aux tickets de support' },
-  ];
+	readonly steps = [
+		{ num: 1, title: "Informations", desc: "Identité" },
+		{ num: 2, title: "Rôle", desc: "Permissions" },
+		{ num: 3, title: "Sécurité", desc: "Mot de passe & 2FA" },
+		{ num: 4, title: "Terminé", desc: "Création" },
+	];
 
-  readonly permissionOptions = [
-    'Voir finances', 'Valider retraits', 'Forcer remboursements',
-    'Gérer agences', 'Valider KYC', 'Gérer utilisateurs',
-    'Répondre tickets', 'Voir utilisateurs', 'Envoyer notifications',
-  ];
+	readonly roleOptions = [
+		{
+			value: "SUPER_ADMIN" as AdminRoleType,
+			label: "Super Admin",
+			desc: "Pleine gestion de la plateforme",
+		},
+		{
+			value: "FINANCE_ADMIN" as AdminRoleType,
+			label: "Finance",
+			desc: "Gère les retraits, remboursements et finances",
+		},
+		{
+			value: "MODERATION_ADMIN" as AdminRoleType,
+			label: "Modération",
+			desc: "Gère les agences, KYC et utilisateurs",
+		},
+		{
+			value: "SUPPORT_ADMIN" as AdminRoleType,
+			label: "Support",
+			desc: "Répond aux tickets de support",
+		},
+	];
 
-  nextStep() { this.currentStep.update(v => Math.min(v + 1, 4)); }
-  prevStep() { this.currentStep.update(v => Math.max(v - 1, 1)); }
+	readonly permissionOptions = [
+		"Voir utilisateurs",
+		"Gérer administrateurs",
+		"Voir finances",
+		"Valider retraits",
+		"Forcer remboursements",
+		"Gérer agences",
+		"Valider KYC",
+		"Répondre tickets",
+		"Voir rapports",
+	];
 
-  createAdmin() {
-    const inputs = document.querySelectorAll('input');
-    const name = (inputs[0] as HTMLInputElement).value;
-    const email = (inputs[1] as HTMLInputElement).value;
-    if (!name || !email) return;
+	nextStep() {
+		this.currentStep.update((v) => Math.min(v + 1, 4));
+	}
+	prevStep() {
+		this.currentStep.update((v) => Math.max(v - 1, 1));
+	}
 
-    const colors = ['bg-emerald-600', 'bg-amber-600', 'bg-cyan-600', 'bg-violet-600', 'bg-rose-600'];
-    const permMap: Record<string, string[]> = {
-      FINANCE: ['Voir finances', 'Valider retraits', 'Forcer remboursements'],
-      MODERATION: ['Gérer agences', 'Valider KYC', 'Gérer utilisateurs'],
-      SUPPORT: ['Répondre tickets', 'Voir utilisateurs'],
-    };
+	updateField(field: keyof AdminCreateForm, value: string | string[]) {
+		this.form.set({ ...this.form(), [field]: value });
+	}
 
-    const newAdmin: AdminUser = {
-      id: 'A-' + (this.data.admins().length + 1),
-      name, email, role: this.selectedRole(),
-      lastActive: 'Jamais', avatarColor: colors[Math.floor(Math.random() * colors.length)],
-      permissions: permMap[this.selectedRole()] || [],
-    };
-    this.data.admins.update(list => [...list, newAdmin]);
-    this.currentStep.set(4);
-  }
+	togglePermission(permission: string) {
+		const permissions = this.form().permissions;
+		this.form.set({
+			...this.form(),
+			permissions: permissions.includes(permission)
+				? permissions.filter((item) => item !== permission)
+				: [...permissions, permission],
+		});
+	}
 
-  reset() { this.currentStep.set(1); }
+	createAdmin() {
+		const payload = {
+			fullName: this.form().fullName.trim(),
+			email: this.form().email.trim(),
+			phoneNumber: this.form().phoneNumber.trim(),
+			password: this.form().password,
+			adminRole: this.form().adminRole,
+			permissions: this.form().permissions,
+			department: this.form().department.trim() || undefined,
+			notes: this.form().notes.trim() || undefined,
+		};
+
+		this.adminService.createAdmin(payload).subscribe((response) => {
+			if (response.success) {
+				this.currentStep.set(4);
+				setTimeout(() => {
+					this.router.navigate(["/admin/admins"]);
+				}, 1000);
+			}
+		});
+	}
+
+	reset() {
+		this.currentStep.set(1);
+		this.form.set({
+			fullName: "",
+			email: "",
+			phoneNumber: "",
+			password: "",
+			adminRole: "SUPPORT_ADMIN",
+			permissions: [],
+			department: "",
+			notes: "",
+		});
+	}
 }

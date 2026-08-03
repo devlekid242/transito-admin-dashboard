@@ -6,6 +6,7 @@
 		<div class="flex items-center gap-2">
 			@for (p of periods; track p.value) {
 			<button
+				type="button"
 				(click)="onPeriodChange(p.value)"
 				class="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
 				[class.bg-green-600]="dateFilter().period === p.value"
@@ -27,8 +28,10 @@
 				(change)="onEndDateChange($event)"
 				class="w-36 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
 			<button
+				type="button"
 				(click)="applyCustomDateRange()"
-				class="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700">
+				[disabled]="!dateFilter().startDate || !dateFilter().endDate"
+				class="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
 				Appliquer
 			</button>
 		</div>
@@ -38,15 +41,21 @@
 <!-- Loading state -->
 @if (loading()) {
 <div class="flex items-center justify-center py-8">
-  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-  <span class="ml-3">Chargement des données...</span>
+	<div
+		class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+	<span class="ml-3">Chargement des données...</span>
 </div>
 }
 
 <!-- Error state -->
 @if (error()) {
 <div class="rounded-lg bg-red-50 border border-red-200 p-4 text-red-700">
-  {{ error() }}
+	{{ error() }}
+</div>
+} @if (!loading() && !error() && !data()) {
+<div
+	class="rounded-lg bg-yellow-50 border border-yellow-200 p-4 text-yellow-700">
+	Aucune donnée disponible pour la période sélectionnée.
 </div>
 }
 
@@ -167,12 +176,15 @@
 							stroke-linecap="round"
 							class="transition-all duration-700" />
 					</svg>
-					<span class="absolute text-lg font-bold text-gray-900">{{ formatPercentage(netMargin()) }}</span>
+					<span class="absolute text-lg font-bold text-gray-900"
+						>{{ formatPercentage(netMargin()) }}</span
+					>
 				</div>
 				<div>
 					<p class="text-sm text-gray-500">Marge globale</p>
 					<p class="text-xs text-green-600">
-						<i class="fa-solid fa-arrow-trend-up"></i> {{ getGMVTrend() }} vs période précédente
+						<i class="fa-solid fa-arrow-trend-up"></i> {{
+						getGMVTrend() }} vs période précédente
 					</p>
 				</div>
 			</div>
@@ -184,7 +196,9 @@
 			<p class="text-3xl font-bold text-gray-900">
 				{{ str(transactionVolume()) }}
 			</p>
-			<p class="mt-1 text-xs text-gray-500">Transactions sur la période</p>
+			<p class="mt-1 text-xs text-gray-500">
+				Transactions sur la période
+			</p>
 		</div>
 	</div>
 </div>
@@ -242,9 +256,7 @@
 					<td class="px-5 py-4 font-semibold text-gray-800">
 						{{ a.agency }}
 					</td>
-					<td class="px-5 py-4 text-gray-600">
-						{{ fcfa(a.ca) }}
-					</td>
+					<td class="px-5 py-4 text-gray-600">{{ fcfa(a.ca) }}</td>
 					<td class="px-5 py-4 text-gray-600">
 						{{ fcfa(a.commission) }}
 					</td>
@@ -255,7 +267,8 @@
 						{{ fcfa(a.netRevenue) }}
 					</td>
 					<td class="px-5 py-4">
-						<span class="rounded-lg bg-green-50 px-2 py-1 text-xs font-semibold text-green-700">
+						<span
+							class="rounded-lg bg-green-50 px-2 py-1 text-xs font-semibold text-green-700">
 							{{ formatPercentage(a.margin) }}
 						</span>
 					</td>

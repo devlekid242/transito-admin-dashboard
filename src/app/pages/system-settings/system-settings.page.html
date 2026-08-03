@@ -1,133 +1,629 @@
-<app-page-header title="Paramètres système" subtitle="Configuration globale de la plateforme Tansico." />
+<app-page-header
+	title="Paramètres système"
+	subtitle="Configuration globale de la plateforme Tansico." />
 
-    <!-- Tab bar -->
-    <div class="mb-6 flex gap-1 overflow-x-auto border-b border-gray-200">
-      @for (tab of tabs; track tab.id) {
-        <button (click)="activeTab.set(tab.id)"
-          class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap"
-          [class.border-blue-600]="activeTab() === tab.id" [class.text-green-600]="activeTab() === tab.id"
-          [class.border-transparent]="activeTab() !== tab.id" [class.text-gray-500]="activeTab() !== tab.id" [class.hover:text-gray-800]="activeTab() !== tab.id">
-          <i class="fa-solid" [class]="tab.icon"></i> {{ tab.label }}
-        </button>
-      }
-    </div>
+<div class="mb-6 flex gap-1 overflow-x-auto border-b border-gray-200">
+	@for (tab of tabs; track tab.id) {
+	<button
+		type="button"
+		(click)="activeTab.set(tab.id)"
+		class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap"
+		[class.border-blue-600]="activeTab() === tab.id"
+		[class.text-green-600]="activeTab() === tab.id"
+		[class.border-transparent]="activeTab() !== tab.id"
+		[class.text-gray-500]="activeTab() !== tab.id"
+		[class.hover:text-gray-800]="activeTab() !== tab.id">
+		<i class="fa-solid" [class]="tab.icon"></i> {{ tab.label }}
+	</button>
+	}
+</div>
 
-    <!-- Commission tab -->
-    @if (activeTab() === 'commission') {
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div class="mb-4 flex items-center gap-2"><div class="flex h-9 w-9 items-center justify-center rounded-lg bg-green-50"><i class="fa-solid fa-percent text-green-600"></i></div><div><h3 class="text-base font-semibold text-gray-800">Commission plateforme</h3><p class="text-xs text-gray-500">Frais fixes par réservation</p></div></div>
-          <div class="flex items-end gap-3">
-            <div class="flex-1"><label class="mb-1.5 block text-sm font-medium text-gray-700">Montant (FCFA)</label><input #feeInput type="number" [value]="platformFee()" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold text-gray-800 outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" /></div>
-            <button (click)="updateFee(feeInput.value)" class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-green-700 active:scale-95"><i class="fa-solid fa-rotate-right"></i> Mettre à jour</button>
-          </div>
-          @if (feeSaved()) { <p class="mt-3 flex items-center gap-1.5 text-xs font-medium text-green-600"><i class="fa-solid fa-circle-check"></i> Commission mise à jour à {{ fcfa(platformFee()) }}</p> }
-        </div>
-        <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div class="mb-4 flex items-center gap-2"><div class="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50"><i class="fa-solid fa-chart-pie text-violet-600"></i></div><div><h3 class="text-base font-semibold text-gray-800">Impact des commissions</h3><p class="text-xs text-gray-500">Aperçu des revenus de commission</p></div></div>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">Commission par ticket</span><span class="font-semibold text-gray-900">{{ fcfa(platformFee()) }}</span></div>
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">Réservations ce mois</span><span class="font-semibold text-gray-900">3 412</span></div>
-            <div class="flex items-center justify-between rounded-lg bg-green-50 p-3"><span class="text-sm font-medium text-green-700">Revenu commission estimé</span><span class="font-bold text-green-700">{{ fcfa(platformFee() * 3412) }}</span></div>
-          </div>
-        </div>
-      </div>
-    }
+@if (loading()) {
+<div
+	class="rounded-xl border border-gray-100 bg-white p-6 text-center text-sm text-gray-500 shadow-sm">
+	Chargement des paramètres système...
+</div>
+} @else { @if (lastError()) {
+<div
+	class="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+	<i class="fa-solid fa-triangle-exclamation mr-2"></i>
+	{{ lastError() }}
+</div>
+} @if (draft()) {
+<!-- Commission tab -->
+@if (activeTab() === 'commission') {
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4 flex items-center gap-2">
+			<div
+				class="flex h-9 w-9 items-center justify-center rounded-lg bg-green-50">
+				<i class="fa-solid fa-percent text-green-600"></i>
+			</div>
+			<div>
+				<h3 class="text-base font-semibold text-gray-800">
+					Commission plateforme
+				</h3>
+				<p class="text-xs text-gray-500">
+					Frais fixes facturés par réservation.
+				</p>
+			</div>
+		</div>
+		<div class="flex items-end gap-3">
+			<div class="flex-1">
+				<label class="mb-1.5 block text-sm font-medium text-gray-700"
+					>Montant (FCFA)</label
+				>
+				<input
+					type="number"
+					[value]="draft()?.platformFee"
+					(input)="updateDraft('platformFee', parseInt($any($event.target).value, 10) || 0)"
+					class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold text-gray-800 outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" />
+			</div>
+			<button
+				type="button"
+				(click)="confirmSave()"
+				class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-green-700 active:scale-95">
+				<i class="fa-solid fa-check"></i> Enregistrer
+			</button>
+		</div>
+		<p class="mt-4 text-sm text-gray-500">
+			Commission actuelle :
+			<span class="font-semibold text-gray-900"
+				>{{ formatCurrency(draft()?.platformFee ?? 0) }}</span
+			>
+		</p>
+	</div>
 
-    <!-- Payments tab -->
-    @if (activeTab() === 'payments') {
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div class="mb-4 flex items-center gap-2"><div class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50"><i class="fa-solid fa-credit-card text-emerald-600"></i></div><div><h3 class="text-base font-semibold text-gray-800">Méthodes de paiement</h3><p class="text-xs text-gray-500">Activez ou désactivez les moyens de paiement</p></div></div>
-          <div class="space-y-3">
-            @for (pm of paymentMethods(); track pm.name) {
-              <div class="flex items-center justify-between rounded-lg border border-gray-100 p-3">
-                <div class="flex items-center gap-3"><i class="fa-solid text-lg" [class]="pm.icon" [class.text-amber-500]="pm.name === 'Wave'" [class.text-orange-500]="pm.name === 'Orange Money'" [class.text-green-500]="pm.name === 'Carte bancaire'"></i><div><p class="text-sm font-medium text-gray-700">{{ pm.name }}</p><p class="text-xs text-gray-400">{{ pm.enabled() ? 'Actif' : 'Désactivé' }}</p></div></div>
-                <button (click)="pm.enabled.set(!pm.enabled())" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300" [class.bg-green-500]="pm.enabled()" [class.bg-gray-300]="!pm.enabled()"><span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300" [class.translate-x-6]="pm.enabled()" [class.translate-x-1]="!pm.enabled()"></span></button>
-              </div>
-            }
-          </div>
-        </div>
-        <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div class="mb-4 flex items-center gap-2"><div class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50"><i class="fa-solid fa-percent text-amber-600"></i></div><div><h3 class="text-base font-semibold text-gray-800">Frais par méthode</h3><p class="text-xs text-gray-500">Frais de transaction appliqués</p></div></div>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">Wave</span><span class="font-semibold text-gray-900">1.5%</span></div>
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">Orange Money</span><span class="font-semibold text-gray-900">2.0%</span></div>
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">Carte bancaire</span><span class="font-semibold text-gray-900">2.5% + 100 FCFA</span></div>
-          </div>
-        </div>
-      </div>
-    }
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4 flex items-center gap-2">
+			<div
+				class="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50">
+				<i class="fa-solid fa-chart-pie text-violet-600"></i>
+			</div>
+			<div>
+				<h3 class="text-base font-semibold text-gray-800">
+					Impact prévisionnel
+				</h3>
+				<p class="text-xs text-gray-500">
+					Aperçu du revenu de commission estimé.
+				</p>
+			</div>
+		</div>
+		<div class="space-y-3">
+			<div
+				class="flex items-center justify-between rounded-lg bg-gray-50 p-3">
+				<span class="text-sm text-gray-600">Commission par billet</span>
+				<span class="font-semibold text-gray-900"
+					>{{ formatCurrency(draft()?.platformFee ?? 0) }}</span
+				>
+			</div>
+			<div
+				class="flex items-center justify-between rounded-lg bg-gray-50 p-3">
+				<span class="text-sm text-gray-600">Réservations estimées</span>
+				<span class="font-semibold text-gray-900">3 412</span>
+			</div>
+			<div
+				class="flex items-center justify-between rounded-lg bg-green-50 p-3">
+				<span class="text-sm font-medium text-green-700"
+					>Revenu estimé</span
+				>
+				<span class="font-bold text-green-700"
+					>{{ formatCurrency((draft()?.platformFee ?? 0) * 3412)
+					}}</span
+				>
+			</div>
+		</div>
+	</div>
+</div>
+}
 
-    <!-- Platform tab -->
-    @if (activeTab() === 'platform') {
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div class="mb-4 flex items-center gap-2"><div class="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50"><i class="fa-solid fa-globe text-violet-600"></i></div><div><h3 class="text-base font-semibold text-gray-800">Informations plateforme</h3><p class="text-xs text-gray-500">Nom et description</p></div></div>
-          <div class="space-y-3">
-            <div><label class="mb-1.5 block text-sm font-medium text-gray-700">Nom de la plateforme</label><input type="text" value="Tansico" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" /></div>
-            <div><label class="mb-1.5 block text-sm font-medium text-gray-700">Support email</label><input type="email" value="support@tansico.com" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" /></div>
-            <div><label class="mb-1.5 block text-sm font-medium text-gray-700">Devise</label><input type="text" value="FCFA (XOF)" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" /></div>
-            <div><label class="mb-1.5 block text-sm font-medium text-gray-700">Téléphone support</label><input type="tel" value="+221 33 800 00 00" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" /></div>
-          </div>
-        </div>
-        <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div class="mb-4 flex items-center gap-2"><div class="flex h-9 w-9 items-center justify-center rounded-lg bg-green-50"><i class="fa-solid fa-server text-green-600"></i></div><div><h3 class="text-base font-semibold text-gray-800">État du système</h3><p class="text-xs text-gray-500">Informations techniques</p></div></div>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">Version</span><span class="font-mono font-semibold text-gray-900">v2.4.1</span></div>
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">API status</span><span class="flex items-center gap-1.5 text-sm font-semibold text-green-600"><i class="fa-solid fa-circle text-[8px] text-green-400"></i> Opérationnel</span></div>
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">Base de données</span><span class="flex items-center gap-1.5 text-sm font-semibold text-green-600"><i class="fa-solid fa-circle text-[8px] text-green-400"></i> Connectée</span></div>
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">Dernier déploiement</span><span class="text-sm font-medium text-gray-700">24/07/2026 14:30</span></div>
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">Uptime</span><span class="text-sm font-semibold text-green-600">99.98%</span></div>
-          </div>
-        </div>
-      </div>
-    }
+<!-- Payments tab -->
+@if (activeTab() === 'payments') {
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4 flex items-center gap-2">
+			<div
+				class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50">
+				<i class="fa-solid fa-credit-card text-emerald-600"></i>
+			</div>
+			<div>
+				<h3 class="text-base font-semibold text-gray-800">
+					Méthodes de paiement
+				</h3>
+				<p class="text-xs text-gray-500">
+					Activez ou désactivez les moyens de paiement.
+				</p>
+			</div>
+		</div>
+		<div class="space-y-3">
+			@for (method of draft()?.paymentMethods; track method.name) {
+			<div
+				class="flex items-center justify-between rounded-lg border border-gray-100 p-3">
+				<div class="flex items-center gap-3">
+					<i
+						class="fa-solid text-lg"
+						[class]="method.icon"
+						[class.text-amber-500]="method.name === 'Wave'"
+						[class.text-orange-500]="method.name === 'Orange Money'"
+						[class.text-green-500]="method.name === 'Carte bancaire'"></i>
+					<div>
+						<p class="text-sm font-medium text-gray-700">
+							{{ method.name }}
+						</p>
+						<p class="text-xs text-gray-400">
+							{{ method.enabled ? 'Actif' : 'Désactivé' }}
+						</p>
+					</div>
+				</div>
+				<button
+					type="button"
+					(click)="toggleMethod(method.name)"
+					class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300"
+					[class.bg-green-500]="method.enabled"
+					[class.bg-gray-300]="!method.enabled">
+					<span
+						class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300"
+						[class.translate-x-6]="method.enabled"
+						[class.translate-x-1]="!method.enabled"></span>
+				</button>
+			</div>
+			}
+		</div>
+	</div>
 
-    <!-- Security tab -->
-    @if (activeTab() === 'security') {
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div class="mb-4 flex items-center gap-2"><div class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50"><i class="fa-solid fa-lock text-red-500"></i></div><div><h3 class="text-base font-semibold text-gray-800">Sécurité globale</h3><p class="text-xs text-gray-500">Paramètres de sécurité</p></div></div>
-          <div class="space-y-3">
-            @for (s of securitySettings(); track s.name) {
-              <div class="flex items-center justify-between rounded-lg border border-gray-100 p-3">
-                <div><p class="text-sm font-medium text-gray-700">{{ s.name }}</p><p class="text-xs text-gray-400">{{ s.desc }}</p></div>
-                <button (click)="s.enabled.set(!s.enabled())" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300" [class.bg-green-500]="s.enabled()" [class.bg-gray-300]="!s.enabled()"><span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300" [class.translate-x-6]="s.enabled()" [class.translate-x-1]="!s.enabled()"></span></button>
-              </div>
-            }
-          </div>
-        </div>
-        <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div class="mb-4 flex items-center gap-2"><div class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50"><i class="fa-solid fa-key text-amber-600"></i></div><div><h3 class="text-base font-semibold text-gray-800">Politique des mots de passe</h3><p class="text-xs text-gray-500">Règles de complexité</p></div></div>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">Longueur minimale</span><span class="font-semibold text-gray-900">8 caractères</span></div>
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">Majuscule requise</span><span class="flex items-center gap-1.5 text-sm font-semibold text-green-600"><i class="fa-solid fa-check"></i></span></div>
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">Caractère spécial requis</span><span class="flex items-center gap-1.5 text-sm font-semibold text-green-600"><i class="fa-solid fa-check"></i></span></div>
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">Expiration</span><span class="font-semibold text-gray-900">90 jours</span></div>
-            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span class="text-sm text-gray-600">Historique</span><span class="font-semibold text-gray-900">5 derniers mdp</span></div>
-          </div>
-        </div>
-      </div>
-    }
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4 flex items-center gap-2">
+			<div
+				class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50">
+				<i class="fa-solid fa-percent text-amber-600"></i>
+			</div>
+			<div>
+				<h3 class="text-base font-semibold text-gray-800">
+					Frais de transaction
+				</h3>
+				<p class="text-xs text-gray-500">
+					Valeurs de référence du système.
+				</p>
+			</div>
+		</div>
+		<div class="space-y-3">
+			<div
+				class="flex items-center justify-between rounded-lg bg-gray-50 p-3">
+				<span class="text-sm text-gray-600">Wave</span>
+				<span class="font-semibold text-gray-900">1.5%</span>
+			</div>
+			<div
+				class="flex items-center justify-between rounded-lg bg-gray-50 p-3">
+				<span class="text-sm text-gray-600">Orange Money</span>
+				<span class="font-semibold text-gray-900">2.0%</span>
+			</div>
+			<div
+				class="flex items-center justify-between rounded-lg bg-gray-50 p-3">
+				<span class="text-sm text-gray-600">Carte bancaire</span>
+				<span class="font-semibold text-gray-900">2.5% + 100 FCFA</span>
+			</div>
+		</div>
+	</div>
+</div>
+}
 
-    <!-- Audit tab -->
-    @if (activeTab() === 'audit') {
-      <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-        <div class="mb-5 flex items-center gap-2"><div class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50"><i class="fa-solid fa-clock-rotate-left text-amber-600"></i></div><div><h3 class="text-base font-semibold text-gray-800">Journal d'audit</h3><p class="text-xs text-gray-500">Historique des actions critiques</p></div></div>
-        <div class="relative border-l-2 border-gray-200 pl-6">
-          @for (log of data.auditLogs(); track log.id; let last = $last) {
-            <div class="relative pb-6" [class.pb-0]="last">
-              <span class="absolute -left-[31px] top-0.5 flex h-5 w-5 items-center justify-center rounded-full ring-4 ring-white"
-                [class.bg-green-500]="log.type === 'FINANCE'" [class.bg-emerald-500]="log.type === 'MODERATION'" [class.bg-amber-500]="log.type === 'SETTINGS'" [class.bg-slate-400]="log.type === 'AUTH'">
-                <i class="fa-solid text-[8px] text-white" [class.fa-coins]="log.type === 'FINANCE'" [class.fa-shield-halved]="log.type === 'MODERATION'" [class.fa-gear]="log.type === 'SETTINGS'" [class.fa-key]="log.type === 'AUTH'"></i>
-              </span>
-              <div class="rounded-lg border border-gray-100 bg-gray-50/50 p-3 transition-colors hover:bg-gray-50">
-                <p class="text-sm text-gray-700"><span class="font-semibold text-gray-900">{{ log.admin }}</span> {{ log.action }} <span class="font-medium text-green-600">{{ log.target }}</span></p>
-                <p class="mt-1 text-xs text-gray-400">{{ log.timestamp }}</p>
-              </div>
-            </div>
-          }
-        </div>
-      </div>
-    }
+<!-- Platform tab -->
+@if (activeTab() === 'platform') {
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4 flex items-center gap-2">
+			<div
+				class="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50">
+				<i class="fa-solid fa-globe text-violet-600"></i>
+			</div>
+			<div>
+				<h3 class="text-base font-semibold text-gray-800">
+					Informations plateforme
+				</h3>
+				<p class="text-xs text-gray-500">Nom, contact et devise.</p>
+			</div>
+		</div>
+		<div class="space-y-4">
+			<div>
+				<label class="mb-1.5 block text-sm font-medium text-gray-700"
+					>Nom de la plateforme</label
+				>
+				<input
+					type="text"
+					[value]="draft()?.platformName"
+					(input)="updateDraft('platformName', $any($event.target).value)"
+					class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" />
+			</div>
+			<div>
+				<label class="mb-1.5 block text-sm font-medium text-gray-700"
+					>Support email</label
+				>
+				<input
+					type="email"
+					[value]="draft()?.supportEmail"
+					(input)="updateDraft('supportEmail', $any($event.target).value)"
+					class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" />
+			</div>
+			<div>
+				<label class="mb-1.5 block text-sm font-medium text-gray-700"
+					>Téléphone support</label
+				>
+				<input
+					type="tel"
+					[value]="draft()?.supportPhone"
+					(input)="updateDraft('supportPhone', $any($event.target).value)"
+					class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" />
+			</div>
+			<div>
+				<label class="mb-1.5 block text-sm font-medium text-gray-700"
+					>Devise</label
+				>
+				<input
+					type="text"
+					[value]="draft()?.currency"
+					(input)="updateDraft('currency', $any($event.target).value)"
+					class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" />
+			</div>
+		</div>
+	</div>
+
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4 flex items-center gap-2">
+			<div
+				class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-50">
+				<i class="fa-solid fa-gear text-slate-600"></i>
+			</div>
+			<div>
+				<h3 class="text-base font-semibold text-gray-800">
+					Gestion du système
+				</h3>
+				<p class="text-xs text-gray-500">
+					Mode maintenance et conservation.
+				</p>
+			</div>
+		</div>
+		<div class="space-y-4">
+			<div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
+				<div class="flex items-center justify-between gap-4">
+					<div>
+						<p class="text-sm font-medium text-gray-800">
+							Mode maintenance
+						</p>
+						<p class="text-xs text-gray-500">
+							Désactive l'accès public lorsque activé.
+						</p>
+					</div>
+					<button
+						type="button"
+						(click)="updateDraft('maintenanceMode', !draft()?.maintenanceMode)"
+						class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300"
+						[class.bg-green-500]="draft()?.maintenanceMode"
+						[class.bg-gray-300]="!draft()?.maintenanceMode">
+						<span
+							class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300"
+							[class.translate-x-6]="draft()?.maintenanceMode"
+							[class.translate-x-1]="!draft()?.maintenanceMode"></span>
+					</button>
+				</div>
+			</div>
+
+			<div>
+				<label class="mb-1.5 block text-sm font-medium text-gray-700"
+					>Message de maintenance</label
+				>
+				<textarea
+					rows="3"
+					[value]="draft()?.maintenanceMessage"
+					(input)="updateDraft('maintenanceMessage', $any($event.target).value)"
+					class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100"></textarea>
+			</div>
+
+			<div>
+				<label class="mb-1.5 block text-sm font-medium text-gray-700"
+					>Jours de conservation audit</label
+				>
+				<input
+					type="number"
+					min="0"
+					[value]="draft()?.auditRetentionDays"
+					(input)="updateDraft('auditRetentionDays', parseInt($any($event.target).value, 10) || 0)"
+					class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" />
+			</div>
+		</div>
+	</div>
+</div>
+}
+
+<!-- Security tab -->
+@if (activeTab() === 'security') {
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4 flex items-center gap-2">
+			<div
+				class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50">
+				<i class="fa-solid fa-lock text-red-500"></i>
+			</div>
+			<div>
+				<h3 class="text-base font-semibold text-gray-800">
+					Sécurité globale
+				</h3>
+				<p class="text-xs text-gray-500">
+					Paramètres de protection du back-office.
+				</p>
+			</div>
+		</div>
+		<div class="space-y-3">
+			<div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
+				<div class="flex items-center justify-between gap-4">
+					<div>
+						<p class="text-sm font-medium text-gray-800">
+							2FA obligatoire
+						</p>
+						<p class="text-xs text-gray-500">
+							Requiert l'authentification à deux facteurs pour
+							tous les admins.
+						</p>
+					</div>
+					<button
+						type="button"
+						(click)="updateSecurity('force2FA', !draft()?.security?.force2FA)"
+						class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300"
+						[class.bg-green-500]="draft()?.security?.force2FA"
+						[class.bg-gray-300]="!draft()?.security?.force2FA">
+						<span
+							class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300"
+							[class.translate-x-6]="draft()?.security.force2FA"
+							[class.translate-x-1]="!draft()?.security.force2FA"></span>
+					</button>
+				</div>
+			</div>
+
+			<div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
+				<div class="flex items-center justify-between gap-4">
+					<div>
+						<p class="text-sm font-medium text-gray-800">
+							Auto-déconnexion
+						</p>
+						<p class="text-xs text-gray-500">
+							Délai d'inactivité avant déconnexion automatique.
+						</p>
+					</div>
+					<input
+						type="number"
+						min="5"
+						[value]="draft()?.security?.autoLogoutMinutes"
+						(input)="updateSecurity('autoLogoutMinutes', parseInteger($any($event.target).value, 0))"
+						class="w-24 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+				</div>
+			</div>
+
+			<div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
+				<div class="flex items-center justify-between gap-4">
+					<div>
+						<p class="text-sm font-medium text-gray-800">
+							IP whitelist
+						</p>
+						<p class="text-xs text-gray-500">
+							Limiter les connexions à des IP autorisées.
+						</p>
+					</div>
+					<button
+						type="button"
+						(click)="updateSecurity('ipWhitelist', !draft()?.security?.ipWhitelist)"
+						class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300"
+						[class.bg-green-500]="draft()?.security?.ipWhitelist"
+						[class.bg-gray-300]="!draft()?.security?.ipWhitelist">
+						<span
+							class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300"
+							[class.translate-x-6]="draft()?.security.ipWhitelist"
+							[class.translate-x-1]="!draft()?.security.ipWhitelist"></span>
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+		<div class="mb-4 flex items-center gap-2">
+			<div
+				class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50">
+				<i class="fa-solid fa-key text-amber-600"></i>
+			</div>
+			<div>
+				<h3 class="text-base font-semibold text-gray-800">
+					Politique des mots de passe
+				</h3>
+				<p class="text-xs text-gray-500">
+					Configuration de la complexité et de l'historique.
+				</p>
+			</div>
+		</div>
+		<div class="space-y-3">
+			<div class="grid gap-3 sm:grid-cols-2">
+				<div>
+					<label
+						class="mb-1.5 block text-sm font-medium text-gray-700"
+						>Longueur minimale</label
+					>
+					<input
+						type="number"
+						min="6"
+						[value]="draft()?.security?.passwordPolicy?.minLength"
+						(input)="updatePasswordPolicy('minLength', parseInteger($any($event.target).value, 6))"
+						class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" />
+				</div>
+				<div>
+					<label
+						class="mb-1.5 block text-sm font-medium text-gray-700"
+						>Expiration (jours)</label
+					>
+					<input
+						type="number"
+						min="1"
+						[value]="draft()?.security?.passwordPolicy?.expirationDays"
+						(input)="updatePasswordPolicy('expirationDays', parseInteger($any($event.target).value, 1))"
+						class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" />
+				</div>
+			</div>
+
+			<div class="grid gap-3 sm:grid-cols-2">
+				<div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
+					<div class="flex items-center justify-between gap-4">
+						<div>
+							<p class="text-sm font-medium text-gray-800">
+								Majuscule requise
+							</p>
+							<p class="text-xs text-gray-500">
+								Requiert au moins une majuscule.
+							</p>
+						</div>
+						<button
+							type="button"
+							(click)="updatePasswordPolicy('requireUppercase', !draft()?.security.passwordPolicy.requireUppercase)"
+							class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300"
+							[class.bg-green-500]="draft()?.security.passwordPolicy.requireUppercase"
+							[class.bg-gray-300]="!draft()?.security.passwordPolicy.requireUppercase">
+							<span
+								class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300"
+								[class.translate-x-6]="draft()?.security?.passwordPolicy?.requireUppercase"
+								[class.translate-x-1]="!draft()?.security?.passwordPolicy?.requireUppercase"></span>
+						</button>
+					</div>
+				</div>
+
+				<div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
+					<div class="flex items-center justify-between gap-4">
+						<div>
+							<p class="text-sm font-medium text-gray-800">
+								Caractère spécial
+							</p>
+							<p class="text-xs text-gray-500">
+								Requiert un symbole spécial.
+							</p>
+						</div>
+						<button
+							type="button"
+							(click)="updatePasswordPolicy('requireSpecialChar', !draft()?.security.passwordPolicy.requireSpecialChar)"
+							class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300"
+							[class.bg-green-500]="draft()?.security.passwordPolicy.requireSpecialChar"
+							[class.bg-gray-300]="!draft()?.security.passwordPolicy.requireSpecialChar">
+							<span
+								class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300"
+								[class.translate-x-6]="draft()?.security?.passwordPolicy?.requireSpecialChar"
+								[class.translate-x-1]="!draft()?.security?.passwordPolicy?.requireSpecialChar"></span>
+						</button>
+					</div>
+				</div>
+			</div>
+
+			<div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
+				<div class="flex items-center justify-between gap-4">
+					<div>
+						<p class="text-sm font-medium text-gray-800">
+							Historique de mdp
+						</p>
+						<p class="text-xs text-gray-500">
+							Nombre de mots de passe conservés.
+						</p>
+					</div>
+					<input
+						type="number"
+						min="0"
+						[value]="draft()?.security?.passwordPolicy?.historyCount"
+						(input)="updatePasswordPolicy('historyCount', parseInteger($any($event.target).value, 0))"
+						class="w-24 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+}
+
+<div class="mt-6 rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+	<div
+		class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+		<div>
+			<p class="text-sm font-semibold text-gray-800">
+				Enregistrement des modifications
+			</p>
+			<p class="text-xs text-gray-500">
+				Ces changements sont globaux et impactent tous les utilisateurs.
+			</p>
+		</div>
+		<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+			@if (hasCriticalChanges) {
+			<div
+				class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+				<i class="fa-solid fa-exclamation-circle mr-2"></i>
+				Modifications critiques détectées.
+			</div>
+			}
+			<button
+				type="button"
+				(click)="confirmSave()"
+				[disabled]="!hasChanges"
+				class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-300">
+				<i class="fa-solid fa-check"></i> Enregistrer les modifications
+			</button>
+		</div>
+	</div>
+</div>
+
+<app-modal
+	[open]="confirmSaveOpen()"
+	title="Confirmer les modifications"
+	subtitle="Cette action mettra à jour les paramètres globaux de la plateforme."
+	size="md"
+	(close)="cancelSave()">
+	<div class="space-y-4">
+		<div
+			class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+			<div class="flex items-start gap-3">
+				<i class="fa-solid fa-triangle-exclamation mt-1"></i>
+				<div>
+					<p class="font-semibold">Attention :</p>
+					<p>
+						Les modifications appliquées ici sont critiques et
+						affecteront l’ensemble de la plateforme.
+					</p>
+				</div>
+			</div>
+		</div>
+		<div class="space-y-2 text-sm text-gray-700">
+			<p>
+				<span class="font-semibold">Commission :</span> {{
+				formatCurrency(draft()?.platformFee ?? 0) }}
+			</p>
+			<p>
+				<span class="font-semibold">Support :</span> {{
+				draft()?.supportEmail }} / {{ draft()?.supportPhone }}
+			</p>
+			<p>
+				<span class="font-semibold">Mode maintenance :</span> {{
+				draft()?.maintenanceMode ? 'Activé' : 'Désactivé' }}
+			</p>
+		</div>
+		<div class="flex justify-end gap-3 pt-2">
+			<button
+				type="button"
+				class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+				(click)="cancelSave()">
+				Annuler
+			</button>
+			<button
+				type="button"
+				class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+				[disabled]="saving()"
+				(click)="saveSettings()">
+				@if (saving()) { Enregistrement... } @else { Confirmer et
+				appliquer }
+			</button>
+		</div>
+	</div>
+</app-modal>
+} @else {
+<div
+	class="rounded-xl border border-gray-100 bg-white p-6 text-center text-sm text-gray-500 shadow-sm">
+	Aucun paramètre disponible. Réessayez plus tard.
+</div>
+} }

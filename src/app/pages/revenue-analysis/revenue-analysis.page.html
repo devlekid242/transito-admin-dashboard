@@ -1,53 +1,61 @@
 <app-page-header
 	title="Analyse des revenus"
 	subtitle="Évolution du chiffre d'affaires, bénéfices et commissions par agence et par trajet."
-  [actions]="true"
-  >
-  <ng-template #buttonAction>
-    <div class="flex items-center gap-2">
-      @for (p of periods; track p.value) {
-      <button
-        (click)="onPeriodChange(p.value)"
-        class="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
-        [class.bg-green-600]="dateFilter().period === p.value"
-        [class.text-white]="dateFilter().period === p.value"
-        [class.bg-gray-100]="dateFilter().period !== p.value"
-        [class.text-gray-600]="dateFilter().period !== p.value"
-        [class.hover:bg-gray-200]="dateFilter().period !== p.value">
-        {{ p.label }}
-      </button>
-      }
-      <input
-        type="date"
-        [value]="dateFilter().startDate"
-        (change)="onStartDateChange($event)"
-        class="w-36 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
-      <input
-        type="date"
-        [value]="dateFilter().endDate"
-        (change)="onEndDateChange($event)"
-        class="w-36 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
-      <button
-        (click)="applyCustomDateRange()"
-        class="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700">
-        Appliquer
-      </button>
-    </div>
-  </ng-template>
+	[actions]="true">
+	<ng-template #buttonAction>
+		<div class="flex items-center gap-2">
+			@for (p of periods; track p.value) {
+			<button
+				type="button"
+				(click)="onPeriodChange(p.value)"
+				class="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+				[class.bg-green-600]="dateFilter().period === p.value"
+				[class.text-white]="dateFilter().period === p.value"
+				[class.bg-gray-100]="dateFilter().period !== p.value"
+				[class.text-gray-600]="dateFilter().period !== p.value"
+				[class.hover:bg-gray-200]="dateFilter().period !== p.value">
+				{{ p.label }}
+			</button>
+			}
+			<input
+				type="date"
+				[value]="dateFilter().startDate"
+				(change)="onStartDateChange($event)"
+				class="w-36 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+			<input
+				type="date"
+				[value]="dateFilter().endDate"
+				(change)="onEndDateChange($event)"
+				class="w-36 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+			<button
+				type="button"
+				(click)="applyCustomDateRange()"
+				[disabled]="!dateFilter().startDate || !dateFilter().endDate"
+				class="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
+				Appliquer
+			</button>
+		</div>
+	</ng-template>
 </app-page-header>
 
 <!-- Loading state -->
 @if (loading()) {
 <div class="flex items-center justify-center py-8">
-  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-  <span class="ml-3">Chargement des données...</span>
+	<div
+		class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+	<span class="ml-3">Chargement des données...</span>
 </div>
 }
 
 <!-- Error state -->
 @if (error()) {
 <div class="rounded-lg bg-red-50 border border-red-200 p-4 text-red-700">
-  {{ error() }}
+	{{ error() }}
+</div>
+} @if (!loading() && !error() && !data()) {
+<div
+	class="rounded-lg bg-yellow-50 border border-yellow-200 p-4 text-yellow-700">
+	Aucune donnée disponible pour la période sélectionnée.
 </div>
 }
 
@@ -146,10 +154,14 @@
 			<div>
 				<div class="mb-1 flex items-center justify-between text-sm">
 					<span class="font-medium text-gray-700">{{ r.route }}</span>
-					<span class="font-semibold text-gray-900">{{ fcfa(r.revenue) }}</span>
+					<span class="font-semibold text-gray-900"
+						>{{ fcfa(r.revenue) }}</span
+					>
 				</div>
-				<div class="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
-					<div class="h-full rounded-full bg-green-500 transition-all duration-700"
+				<div
+					class="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+					<div
+						class="h-full rounded-full bg-green-500 transition-all duration-700"
 						[style.width.%]="(r.revenue / (revenueByRoute()[0]?.revenue ?? 1)) * 100"></div>
 				</div>
 			</div>

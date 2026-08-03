@@ -1,0 +1,488 @@
+<app-page-header
+	title="FAQ Management"
+	subtitle="Create, edit, and manage frequently asked questions." />
+
+<!-- Statistics Cards -->
+<div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+	<div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+		<div class="flex items-center gap-3">
+			<div
+				class="flex h-10 w-10 items-center justify-center rounded-full bg-green-50 text-green-600">
+				<i class="fa-solid fa-question-circle text-lg"></i>
+			</div>
+			<div>
+				<p class="text-xs font-medium text-gray-500">Total FAQs</p>
+				<p class="text-2xl font-bold text-gray-900">
+					{{ totalFAQsCount }}
+				</p>
+			</div>
+		</div>
+	</div>
+
+	<div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+		<div class="flex items-center gap-3">
+			<div
+				class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+				<i class="fa-solid fa-check-circle text-lg"></i>
+			</div>
+			<div>
+				<p class="text-xs font-medium text-gray-500">Active FAQs</p>
+				<p class="text-2xl font-bold text-gray-900">
+					{{ activeFAQsCount }}
+				</p>
+			</div>
+		</div>
+	</div>
+
+	<div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+		<div class="flex items-center gap-3">
+			<div
+				class="flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 text-purple-600">
+				<i class="fa-solid fa-folder-open text-lg"></i>
+			</div>
+			<div>
+				<p class="text-xs font-medium text-gray-500">Categories</p>
+				<p class="text-2xl font-bold text-gray-900">
+					{{ categoriesWithCounts.length }}
+				</p>
+			</div>
+		</div>
+	</div>
+
+	<div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+		<div class="flex items-center gap-3">
+			<div
+				class="flex h-10 w-10 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+				<i class="fa-solid fa-plus text-lg"></i>
+			</div>
+			<div>
+				<p class="text-xs font-medium text-gray-500">Add New</p>
+				<button
+					(click)="openCreateModal()"
+					class="text-2xl font-bold text-green-600 hover:text-green-700">
+					<i class="fa-solid fa-plus"></i>
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Filter Controls -->
+<div
+	class="mb-6 flex flex-col gap-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm lg:flex-row lg:items-center">
+	<h3 class="text-sm font-semibold text-gray-900 lg:min-w-[100px]">
+		Filters
+	</h3>
+
+	<div class="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-4">
+		<div class="relative">
+			<select
+				(change)="onCategoryFilterChange($any($event.target).value)"
+				class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 lg:w-auto">
+				<option value="all">All Categories</option>
+				<option value="general">General</option>
+				<option value="payment">Payment</option>
+				<option value="reservation">Reservation</option>
+				<option value="technical">Technical</option>
+				<option value="account">Account</option>
+				<option value="other">Other</option>
+				@for (cat of allCategories(); track cat) {
+				<option [value]="cat">{{ cat }}</option>
+				}
+			</select>
+		</div>
+
+		<div class="relative">
+			<i
+				class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
+			<input
+				(input)="onSearchChange($any($event.target).value)"
+				type="text"
+				placeholder="Search FAQs..."
+				class="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 lg:w-64" />
+		</div>
+
+		<div class="flex items-center gap-2">
+			<label class="text-sm font-medium text-gray-600">Active Only</label>
+			<button
+				(click)="onActiveFilterChange(!supportService.currentFAQFilter().activeOnly)"
+				class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+				[class.bg-green-500]="supportService.currentFAQFilter().activeOnly"
+				[class.bg-gray-200]="!supportService.currentFAQFilter().activeOnly"
+				role="switch"
+				aria-checked="supportService.currentFAQFilter().activeOnly">
+				<span
+					class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+					[class.translate-x-5]="supportService.currentFAQFilter().activeOnly">
+				</span>
+			</button>
+		</div>
+
+		<button
+			(click)="resetFilters()"
+			class="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-800">
+			<i class="fa-solid fa-rotate-left"></i>
+			Reset
+		</button>
+	</div>
+</div>
+
+<!-- FAQ List Table -->
+<div class="rounded-xl border border-gray-100 bg-white shadow-sm">
+	<div class="overflow-x-auto">
+		<table class="w-full">
+			<thead class="bg-gray-50">
+				<tr>
+					<th
+						class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+						Order
+					</th>
+					<th
+						class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+						Question
+					</th>
+					<th
+						class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+						Category
+					</th>
+					<th
+						class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+						Status
+					</th>
+					<th
+						class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+						Created
+					</th>
+					<th
+						class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
+						Actions
+					</th>
+				</tr>
+			</thead>
+			<tbody class="divide-y divide-gray-100 bg-white">
+				@for (faq of supportService.faqs(); track faq.id) {
+				<tr class="transition-colors hover:bg-gray-50">
+					<td
+						class="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
+						{{ faq.orderPriority }}
+					</td>
+					<td
+						class="max-w-xs truncate px-4 py-3 text-sm font-medium text-gray-900"
+						[title]="faq.question">
+						{{ faq.question }}
+					</td>
+					<td class="px-4 py-3 text-sm">
+						<span
+							class="rounded-lg bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700"
+							>{{ faq.category }}</span
+						>
+					</td>
+					<td class="px-4 py-3 text-sm">
+						@if (faq.isActive) {
+						<span
+							class="rounded-lg bg-green-50 px-2 py-1 text-xs font-medium text-green-700"
+							>Active</span
+						>
+						} @else {
+						<span
+							class="rounded-lg bg-gray-100 px-2 py-1 text-xs font-medium text-gray-500"
+							>Inactive</span
+						>
+						}
+					</td>
+					<td class="px-4 py-3 text-sm text-gray-500">
+						{{ faq.createdAt | date:'short' }}
+					</td>
+					<td class="px-4 py-3 text-right text-sm">
+						<div class="flex items-center justify-end gap-2">
+							<button
+								(click)="toggleFAQStatus(faq)"
+								class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600"
+								[title]="faq.isActive ? 'Disable FAQ' : 'Enable FAQ'">
+								@if (faq.isActive) {
+								<i
+									class="fa-solid fa-toggle-on text-green-500"></i>
+								} @else {
+								<i class="fa-solid fa-toggle-off"></i>
+								}
+							</button>
+							<button
+								(click)="openEditModal(faq)"
+								class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-blue-600"
+								title="Edit">
+								<i class="fa-solid fa-pen-to-square"></i>
+							</button>
+							<button
+								(click)="openDeleteModal(faq)"
+								class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-red-600"
+								title="Delete">
+								<i class="fa-solid fa-trash"></i>
+							</button>
+						</div>
+					</td>
+				</tr>
+				} @empty {
+				<tr>
+					<td
+						colspan="6"
+						class="px-4 py-12 text-center text-sm text-gray-400">
+						<i class="fa-regular fa-question-circle text-4xl"></i>
+						<p class="mt-3">
+							No FAQs found. Create your first FAQ to get started.
+						</p>
+					</td>
+				</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+</div>
+
+<!-- Create FAQ Modal -->
+<app-modal
+	[isOpen]="showCreateModal()"
+	(close)="closeCreateModal()"
+	[title]="'Create New FAQ'"
+	[size]="'lg'">
+	<div class="space-y-4">
+		<div>
+			<label class="block text-sm font-medium text-gray-700 mb-1"
+				>Question *</label
+			>
+			<textarea
+				[(ngModel)]="newFAQ().question"
+				(input)="updateNewFAQ('question', $any($event.target).value)"
+				rows="2"
+				placeholder="Enter the frequently asked question..."
+				class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100"></textarea>
+		</div>
+
+		<div>
+			<label class="block text-sm font-medium text-gray-700 mb-1"
+				>Answer *</label
+			>
+			<textarea
+				[(ngModel)]="newFAQ().answer"
+				(input)="updateNewFAQ('answer', $any($event.target).value)"
+				rows="4"
+				placeholder="Enter the detailed answer..."
+				class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100"></textarea>
+		</div>
+
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+			<div>
+				<label class="block text-sm font-medium text-gray-700 mb-1"
+					>Category</label
+				>
+				<select
+					[(ngModel)]="newFAQ().category"
+					(change)="updateNewFAQ('category', $any($event.target).value)"
+					class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+					<option value="general">General</option>
+					<option value="payment">Payment</option>
+					<option value="reservation">Reservation</option>
+					<option value="technical">Technical</option>
+					<option value="account">Account</option>
+					<option value="other">Other</option>
+					@for (cat of allCategories(); track cat) {
+					<option [value]="cat">{{ cat }}</option>
+					}
+				</select>
+			</div>
+
+			<div>
+				<label class="block text-sm font-medium text-gray-700 mb-1"
+					>Priority Order</label
+				>
+				<input
+					[(ngModel)]="newFAQ().orderPriority"
+					(input)="updateNewFAQ('orderPriority', $any($event.target).valueAsNumber)"
+					type="number"
+					min="0"
+					class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+			</div>
+		</div>
+
+		<div class="flex items-center gap-2">
+			<label class="text-sm font-medium text-gray-700">Active</label>
+			<button
+				(click)="updateNewFAQ('isActive', !newFAQ().isActive)"
+				class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+				[class.bg-green-500]="newFAQ().isActive"
+				[class.bg-gray-200]="!newFAQ().isActive"
+				role="switch"
+				aria-checked="newFAQ().isActive">
+				<span
+					class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+					[class.translate-x-5]="newFAQ().isActive">
+				</span>
+			</button>
+		</div>
+
+		<div class="flex items-center justify-end gap-3 pt-4">
+			<button
+				(click)="closeCreateModal()"
+				class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50">
+				Cancel
+			</button>
+			<button
+				(click)="createFAQ()"
+				[disabled]="!isFormValid(newFAQ())"
+				class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-green-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50">
+				<i class="fa-solid fa-plus"></i>
+				Create FAQ
+			</button>
+		</div>
+	</div>
+</app-modal>
+
+<!-- Edit FAQ Modal -->
+<app-modal
+	[isOpen]="showEditModal() && currentFAQ() !== null"
+	(close)="closeEditModal()"
+	[title]="'Edit FAQ'"
+	[size]="'lg'">
+	@if (currentFAQ()) {
+	<div class="space-y-4">
+		<div>
+			<label class="block text-sm font-medium text-gray-700 mb-1"
+				>Question *</label
+			>
+			<textarea
+				[value]="currentFAQ()!.question"
+				(input)="updateCurrentFAQ('question', $any($event.target).value)"
+				rows="2"
+				placeholder="Enter the frequently asked question..."
+				class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100"></textarea>
+		</div>
+
+		<div>
+			<label class="block text-sm font-medium text-gray-700 mb-1"
+				>Answer *</label
+			>
+			<textarea
+				[value]="currentFAQ()!.answer"
+				(input)="updateCurrentFAQ('answer', $any($event.target).value)"
+				rows="4"
+				placeholder="Enter the detailed answer..."
+				class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100"></textarea>
+		</div>
+
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+			<div>
+				<label class="block text-sm font-medium text-gray-700 mb-1"
+					>Category</label
+				>
+				<select
+					[value]="currentFAQ()!.category"
+					(change)="updateCurrentFAQ('category', $any($event.target).value)"
+					class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+					<option value="general">General</option>
+					<option value="payment">Payment</option>
+					<option value="reservation">Reservation</option>
+					<option value="technical">Technical</option>
+					<option value="account">Account</option>
+					<option value="other">Other</option>
+					@for (cat of allCategories(); track cat) {
+					<option [value]="cat">{{ cat }}</option>
+					}
+				</select>
+			</div>
+
+			<div>
+				<label class="block text-sm font-medium text-gray-700 mb-1"
+					>Priority Order</label
+				>
+				<input
+					[value]="currentFAQ()!.orderPriority"
+					(input)="updateCurrentFAQ('orderPriority', $any($event.target).valueAsNumber)"
+					type="number"
+					min="0"
+					class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+			</div>
+		</div>
+
+		<div class="flex items-center gap-2">
+			<label class="text-sm font-medium text-gray-700">Active</label>
+			<button
+				(click)="updateCurrentFAQ('isActive', !currentFAQ()!.isActive)"
+				class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+				[class.bg-green-500]="currentFAQ()!.isActive"
+				[class.bg-gray-200]="!currentFAQ()!.isActive"
+				role="switch"
+				aria-checked="currentFAQ()!.isActive">
+				<span
+					class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+					[class.translate-x-5]="currentFAQ()!.isActive">
+				</span>
+			</button>
+		</div>
+
+		<div class="flex items-center justify-end gap-3 pt-4">
+			<button
+				(click)="closeEditModal()"
+				class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50">
+				Cancel
+			</button>
+			<button
+				(click)="updateFAQ()"
+				[disabled]="!isFormValid(currentFAQ()!)"
+				class="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50">
+				<i class="fa-solid fa-check"></i>
+				Update FAQ
+			</button>
+		</div>
+	</div>
+	}
+</app-modal>
+
+<!-- Delete Confirmation Modal -->
+<app-modal
+	[isOpen]="showDeleteModal() && faqToDelete() !== null"
+	(close)="closeDeleteModal()"
+	[title]="'Delete FAQ'"
+	[size]="'md'">
+	@if (faqToDelete()) {
+	<div class="space-y-4">
+		<div class="flex items-start gap-3">
+			<i
+				class="fa-solid fa-exclamation-triangle text-2xl text-red-500"></i>
+			<div>
+				<p class="text-gray-700">
+					Are you sure you want to delete the FAQ:
+					<strong>{{ faqToDelete()!.question }}</strong>?
+				</p>
+				<p class="mt-2 text-sm text-gray-500">
+					This action cannot be undone and the FAQ will be permanently
+					removed from the system.
+				</p>
+			</div>
+		</div>
+
+		<div class="flex items-center justify-end gap-3 pt-4">
+			<button
+				(click)="closeDeleteModal()"
+				class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50">
+				Cancel
+			</button>
+			<button
+				(click)="deleteFAQ()"
+				class="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-red-700 active:scale-95">
+				<i class="fa-solid fa-trash"></i>
+				Delete FAQ
+			</button>
+		</div>
+	</div>
+	}
+</app-modal>
+
+<!-- Loading Indicator -->
+<!-- @if (supportService.isLoading()) {
+<div
+	class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-10">
+	<div class="flex flex-col items-center gap-3">
+		<i class="fa-solid fa-spinner fa-spin text-3xl text-green-600"></i>
+		<p class="text-sm text-gray-600">Loading...</p>
+	</div>
+</div>
+} -->

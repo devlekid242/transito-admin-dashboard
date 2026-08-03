@@ -1,47 +1,184 @@
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MockDataService } from '../../services/mock-data.service';
-import { PageHeaderComponent } from '../../shared/page-header.component';
+import { Component, inject, signal } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { PageHeaderComponent } from "../../shared/page-header.component";
+import { ModalComponent } from "../../shared/modal.component";
+import {
+	SystemSettingsService,
+	SystemSettings,
+} from "../../services/system-settings.service";
 
 @Component({
-  selector: 'app-system-settings',
-  imports: [CommonModule, PageHeaderComponent],
-  templateUrl: 'system-settings.page.html',
+	selector: "app-system-settings",
+	imports: [CommonModule, PageHeaderComponent, ModalComponent],
+	templateUrl: "system-settings.page.html",
 })
 export class SystemSettingsPage {
-  readonly data = inject(MockDataService);
-  readonly platformFee = signal(350);
-  readonly feeSaved = signal(false);
-  readonly activeTab = signal<'commission' | 'payments' | 'platform' | 'security' | 'audit'>('commission');
+	private readonly settingsService = inject(SystemSettingsService);
 
-  readonly tabs = [
-    { id: 'commission' as const, label: 'Commission', icon: 'fa-percent' },
-    { id: 'payments' as const, label: 'Paiements', icon: 'fa-credit-card' },
-    { id: 'platform' as const, label: 'Plateforme', icon: 'fa-globe' },
-    { id: 'security' as const, label: 'Sécurité', icon: 'fa-lock' },
-    { id: 'audit' as const, label: 'Audit', icon: 'fa-clock-rotate-left' },
-  ];
+	readonly activeTab = signal<
+		"commission" | "payments" | "platform" | "security"
+	>("commission");
+	readonly loading = signal(false);
+	readonly saving = signal(false);
+	readonly lastError = signal<string | null>(null);
+	readonly confirmSaveOpen = signal(false);
+	readonly settings = signal<SystemSettings | null>(null);
+	readonly draft = signal<SystemSettings | null>(null);
 
-  readonly paymentMethods = signal([
-    { name: 'Wave', icon: 'fa-wave-square', enabled: signal(true) },
-    { name: 'Orange Money', icon: 'fa-mobile-screen-button', enabled: signal(true) },
-    { name: 'Carte bancaire', icon: 'fa-credit-card', enabled: signal(true) },
-  ]);
+	readonly tabs = [
+		{ id: "commission" as const, label: "Commission", icon: "fa-percent" },
+		{ id: "payments" as const, label: "Paiements", icon: "fa-credit-card" },
+		{ id: "platform" as const, label: "Plateforme", icon: "fa-globe" },
+		{ id: "security" as const, label: "Sécurité", icon: "fa-lock" },
+	];
 
-  readonly securitySettings = signal([
-    { name: '2FA obligatoire', desc: 'Authentification à deux facteurs pour les admins', enabled: signal(true) },
-    { name: 'Auto-déconnexion', desc: 'Déconnexion après 30 min d\'inactivité', enabled: signal(true) },
-    { name: 'IP whitelist', desc: 'Restreindre l\'accès à certaines IP', enabled: signal(false) },
-  ]);
+	constructor() {
+		this.loadSettings();
+	}
 
-  fcfa(n: number) { return this.data.fcfa(n); }
+	loadSettings() {
+		this.loading.set(true);
+		this.settingsService.getSettings().subscribe((response) => {
+			if (response.success && response.data) {
+				this.settings.set(response.data);
+				this.draft.set(this.clone(response.data));
+				this.lastError.set(null);
+			} else {
+				this.lastError.set(
+					response.message ?? "Impossible de charger les paramètres.",
+				);
+			}
+			this.loading.set(false);
+		});
+	}
 
-  updateFee(value: string) {
-    const n = parseInt(value, 10);
-    if (!isNaN(n) && n >= 0) {
-      this.platformFee.set(n);
-      this.feeSaved.set(true);
-      setTimeout(() => this.feeSaved.set(false), 3000);
-    }
-  }
+	updateDraft<Key extends keyof SystemSettings>(
+		key: Key,
+		value: SystemSettings[Key],
+	) {
+		if (!this.draft()) {
+			return;
+		}
+		this.draft.update((current) => ({
+			...current!,
+			[key]: value,
+		}));
+	}
+
+	updateSecurity<Key extends keyof SystemSettings["security"]>(
+		key: Key,
+		value: SystemSettings["security"][Key],
+	) {
+		if (!this.draft()) {
+			return;
+		}
+
+		this.draft.update((current) => ({
+			...current!,
+			security: {
+				...current!.security,
+				[key]: value,
+			},
+		}));
+	}
+
+	updatePasswordPolicy<
+		Key extends keyof SystemSettings["security"]["passwordPolicy"],
+	>(key: Key, value: SystemSettings["security"]["passwordPolicy"][Key]) {
+		if (!this.draft()) {
+			return;
+		}
+
+		this.draft.update((current) => ({
+			...current!,
+			security: {
+				...current!.security,
+				passwordPolicy: {
+					...current!.security.passwordPolicy,
+					[key]: value,
+				},
+			},
+		}));
+	}
+
+	toggleMethod(name: string) {
+		if (!this.draft()) {
+			return;
+		}
+
+		this.draft.update((current) => ({
+			...current!,
+			paymentMethods: current!.paymentMethods.map((method) =>
+				method.name === name
+					? { ...method, enabled: !method.enabled }
+					: method,
+			),
+		}));
+	}
+
+	get hasChanges() {
+		return JSON.stringify(this.draft()) !== JSON.stringify(this.settings());
+	}
+
+	get hasCriticalChanges() {
+		if (!this.draft() || !this.settings()) {
+			return false;
+		}
+
+		return (
+			this.draft()!.security.force2FA !==
+				this.settings()!.security.force2FA ||
+			this.draft()!.maintenanceMode !==
+				this.settings()!.maintenanceMode ||
+			this.draft()!.paymentMethods.some(
+				(method, index) =>
+					method.enabled !==
+					this.settings()!.paymentMethods[index]?.enabled,
+			)
+		);
+	}
+
+	confirmSave() {
+		this.confirmSaveOpen.set(true);
+	}
+
+	cancelSave() {
+		this.confirmSaveOpen.set(false);
+	}
+
+	saveSettings() {
+		const draft = this.draft();
+		if (!draft) {
+			return;
+		}
+
+		this.saving.set(true);
+		this.settingsService.saveSettings(draft).subscribe((response) => {
+			if (response.success && response.data) {
+				this.settings.set(response.data);
+				this.draft.set(this.clone(response.data));
+				this.lastError.set(null);
+			} else {
+				this.lastError.set(
+					response.message ??
+						"Impossible de sauvegarder les paramètres.",
+				);
+			}
+			this.saving.set(false);
+			this.confirmSaveOpen.set(false);
+		});
+	}
+
+	parseInteger(value: string, fallback = 0): number {
+		const parsed = parseInt(value, 10);
+		return Number.isNaN(parsed) ? fallback : parsed;
+	}
+
+	private clone(settings: SystemSettings): SystemSettings {
+		return JSON.parse(JSON.stringify(settings));
+	}
+
+	formatCurrency(value: number) {
+		return `${value.toLocaleString("fr-FR")} FCFA`;
+	}
 }

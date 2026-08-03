@@ -15,6 +15,7 @@ import { AgencyCreatePage } from "./pages/agency-create/agency-create.page";
 import { UsersPage } from "./pages/users/users.page";
 import { UserProfilePage } from "./pages/user-profile/user-profile.page";
 import { SupportPage } from "./pages/support/support.page";
+import { FAQManagementPage } from "./pages/faq-management/faq-management.page";
 import { ModerationStatsPage } from "./pages/moderation-stats/moderation-stats.page";
 import { ReservationsPage } from "./pages/reservations/reservations.page";
 import { TripsPage } from "./pages/trips/trips.page";
@@ -34,187 +35,192 @@ export const routes: Routes = [
 	{ path: "login", component: LoginPage, title: "Connexion · Tansico Admin" },
 	{ path: "", redirectTo: "dashboard", pathMatch: "full" },
 
-  {
-    path: "",
-    component: LayoutComponent,
-    canActivate: [authGuard],
-    children: [
-      {
-        path: "dashboard",
-        component: DashboardPage,
-        title: "Dashboard · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "finance/withdrawals",
-        component: WithdrawalsPage,
-        title: "Retraits · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "finance/wallets",
-        component: WalletsPage,
-        title: "Portefeuilles · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "finance/wallets/:id",
-        component: WalletDetailPage,
-        title: "Détail portefeuille · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "finance/refunds",
-        component: RefundsPage,
-        title: "Remboursements · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "finance/revenue-analysis",
-        component: RevenueAnalysisPage,
-        title: "Analyse revenus · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "finance/financial-stats",
-        component: FinancialStatsPage,
-        title: "Stats financières · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "finance/transactions",
-        component: TransactionHistoryPage,
-        title: "Historique transactions · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "moderation/agencies",
-        component: AgenciesPage,
-        title: "Agences · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "moderation/agencies/create",
-        component: AgencyCreatePage,
-        title: "Créer agence · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "moderation/agencies/:id/edit",
-        component: AgencyCreatePage,
-        title: "Modifier agence · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "moderation/agencies/:id",
-        component: AgencyDetailPage,
-        title: "Détail agence · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "moderation/agencies/:id/stats",
-        component: AgencyStatsPage,
-        title: "Stats agence · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "moderation/users",
-        component: UsersPage,
-        title: "Utilisateurs · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "moderation/users/:id",
-        component: UserProfilePage,
-        title: "Profil utilisateur · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "moderation/reservations",
-        component: ReservationsPage,
-        title: "Réservations · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "moderation/trips",
-        component: TripsPage,
-        title: "Trajets · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "moderation/trips/:id",
-        component: TripDetailPage,
-        title: "Détail trajet · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "moderation/applications",
-        component: ApplicationsPage,
-        title: "Candidatures · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "moderation/applications/:id",
-        component: ApplicationDetailPage,
-        title: "Détail candidature · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "moderation/support",
-        component: SupportPage,
-        title: "Support · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "moderation/stats",
-        component: ModerationStatsPage,
-        title: "Stats modération · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "admin/admins",
-        component: AdminsPage,
-        title: "Administrateurs · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "admin/admins/create",
-        component: AdminCreatePage,
-        title: "Créer admin · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "admin/system",
-        component: SystemSettingsPage,
-        title: "Système · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "admin/notifications",
-        component: NotificationsPage,
-        title: "Notifications · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "admin/profile",
-        component: AdminProfilePage,
-        title: "Mon profil · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "admin/settings",
-        component: SystemSettingsPage,
-        title: "Paramètres · Tansico Admin",
-        canActivate: [authGuard],
-      },
-      {
-        path: "analytics/reports",
-        component: ReportsPage,
-        title: "Rapports · Tansico Admin",
-        canActivate: [authGuard],
-      },
-    ]
-  },
-  
+	{
+		path: "",
+		component: LayoutComponent,
+		canActivate: [authGuard],
+		children: [
+			{
+				path: "dashboard",
+				component: DashboardPage,
+				title: "Dashboard · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "finance/withdrawals",
+				component: WithdrawalsPage,
+				title: "Retraits · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "finance/wallets",
+				component: WalletsPage,
+				title: "Portefeuilles · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "finance/wallets/:id",
+				component: WalletDetailPage,
+				title: "Détail portefeuille · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "finance/refunds",
+				component: RefundsPage,
+				title: "Remboursements · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "finance/revenue-analysis",
+				component: RevenueAnalysisPage,
+				title: "Analyse revenus · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "finance/financial-stats",
+				component: FinancialStatsPage,
+				title: "Stats financières · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "finance/transactions",
+				component: TransactionHistoryPage,
+				title: "Historique transactions · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/agencies",
+				component: AgenciesPage,
+				title: "Agences · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/agencies/create",
+				component: AgencyCreatePage,
+				title: "Créer agence · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/agencies/:id/edit",
+				component: AgencyCreatePage,
+				title: "Modifier agence · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/agencies/:id",
+				component: AgencyDetailPage,
+				title: "Détail agence · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/agencies/:id/stats",
+				component: AgencyStatsPage,
+				title: "Stats agence · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/users",
+				component: UsersPage,
+				title: "Utilisateurs · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/users/:id",
+				component: UserProfilePage,
+				title: "Profil utilisateur · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/reservations",
+				component: ReservationsPage,
+				title: "Réservations · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/trips",
+				component: TripsPage,
+				title: "Trajets · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/trips/:id",
+				component: TripDetailPage,
+				title: "Détail trajet · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/applications",
+				component: ApplicationsPage,
+				title: "Candidatures · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/applications/:id",
+				component: ApplicationDetailPage,
+				title: "Détail candidature · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/support",
+				component: SupportPage,
+				title: "Support · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/faq-management",
+				component: FAQManagementPage,
+				title: "FAQ Management · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/stats",
+				component: ModerationStatsPage,
+				title: "Stats modération · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "admin/admins",
+				component: AdminsPage,
+				title: "Administrateurs · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "admin/admins/create",
+				component: AdminCreatePage,
+				title: "Créer admin · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "admin/system",
+				redirectTo: "admin/settings",
+				pathMatch: "full",
+			},
+			{
+				path: "admin/notifications",
+				component: NotificationsPage,
+				title: "Notifications · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "admin/profile",
+				component: AdminProfilePage,
+				title: "Mon profil · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "admin/settings",
+				component: SystemSettingsPage,
+				title: "Paramètres · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "analytics/reports",
+				component: ReportsPage,
+				title: "Rapports · Tansico Admin",
+				canActivate: [authGuard],
+			},
+		],
+	},
+
 	{ path: "**", redirectTo: "dashboard" },
 ];
