@@ -1,4 +1,5 @@
 import { Component, signal, inject, computed } from "@angular/core";
+import { toSignal } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import {
 	Router,
@@ -8,6 +9,7 @@ import {
 } from "@angular/router";
 import { AdminAuthService, AdminUser } from "../services/admin-auth.service";
 import { SystemSettingsService } from "../services/system-settings.service";
+import { NotificationService } from "../services/notification.service";
 
 interface NavItem {
 	label: string;
@@ -78,7 +80,9 @@ export class LayoutComponent {
 	});
 
 	private readonly systemSettingsService = inject(SystemSettingsService);
+	private readonly notificationService = inject(NotificationService);
 	readonly systemSettings = this.systemSettingsService.settings;
+	readonly unreadNotifications = this.notificationService.unreadCount;
 
 	constructor() {
 		this.systemSettingsService.getSettings().subscribe();

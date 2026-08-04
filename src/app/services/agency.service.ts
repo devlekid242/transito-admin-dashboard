@@ -98,6 +98,8 @@ export interface Trip {
   departureTime: string;
   estimatedArrivalTime: string | null;
   tripDate: string;
+  departureTimeOfDay?: string | null;
+  arrivalTimeOfDay?: string | null;
   price: number;
   status: string;
   seatsReserved: number;
@@ -530,6 +532,17 @@ export class AgencyService {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  /**
+   * Format time only.
+   */
+  formatTime(timeString: string): string {
+    const date = new Date(timeString);
+    return date.toLocaleTimeString('fr-FR', {
       hour: '2-digit',
       minute: '2-digit',
     });

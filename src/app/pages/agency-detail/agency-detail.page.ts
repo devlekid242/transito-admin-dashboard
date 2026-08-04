@@ -61,8 +61,10 @@ export class AgencyDetailPage implements OnInit {
     return this.trips().map(trip => ({
       ...trip,
       route: `${trip.departureCity} -> ${trip.arrivalCity}`,
-      tripDate: this.formatDate(trip.departureTime),
-      departureTime: this.formatDateTime(trip.departureTime).split(', ')[1],
+      tripDate: trip.tripDate ? this.formatDate(trip.tripDate) : this.formatDate(trip.departureTime),
+      departureTime: trip.departureTimeOfDay
+        ? trip.departureTimeOfDay
+        : this.formatTime(trip.departureTime),
       price: this.fcfa(trip.price),
       status: this.getTripStatusText(trip.status),
       statusRaw: trip.status,
@@ -151,6 +153,10 @@ export class AgencyDetailPage implements OnInit {
     return this.agencyService.formatDateTime(dateString);
   }
 
+  formatTime(timeString: string) {
+    return this.agencyService.formatTime(timeString);
+  }
+
   getKycBadgeVariant(kyc: string | undefined) {
     return this.agencyService.getKycBadgeVariant(kyc || 'missing');
   }
@@ -162,12 +168,23 @@ export class AgencyDetailPage implements OnInit {
   // Get status text for trips
   getTripStatusText(status: string): string {
     switch (status) {
-      case 'planifie': return 'Planifie';
-      case 'embarquement': return 'Embarquement';
-      case 'en_route': return 'En route';
-      case 'termine': return 'Termine';
-      case 'annule': return 'Annule';
-      default: return status;
+      case 'planifie':
+      case 'SCHEDULED':
+        return 'Planifié';
+      case 'embarquement':
+      case 'en_route':
+      case 'IN_PROGRESS':
+        return 'En cours';
+      case 'termine':
+      case 'COMPLETED':
+        return 'Terminé';
+      case 'annule':
+      case 'CANCELLED':
+        return 'Annulé';
+      case 'DELAYED':
+        return 'Retardé';
+      default:
+        return status;
     }
   }
 
@@ -229,12 +246,12 @@ export class AgencyDetailPage implements OnInit {
 
   // Check if trip is active
   isTripActive(trip: Trip): boolean {
-    return trip.status === 'planifie' || trip.status === 'embarquement' || trip.status === 'en_route';
+    return this.isTripActiveByStatus(trip.status);
   }
 
   // Check if trip is active by status string
   isTripActiveByStatus(status: string): boolean {
-    return status === 'planifie' || status === 'embarquement' || status === 'en_route';
+    return status === 'planifie' || status === 'embarquement' || status === 'en_route' || status === 'SCHEDULED' || status === 'IN_PROGRESS';
   }
 
   // Get fill rate percentage

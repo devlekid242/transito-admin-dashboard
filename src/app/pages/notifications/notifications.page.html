@@ -23,7 +23,7 @@
 <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
 	<app-stat-card
 		label="Total envoyées"
-		[value]="str(data.notifications().length)"
+		[value]="str(notifications().length)"
 		icon="fa-bell"
 		iconBg="bg-green-600"
 		accentBar="bg-green-500" />
@@ -65,7 +65,7 @@
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-50">
-				@for (n of data.notifications(); track n.id) {
+				@for (n of notifications(); track n.id) {
 				<tr class="transition-colors hover:bg-gray-50">
 					<td class="px-5 py-4 font-semibold text-gray-800">
 						{{ n.title }}
@@ -90,7 +90,7 @@
 						{{ n.target || 'Tous' }}
 					</td>
 					<td class="px-5 py-4 text-gray-600">
-						{{ n.recipients.toLocaleString('fr-FR') }}
+						{{ n.recipients?.toLocaleString('fr-FR') }}
 					</td>
 					<td class="px-5 py-4">
 						<div class="flex items-center gap-2">

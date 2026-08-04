@@ -105,12 +105,15 @@
 				<!-- Notifications -->
 				<button
 					class="relative flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100"
-					aria-label="Notifications">
+					aria-label="Notifications"
+					routerLink="/admin/notifications">
 					<i class="fa-solid fa-bell text-lg"></i>
-					<span
-						class="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-[10px] font-bold text-black"
-						>3</span
-					>
+					@if (unreadNotifications() > 0) {
+						<span
+							class="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-[10px] font-bold text-black"
+							>{{ unreadNotifications() }}</span
+						>
+					}
 				</button>
 
 				<!-- Profile -->

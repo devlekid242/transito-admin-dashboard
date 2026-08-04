@@ -1,9 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MockDataService, Notification } from '../../services/mock-data.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { StatCardComponent } from '../../shared/stat-card.component';
 import { StatusBadgeComponent } from '../../shared/status-badge.component';
+import { NotificationService, AdminNotification } from '../../services/notification.service';
 
 @Component({
   selector: 'app-notifications',
@@ -11,7 +11,7 @@ import { StatusBadgeComponent } from '../../shared/status-badge.component';
   templateUrl: 'notifications.page.html',
 })
 export class NotificationsPage {
-  readonly data = inject(MockDataService);
+  readonly notificationService = inject(NotificationService);
   readonly showSingle = signal(false);
   readonly showMulti = signal(false);
   readonly selectedTargets = signal<string[]>([]);
@@ -22,6 +22,8 @@ export class NotificationsPage {
     { value: 'agents', label: 'Tous les agents' },
   ];
 
+  readonly notifications = this.notificationService.notifications;
+
   openSingle() { this.showSingle.set(true); }
   openMulti() { this.showMulti.set(true); this.selectedTargets.set([]); }
 
@@ -29,14 +31,14 @@ export class NotificationsPage {
     this.selectedTargets.update(list => list.includes(value) ? list.filter(v => v !== value) : [...list, value]);
   }
 
-  broadcastCount() { return this.data.notifications().filter(n => n.type === 'broadcast').length; }
-  targetedCount() { return this.data.notifications().filter(n => n.type === 'targeted').length; }
+  broadcastCount() { return this.notifications().filter(n => n.type === 'broadcast').length; }
+  targetedCount() { return this.notifications().filter(n => n.type === 'targeted').length; }
   readRate() {
-    const total = this.data.notifications().reduce((s, n) => s + n.recipients, 0);
-    const read = this.data.notifications().reduce((s, n) => s + n.readCount, 0);
+    const total = this.notifications().length;
+    const read = this.notifications().filter(n => n.isRead).length;
     return total === 0 ? 0 : Math.round((read / total) * 100);
   }
-  readPct(n: { readCount: number; recipients: number }) { return Math.round((n.readCount / n.recipients) * 100); }
+  readPct(n: AdminNotification) { return Math.round((n.isRead ? 1 : 0) * 100); }
 
   str(n: number) { return String(n); }
 
@@ -44,12 +46,19 @@ export class NotificationsPage {
     const form = document.querySelectorAll('form')[0];
     if (!form) return;
     const inputs = form.querySelectorAll('input');
-    const target = (inputs[0] as HTMLInputElement).value;
-    const title = (inputs[1] as HTMLInputElement).value;
+    const title = (inputs[0] as HTMLInputElement).value;
     const msg = (form.querySelector('textarea') as HTMLTextAreaElement).value;
-    if (!target || !title || !msg) return;
-    this.addNotif(title, msg, 'targeted', target, 1);
-    this.showSingle.set(false);
+    if (!title || !msg) return;
+    this.notificationService.create({
+      title,
+      content: msg,
+      recipientType: 'user',
+      recipientId: 1,
+      category: 'INFO',
+    }).subscribe({
+      next: () => this.showSingle.set(false),
+      error: (err) => console.error('Envoi notification échoué', err),
+    });
   }
 
   sendMulti() {
@@ -59,20 +68,15 @@ export class NotificationsPage {
     const title = (inputs[0] as HTMLInputElement).value;
     const msg = (form.querySelector('textarea') as HTMLTextAreaElement).value;
     if (!title || !msg) return;
-    const targets = this.selectedTargets();
-    const label = targets.length === 0 ? 'Tous' : targets.map(t => this.targetTypes.find(tt => tt.value === t)?.label || t).join(', ');
-    const recipients = targets.includes('users') ? 12480 : targets.includes('agencies') ? 5 : targets.includes('agents') ? 47 : 12485;
-    this.addNotif(title, msg, 'broadcast', label, recipients);
-    this.showMulti.set(false);
-  }
-
-  private addNotif(title: string, msg: string, type: 'broadcast' | 'targeted', target: string, recipients: number) {
-    const newNotif: Notification = {
-      id: 'N-' + String(this.data.notifications().length + 1).padStart(2, '0'),
-      title, message: msg, type, target,
-      sentAt: new Date().toLocaleDateString('fr-FR') + ' ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-      recipients, readCount: 0,
-    };
-    this.data.notifications.update(list => [newNotif, ...list]);
+    this.notificationService.create({
+      title,
+      content: msg,
+      recipientType: 'agency_all',
+      recipientId: null,
+      category: 'INFO',
+    }).subscribe({
+      next: () => this.showMulti.set(false),
+      error: (err) => console.error('Diffusion notification échouée', err),
+    });
   }
 }

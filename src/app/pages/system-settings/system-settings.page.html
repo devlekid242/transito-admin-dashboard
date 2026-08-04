@@ -56,7 +56,7 @@
 				<input
 					type="number"
 					[value]="draft()?.platformFee"
-					(input)="updateDraft('platformFee', parseInt($any($event.target).value, 10) || 0)"
+					(input)="updateDraft('platformFee', parseInteger($any($event.target).value, 0))"
 					class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold text-gray-800 outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" />
 			</div>
 			<button
@@ -326,7 +326,7 @@
 					type="number"
 					min="0"
 					[value]="draft()?.auditRetentionDays"
-					(input)="updateDraft('auditRetentionDays', parseInt($any($event.target).value, 10) || 0)"
+					(input)="updateDraft('auditRetentionDays', parseInteger($any($event.target).value, 0))"
 					class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" />
 			</div>
 		</div>
@@ -372,8 +372,8 @@
 						[class.bg-gray-300]="!draft()?.security?.force2FA">
 						<span
 							class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300"
-							[class.translate-x-6]="draft()?.security.force2FA"
-							[class.translate-x-1]="!draft()?.security.force2FA"></span>
+							[class.translate-x-6]="draft()?.security?.force2FA"
+							[class.translate-x-1]="!draft()?.security?.force2FA"></span>
 					</button>
 				</div>
 			</div>
@@ -415,8 +415,8 @@
 						[class.bg-gray-300]="!draft()?.security?.ipWhitelist">
 						<span
 							class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300"
-							[class.translate-x-6]="draft()?.security.ipWhitelist"
-							[class.translate-x-1]="!draft()?.security.ipWhitelist"></span>
+							[class.translate-x-6]="draft()?.security?.ipWhitelist"
+							[class.translate-x-1]="!draft()?.security?.ipWhitelist"></span>
 					</button>
 				</div>
 			</div>
@@ -479,10 +479,10 @@
 						</div>
 						<button
 							type="button"
-							(click)="updatePasswordPolicy('requireUppercase', !draft()?.security.passwordPolicy.requireUppercase)"
+							(click)="updatePasswordPolicy('requireUppercase', !draft()?.security?.passwordPolicy?.requireUppercase)"
 							class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300"
-							[class.bg-green-500]="draft()?.security.passwordPolicy.requireUppercase"
-							[class.bg-gray-300]="!draft()?.security.passwordPolicy.requireUppercase">
+							[class.bg-green-500]="draft()?.security?.passwordPolicy?.requireUppercase"
+							[class.bg-gray-300]="!draft()?.security?.passwordPolicy?.requireUppercase">
 							<span
 								class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300"
 								[class.translate-x-6]="draft()?.security?.passwordPolicy?.requireUppercase"
@@ -503,10 +503,10 @@
 						</div>
 						<button
 							type="button"
-							(click)="updatePasswordPolicy('requireSpecialChar', !draft()?.security.passwordPolicy.requireSpecialChar)"
+							(click)="updatePasswordPolicy('requireSpecialChar', !draft()?.security?.passwordPolicy?.requireSpecialChar)"
 							class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300"
-							[class.bg-green-500]="draft()?.security.passwordPolicy.requireSpecialChar"
-							[class.bg-gray-300]="!draft()?.security.passwordPolicy.requireSpecialChar">
+							[class.bg-green-500]="draft()?.security?.passwordPolicy?.requireSpecialChar"
+							[class.bg-gray-300]="!draft()?.security?.passwordPolicy?.requireSpecialChar">
 							<span
 								class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300"
 								[class.translate-x-6]="draft()?.security?.passwordPolicy?.requireSpecialChar"
