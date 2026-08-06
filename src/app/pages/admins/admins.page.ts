@@ -9,6 +9,7 @@ import {
 import { PageHeaderComponent } from "../../shared/page-header.component";
 import { StatCardComponent } from "../../shared/stat-card.component";
 import { ModalComponent } from "../../shared/modal.component";
+import { environment } from "../../../environments/environment.prod";
 
 @Component({
 	selector: "app-admins",
@@ -23,6 +24,7 @@ import { ModalComponent } from "../../shared/modal.component";
 })
 export class AdminsPage {
 	readonly adminService = inject(AdminService);
+	readonly BaseApiUrl = environment.baseApiUrl; // Assuming you have an environment file with the API base URL
 
 	readonly admins = this.adminService.admins;
 	readonly loading = this.adminService.loadingAdmins;

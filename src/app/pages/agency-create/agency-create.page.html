@@ -282,7 +282,7 @@
       </button>
       <button 
         (click)="createOrUpdateAgency()"
-        [disabled]="isSubmitting() || !validateStep1()"
+        [disabled]="isSubmitting() || !validateStep1() || (!isEditing() && !validateStep2())"
         class="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-green-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
         @if (isSubmitting()) {
           <i class="fa-solid fa-spinner fa-spin"></i> Chargement...

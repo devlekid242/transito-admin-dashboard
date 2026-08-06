@@ -31,6 +31,13 @@ export interface Agency {
   reservationsCount?: number;
 }
 
+export interface AgencyAdminInput {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+}
+
 export interface AgencyCreateInput {
   name: string;
   email: string;
@@ -45,6 +52,8 @@ export interface AgencyCreateInput {
   description?: string;
   status?: 'active' | 'suspended' | 'pending';
   commissionRate?: string;
+  /** Compte responsable/administrateur de l'agence, créé en même temps que l'agence. */
+  admin: AgencyAdminInput;
 }
 
 export interface AgencyUpdateInput {

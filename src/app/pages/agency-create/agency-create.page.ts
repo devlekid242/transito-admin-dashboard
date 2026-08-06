@@ -122,6 +122,13 @@ export class AgencyCreatePage implements OnInit {
       return;
     }
 
+    // Le compte administrateur n'est requis (et n'existe) que pour la création,
+    // pas pour la modification d'une agence existante.
+    if (!this.isEditing() && !this.validateStep2()) {
+      this.error.set('Veuillez remplir tous les champs obligatoires du compte administrateur.');
+      return;
+    }
+
     this.isSubmitting.set(true);
     this.error.set(null);
 
@@ -139,13 +146,20 @@ export class AgencyCreatePage implements OnInit {
       bannerUrl: this.agencyForm.bannerUrl,
       websiteUrl: this.agencyForm.websiteUrl,
       mapUrl: this.agencyForm.mapUrl,
+      admin: {
+        name: this.adminForm.name,
+        email: this.adminForm.email,
+        phone: this.adminForm.phone,
+        password: this.adminForm.password,
+      },
     };
 
     if (this.isEditing()) {
-      // Update existing agency
+      // Update existing agency (le compte admin n'est pas concerné par la mise à jour)
+      const { admin, ...agencyUpdateData } = agencyData;
       const id = this.agencyId();
       if (id) {
-        this.agencyService.updateAgency(id, agencyData).subscribe({
+        this.agencyService.updateAgency(id, agencyUpdateData).subscribe({
           next: (response) => {
             this.isSubmitting.set(false);
             if (response.success) {

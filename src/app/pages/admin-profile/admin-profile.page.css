@@ -1,0 +1,94 @@
+/* Admin Profile Page specific styles */
+
+/* Ensure form inputs have consistent styling */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+input[type="url"],
+select {
+  transition: all 0.2s ease;
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Toast notification animations */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Smooth transitions for form fields */
+input:focus,
+select:focus {
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+/* Profile card avatar styling */
+.avatar-container {
+  position: relative;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Button hover effects */
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+button:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+/* Activity log item hover effect */
+.activity-log-item:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Form validation states */
+input:invalid {
+  border-color: #ef4444;
+}
+
+input:valid {
+  border-color: #22c55e;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  backdrop-filter: blur(4px);
+}

@@ -10,6 +10,7 @@ import {
 import { AdminAuthService, AdminUser } from "../services/admin-auth.service";
 import { SystemSettingsService } from "../services/system-settings.service";
 import { NotificationService } from "../services/notification.service";
+import { environment } from "../../environments/environment.prod";
 
 interface NavItem {
 	label: string;
@@ -51,6 +52,8 @@ export class LayoutComponent {
 	readonly sidebarOpen = signal(false);
 	readonly profileOpen = signal(false);
 
+	readonly BaseApiUrl = environment.baseApiUrl; // Assuming you have an environment file with the API base URL
+
 	private router = inject(Router);
 	private authService = inject(AdminAuthService);
 
@@ -67,7 +70,7 @@ export class LayoutComponent {
 		return role ? (ADMIN_ROLE_LABELS[role] ?? role) : "";
 	});
 	readonly profilePhotoUrl = computed(
-		() => this.admin()?.user?.profilePhotoUrl ?? null,
+		() => this.admin()?.user?.profilePhotoUrl ? this.BaseApiUrl + this.admin()?.user?.profilePhotoUrl : null,
 	);
 
 	/** Initiales calculées depuis le nom complet, ex: "Jean Dupont" -> "JD" */

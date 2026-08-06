@@ -20,7 +20,9 @@ export interface AdminUserRow {
   lastLoginAt?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  profilePhotoUrl?: string | null;
   avatarColor: string;
+
 }
 
 export interface ApiResponse<T> {
