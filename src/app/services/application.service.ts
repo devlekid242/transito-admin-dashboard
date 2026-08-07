@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
-import { environment } from "../../environments/environment";
+import { environment } from "../../environments/environment.prod";
 import { catchError, map, of, tap } from "rxjs";
 // Application Status Types
 export type ApplicationStatus =

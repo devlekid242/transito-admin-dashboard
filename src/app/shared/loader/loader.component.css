@@ -1,4 +1,4 @@
 /* minimal styles; project uses Tailwind so most is handled by classes */
 :host {
-	display: block;
+	display: contents;
 }

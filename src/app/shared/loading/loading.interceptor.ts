@@ -17,11 +17,9 @@ export class LoadingInterceptor implements HttpInterceptor {
 		req: HttpRequest<any>,
 		next: HttpHandler,
 	): Observable<HttpEvent<any>> {
-		// Only track API calls to the backend; adjust URL pattern if needed
-		const shouldTrack =
-			req.url && !req.url.includes("/assets/") && req.method !== "GET"
-				? true
-				: true;
+		// On ne tracke que les requêtes GET (hors /assets/), pour ne pas afficher
+		// le loader sur les POST/PUT/DELETE etc.
+		const shouldTrack = req.method === "GET" && !req.url.includes("/assets/");
 
 		if (shouldTrack) {
 			this.loading.show();

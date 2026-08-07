@@ -3,7 +3,7 @@ import { HttpClient } from "@angular/common/http";
 import { Router } from "@angular/router";
 import { BehaviorSubject, firstValueFrom, Observable, throwError } from "rxjs";
 import { tap, catchError, finalize } from "rxjs/operators";
-import { environment } from "../../environments/environment";
+import { environment } from "../../environments/environment.prod";
 
 export interface AdminUser {
 	id: number;
@@ -76,7 +76,9 @@ export class AdminAuthService {
 
 	private loadFromStorage(): void {
 		const storedToken = localStorage.getItem(STORAGE_TOKEN_KEY);
-		const storedRefreshToken = localStorage.getItem(STORAGE_REFRESH_TOKEN_KEY);
+		const storedRefreshToken = localStorage.getItem(
+			STORAGE_REFRESH_TOKEN_KEY,
+		);
 		const storedAdmin = localStorage.getItem(STORAGE_ADMIN_KEY);
 
 		if (storedToken) this.token = storedToken;
@@ -114,7 +116,9 @@ export class AdminAuthService {
 			.pipe(
 				tap((response) => {
 					if (!response.user.admin) {
-						throw new Error("Ce compte n'a pas les droits d'administration.");
+						throw new Error(
+							"Ce compte n'a pas les droits d'administration.",
+						);
 					}
 					this.persistTokens(response.token, response.refresh_token);
 					this.admin = this.mapUserToAdmin(response.user);
@@ -124,7 +128,9 @@ export class AdminAuthService {
 				catchError((error) => {
 					console.error("Login error:", error);
 					const message =
-						error?.error?.message ?? error?.message ?? "Échec de connexion.";
+						error?.error?.message ??
+						error?.message ??
+						"Échec de connexion.";
 					return throwError(() => new Error(message));
 				}),
 				finalize(() => this.loadingSubject.next(false)),
@@ -132,17 +138,19 @@ export class AdminAuthService {
 	}
 
 	getCurrentAdmin(): Observable<AdminUser> {
-		return this.http.get<AdminUser>(`${this.apiBaseUrl}/admin/auth/me`).pipe(
-			tap((admin) => {
-				this.admin = admin;
-				this.adminSubject.next(admin);
-				this.persistAdmin(admin);
-			}),
-			catchError((error) => {
-				console.error("Get admin error:", error);
-				return throwError(() => error);
-			}),
-		);
+		return this.http
+			.get<AdminUser>(`${this.apiBaseUrl}/admin/auth/me`)
+			.pipe(
+				tap((admin) => {
+					this.admin = admin;
+					this.adminSubject.next(admin);
+					this.persistAdmin(admin);
+				}),
+				catchError((error) => {
+					console.error("Get admin error:", error);
+					return throwError(() => error);
+				}),
+			);
 	}
 
 	private refreshCurrentAdmin(): void {
@@ -166,9 +174,12 @@ export class AdminAuthService {
 
 		try {
 			const response = await firstValueFrom(
-				this.http.post<LoginResponse>(`${this.apiBaseUrl}/auth/refresh`, {
-					refresh_token: this.refreshToken,
-				}),
+				this.http.post<LoginResponse>(
+					`${this.apiBaseUrl}/auth/refresh`,
+					{
+						refresh_token: this.refreshToken,
+					},
+				),
 			);
 			if (response?.token) {
 				this.persistTokens(response.token, response.refresh_token);
@@ -184,11 +195,13 @@ export class AdminAuthService {
 
 	logout(): void {
 		if (this.isAuthenticated()) {
-			this.http.post(`${this.apiBaseUrl}/admin/auth/logout`, {}).subscribe({
-				error: (error) => console.error("Logout error:", error),
-				complete: () => this.clearTokens(),
-			});
-		} 
+			this.http
+				.post(`${this.apiBaseUrl}/admin/auth/logout`, {})
+				.subscribe({
+					error: (error) => console.error("Logout error:", error),
+					complete: () => this.clearTokens(),
+				});
+		}
 		this.clearTokens();
 	}
 

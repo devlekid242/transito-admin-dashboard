@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { environment } from "../../environments/environment";
+import { environment } from "../../environments/environment.prod";
 import { AdminAuthService } from "./admin-auth.service";
 
 export interface AdminNotification {
@@ -50,8 +50,10 @@ export class NotificationService {
 	private readonly apiBaseUrl = `${environment.apiUrl}/user-notifications`;
 
 	readonly notifications = signal<AdminNotification[]>([]);
-	readonly unreadCount = computed(() =>
-		this.notifications().filter((notification) => !notification.isRead).length,
+	readonly unreadCount = computed(
+		() =>
+			this.notifications().filter((notification) => !notification.isRead)
+				.length,
 	);
 
 	private pusherInstance: any = null;
@@ -75,7 +77,9 @@ export class NotificationService {
 		this.http.get<BackendNotification[]>(this.apiBaseUrl).subscribe({
 			next: (response) => {
 				this.notifications.set(
-					response.map((item) => this.mapBackendToAdminNotification(item)),
+					response.map((item) =>
+						this.mapBackendToAdminNotification(item),
+					),
 				);
 			},
 			error: (error) => {
@@ -89,11 +93,16 @@ export class NotificationService {
 	}
 
 	markAsRead(id: number) {
-		return this.http.patch<BackendNotification>(`${this.apiBaseUrl}/${id}/read`, {}).pipe();
+		return this.http
+			.patch<BackendNotification>(`${this.apiBaseUrl}/${id}/read`, {})
+			.pipe();
 	}
 
 	markAllAsRead() {
-		return this.http.patch<{ updated: number }>(`${this.apiBaseUrl}/mark-all-read`, {});
+		return this.http.patch<{ updated: number }>(
+			`${this.apiBaseUrl}/mark-all-read`,
+			{},
+		);
 	}
 
 	private connectToPusher(): void {
@@ -103,7 +112,9 @@ export class NotificationService {
 			return;
 		}
 
-		const PusherCtor = (window as Window & typeof globalThis & { Pusher?: any }).Pusher;
+		const PusherCtor = (
+			window as Window & typeof globalThis & { Pusher?: any }
+		).Pusher;
 		if (!PusherCtor) {
 			console.warn("Pusher JS n’est pas chargé dans le dashboard.");
 			return;
@@ -144,8 +155,11 @@ export class NotificationService {
 		this.subscribedChannels.push(channelName);
 	}
 
-	private mapBackendToAdminNotification(item: BackendNotification): AdminNotification {
-		const normalizedMessage = item.message ?? item.content ?? "Nouvelle notification";
+	private mapBackendToAdminNotification(
+		item: BackendNotification,
+	): AdminNotification {
+		const normalizedMessage =
+			item.message ?? item.content ?? "Nouvelle notification";
 		const isRead = item.isRead === true || item.isRead === 1;
 		const recipientType = item.recipientType ?? "user";
 		const type = recipientType === "user" ? "targeted" : "broadcast";

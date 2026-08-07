@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
-import { environment } from "../../environments/environment";
+import { environment } from "../../environments/environment.prod";
 import { catchError, of, tap } from "rxjs";
 
 // Support Ticket Types
@@ -235,7 +235,9 @@ export class SupportService {
 			.put<{
 				message: string;
 				ticket: SupportTicket;
-			}>(`${this.apiUrl}/admin/support/tickets/${id}/priority`, { priority })
+			}>(`${this.apiUrl}/admin/support/tickets/${id}/priority`, {
+				priority,
+			})
 			.pipe(
 				tap((response) => {
 					this.tickets.update((tickets) =>
@@ -267,7 +269,9 @@ export class SupportService {
 			.post<{
 				message: string;
 				response: SupportResponse;
-			}>(`${this.apiUrl}/admin/support/tickets/${ticketId}/responses`, { message })
+			}>(`${this.apiUrl}/admin/support/tickets/${ticketId}/responses`, {
+				message,
+			})
 			.pipe(
 				tap((response) => {
 					// Add the response to the current ticket

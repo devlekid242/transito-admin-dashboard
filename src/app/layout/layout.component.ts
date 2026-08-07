@@ -69,8 +69,10 @@ export class LayoutComponent {
 		const role = this.admin()?.adminRole;
 		return role ? (ADMIN_ROLE_LABELS[role] ?? role) : "";
 	});
-	readonly profilePhotoUrl = computed(
-		() => this.admin()?.user?.profilePhotoUrl ? this.BaseApiUrl + this.admin()?.user?.profilePhotoUrl : null,
+	readonly profilePhotoUrl = computed(() =>
+		this.admin()?.user?.profilePhotoUrl
+			? this.BaseApiUrl + this.admin()?.user?.profilePhotoUrl
+			: null,
 	);
 
 	/** Initiales calculées depuis le nom complet, ex: "Jean Dupont" -> "JD" */

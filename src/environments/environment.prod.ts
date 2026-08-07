@@ -4,13 +4,13 @@
 
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:8000/api',
-  baseApiUrl: 'http://localhost:8000',
+  apiUrl: 'https://ubu.alwaysdata.net/api',
+  baseApiUrl: 'https://ubu.alwaysdata.net',
   apiTimeout: 30000,
   pusherKey: '9fd9732315c0fe4be887',
   pusherCluster: 'mt1',
   pusherUseTLS: true,
-  pusherAuthEndpoint: 'http://localhost:8000/api/pusher/auth',
+  pusherAuthEndpoint: 'https://ubu.alwaysdata.net/api/pusher/auth',
 };
 
 /*
