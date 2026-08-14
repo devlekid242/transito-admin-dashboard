@@ -1,10 +1,12 @@
 import { Component, Output, EventEmitter, signal, computed, input, ContentChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { environment } from '../../environments/environment';
 
 export interface DataTableColumn {
   key: string;
   label: string;
   align?: 'left' | 'right' | 'center';
+  isImage?: boolean;
 }
 
 @Component({
@@ -24,6 +26,10 @@ export class DataTableComponent<T> {
   readonly searchKeys = input<string[]>([]);
   readonly emptyMessage = input('Aucune donnée trouvée.');
   readonly loading = input(false);
+
+  readonly BaseApiUrl = environment.baseApiUrl; // Assuming you have an environment file with the API base URL
+
+  readonly placeholderImage = 'assets/images/placeholder-avatar.png';
 
 
   @ContentChild('rowTemplate') rowTemplate?: TemplateRef<any>;
@@ -93,4 +99,17 @@ export class DataTableComponent<T> {
 
   rangeStart() { return (this.currentPage() - 1) * this.pageSize() + 1; }
   rangeEnd() { return Math.min(this.currentPage() * this.pageSize(), this.filteredRows().length); }
+
+  
+  resolveImageUrl(value: unknown): string {
+    if (!value) return this.placeholderImage;
+    const url = String(value);
+    if (/^https?:\/\//i.test(url)) return url;
+    return `${this.BaseApiUrl.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
+  }
+
+  onImageError(event: Event): void {
+    (event.target as HTMLImageElement).src = this.placeholderImage;
+  }
+
 }

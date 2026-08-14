@@ -88,6 +88,15 @@ export class AgencyCreatePage implements OnInit {
           websiteUrl: agency.websiteUrl || '',
           mapUrl: agency.mapUrl || '',
         };
+
+        if (agency.admin) {
+          this.adminForm = {
+            name: agency.admin.name,
+            email: agency.admin.email,
+            phone: agency.admin.phone,
+            password: '', // Don't show password
+          };
+        }
       }
     });
   }
@@ -159,7 +168,7 @@ export class AgencyCreatePage implements OnInit {
       const { admin, ...agencyUpdateData } = agencyData;
       const id = this.agencyId();
       if (id) {
-        this.agencyService.updateAgency(id, agencyUpdateData).subscribe({
+        this.agencyService.updateAgency(id, agencyData).subscribe({
           next: (response) => {
             this.isSubmitting.set(false);
             if (response.success) {
@@ -184,7 +193,7 @@ export class AgencyCreatePage implements OnInit {
             this.currentStep.set(3);
             this.success.set(true);
             // Reset form
-            this.reset();
+            // this.reset();
           } else {
             this.error.set(response.message || 'Erreur lors de la creation de l\'agence.');
           }

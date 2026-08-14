@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
 import { catchError, of, tap } from "rxjs";
-import { environment } from "../../environments/environment.prod";
+import { environment } from "../../environments/environment";
 import { UserStatus } from "./user.service";
 
 export type AdminRoleType =
@@ -32,6 +32,13 @@ export interface ApiResponse<T> {
 	success: boolean;
 	data: T | null;
 	message?: string;
+}
+
+export interface AdminKpiResponse extends ApiResponse<Record<string, number>> {
+	"superAdmin": number,
+	"financeAdmin": number,
+	"moderationAdmin": number,
+	"supportAdmin": number,
 }
 
 export interface AdminListResponse extends ApiResponse<AdminUserRow[]> {
@@ -88,6 +95,7 @@ export class AdminService {
 	readonly search = signal("");
 	readonly roleFilter = signal<AdminRoleType | "ALL">("ALL");
 	readonly statusFilter = signal<UserStatus | "ALL">("ALL");
+	readonly kpis = signal<AdminKpiResponse["data"] | null>(null);
 
 	get roleOptions() {
 		return [
@@ -180,6 +188,30 @@ export class AdminService {
 					} as AdminListResponse);
 				}),
 				tap(() => this.loadingAdmins.set(false)),
+			);
+	}
+
+	getKpi(){
+		return this.http
+			.get<AdminKpiResponse>(`${this.apiBaseUrl}/admin/admins/kpis`)
+			.pipe(
+				tap((response) => {
+					if (response.success && response.data) {
+						this.kpis.set(response.data);
+					}
+				}),
+				catchError((error) => {
+					console.error(`Error fetching admin KPIs:`, error);
+					this.lastError.set(
+						error?.error?.message ??
+							"Erreur lors du chargement des KPIs des administrateurs",
+					);
+					return of({
+						success: false,
+						data: null,
+					} as AdminDetailResponse);
+				}),
+				tap(() => this.loadingAdmin.set(false)),
 			);
 	}
 

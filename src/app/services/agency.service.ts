@@ -1,9 +1,53 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
-import { environment } from "../../environments/environment.prod";
+import { environment } from "../../environments/environment";
 import { catchError, of, tap } from "rxjs";
 
 // Interfaces for Agency Management
+export interface AgencyAgent {
+	id: number;
+	userId: number | null;
+	name: string | null;
+	email: string | null;
+	phone: string | null;
+	role: string;
+	status: string;
+	commissionRate: number;
+}
+
+export interface AgencyBus {
+	id: number;
+	registrationNumber: string;
+	capacity: number;
+	brand: string | null;
+	model: string | null;
+	category: string;
+	status: string;
+	color: string | null;
+	acquisitionDate: string | null;
+	lastMaintenanceDate: string | null;
+	mileage: number | null;
+}
+
+export interface AgencyBoardingPoint {
+	id: number;
+	city: string;
+	name: string;
+	address: string | null;
+	quartier: string | null;
+	phoneNumber: string | null;
+	latitude: number | null;
+	longitude: number | null;
+	pointType: string;
+	status: string;
+	isActive: boolean;
+	hasVipLounge: boolean | number;
+	hasWifi: boolean | number;
+	hasAc: boolean | number;
+	hasParking: boolean | number;
+	createdAt: string | null;
+}
+
 export interface Agency {
 	id: number;
 	name: string;
@@ -29,6 +73,15 @@ export interface Agency {
 	};
 	tripsCount?: number;
 	reservationsCount?: number;
+	busesCount?: number;
+	agentsCount?: number;
+	boardingPointsCount?: number;
+	admin?: {
+		id: number;
+		name: string;
+		email: string;
+		phone: string;
+	};
 }
 
 export interface AgencyAdminInput {
@@ -71,6 +124,7 @@ export interface AgencyUpdateInput {
 	status?: "active" | "suspended" | "pending";
 	commissionRate?: string;
 	ratingCache?: string;
+	admin?: AgencyAdminInput;
 }
 
 export interface AgencyStats {
@@ -167,6 +221,9 @@ export class AgencyService {
 	// Signals for reactive state management
 	readonly agencies = signal<Agency[]>([]);
 	readonly currentAgency = signal<Agency | null>(null);
+	readonly currentAgencyBuses = signal<AgencyBus[]>([]);
+	readonly currentAgencyBordingPoind = signal<AgencyBoardingPoint[]>([]);
+	readonly currentAgencyAgents = signal<AgencyAgent[]>([]);      
 	readonly agencyStats = signal<AgencyStats | null>(null);
 	readonly agencyTrips = signal<Trip[]>([]);
 	readonly agencyReservations = signal<Reservation[]>([]);
@@ -174,7 +231,10 @@ export class AgencyService {
 
 	// Loading states
 	readonly loadingAgencies = signal<boolean>(false);
-	readonly loadingAgency = signal<boolean>(false);
+	readonly loadingAgency = signal<boolean>(false); 
+	readonly loadingAgencyBordingPoind = signal<boolean>(false); 
+	readonly loadingAgencyBuses = signal<boolean>(false);
+	readonly loadingAgencyAgents = signal<boolean>(false); 
 	readonly loadingStats = signal<boolean>(false);
 	readonly loadingTrips = signal<boolean>(false);
 	readonly loadingReservations = signal<boolean>(false);
@@ -288,6 +348,60 @@ export class AgencyService {
 					});
 				}),
 				tap(() => this.loadingAgency.set(false)),
+			);
+	}
+
+	/** Get all buses belonging to an agency from the Admin API. */
+	getAgencyBuses(id: number) {
+		this.loadingAgencyBuses.set(true);
+		return this.http
+			.get<ApiResponse<AgencyBus[]>>(`${this.apiBaseUrl}/admin/agencies/${id}/buses`)
+			.pipe(
+				tap((response) => {
+					if (response.success && response.data) this.currentAgencyBuses.set(response.data);
+				}),
+				catchError((error) => {
+					console.error(`Error fetching buses for agency ${id}:`, error);
+					this.currentAgencyBuses.set([]);
+					return of({ success: false, message: 'Erreur lors de la récupération des bus' });
+				}),
+				tap(() => this.loadingAgencyBuses.set(false)),
+			);
+	}
+
+	/** Get all boarding points belonging to an agency from the Admin API. */
+	getAgencyBordingPoind(id: number) {
+		this.loadingAgencyBordingPoind.set(true);
+		return this.http
+			.get<ApiResponse<AgencyBoardingPoint[]>>(`${this.apiBaseUrl}/admin/agencies/${id}/boarding-points`)
+			.pipe(
+				tap((response) => {
+					if (response.success && response.data) this.currentAgencyBordingPoind.set(response.data);
+				}),
+				catchError((error) => {
+					console.error(`Error fetching boarding points for agency ${id}:`, error);
+					this.currentAgencyBordingPoind.set([]);
+					return of({ success: false, message: 'Erreur lors de la récupération des points d’embarquement' });
+				}),
+				tap(() => this.loadingAgencyBordingPoind.set(false)),
+			);
+	}
+
+	/** Get all agents, including the agency administrator, from the Admin API. */
+	getAgencyAgents(id: number) {
+		this.loadingAgencyAgents.set(true);
+		return this.http
+			.get<ApiResponse<AgencyAgent[]>>(`${this.apiBaseUrl}/admin/agencies/${id}/agents`)
+			.pipe(
+				tap((response) => {
+					if (response.success && response.data) this.currentAgencyAgents.set(response.data);
+				}),
+				catchError((error) => {
+					console.error(`Error fetching agents for agency ${id}:`, error);
+					this.currentAgencyAgents.set([]);
+					return of({ success: false, message: 'Erreur lors de la récupération des agents' });
+				}),
+				tap(() => this.loadingAgencyAgents.set(false)),
 			);
 	}
 

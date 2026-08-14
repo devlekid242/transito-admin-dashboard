@@ -28,14 +28,15 @@ export class AgenciesPage {
 
   // DataTable configuration
   readonly columns: DataTableColumn[] = [
-    { key: 'name', label: 'Agence', align: 'left' },
-    { key: 'email', label: 'Email', align: 'left' },
-    { key: 'phone', label: 'Telephone', align: 'left' },
-    { key: 'kyc', label: 'Statut KYC', align: 'center' },
-    { key: 'status', label: 'Statut compte', align: 'center' },
-    { key: 'tripsCount', label: 'Voyages', align: 'center' },
-    { key: 'reservationsCount', label: 'Reservations', align: 'center' },
-    { key: 'actions', label: 'Actions', align: 'right' },
+    // { key: 'logoUrl', label: 'logo', align: 'left', isImage: true },
+    { key: 'name', label: 'Agence', align: 'left', isImage: false },
+    { key: 'email', label: 'Email', align: 'left', isImage: false },
+    { key: 'phone', label: 'Telephone', align: 'left', isImage: false },
+    { key: 'kyc', label: 'Statut KYC', align: 'center', isImage: false },
+    { key: 'status', label: 'Statut compte', align: 'center', isImage: false },
+    { key: 'tripsCount', label: 'Voyages', align: 'center', isImage: false },
+    { key: 'reservationsCount', label: 'Reservations', align: 'center', isImage: false },
+    { key: 'actions', label: 'Actions', align: 'right', isImage: false },
   ];
 
   // Get agencies from service

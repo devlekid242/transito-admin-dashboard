@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MockDataService } from '../../services/mock-data.service';
+import { SystemSettingsService } from '../../services/system-settings.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 
 @Component({
@@ -9,12 +9,18 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
   templateUrl: 'settings.page.html',
 })
 export class SettingsPage {
-  readonly data = inject(MockDataService);
-  readonly platformFee = signal(350);
+  readonly settingsService = inject(SystemSettingsService);
+  readonly platformFee = signal(500);
+
+  constructor() {
+    this.settingsService.getSettings().subscribe((response) => {
+      if (response.success && response.data) this.platformFee.set(response.data.platformFee);
+    });
+  }
   readonly feeSaved = signal(false);
 
   fcfa(n: number) {
-    return this.data.fcfa(n);
+    return `${n.toLocaleString('fr-FR')} FCFA`;
   }
 
   initials(name: string) {
@@ -24,9 +30,13 @@ export class SettingsPage {
   updateFee(value: string) {
     const n = parseInt(value, 10);
     if (!isNaN(n) && n >= 0) {
-      this.platformFee.set(n);
-      this.feeSaved.set(true);
-      setTimeout(() => this.feeSaved.set(false), 3000);
+      this.settingsService.saveSettings({ platformFee: n }).subscribe((response) => {
+        if (response.success) {
+          this.platformFee.set(n);
+          this.feeSaved.set(true);
+          setTimeout(() => this.feeSaved.set(false), 3000);
+        }
+      });
     }
   }
 }

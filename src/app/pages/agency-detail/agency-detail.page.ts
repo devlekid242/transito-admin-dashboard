@@ -1,23 +1,24 @@
 import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import { AgencyService, Agency, Trip, Reservation } from '../../services/agency.service';
-import { PageHeaderComponent } from '../../shared/page-header.component';
+import {
+  AgencyService,
+  Agency,
+  AgencyAgent,
+  AgencyBus,
+  AgencyBoardingPoint,
+  AgencyStats,
+  Trip,
+  Reservation,
+} from '../../services/agency.service';
 import { StatusBadgeComponent } from '../../shared/status-badge.component';
 import { DataTableComponent, DataTableColumn } from '../../shared/data-table.component';
 
-type Tab = 'info' | 'trips' | 'bookings';
+type Tab = 'info' | 'admin' | 'agents' | 'trips' | 'bookings' | 'buses' | 'points' | 'finance';
 
 @Component({
   selector: 'app-agency-detail',
-  imports: [
-    CommonModule,
-    RouterLink,
-    FormsModule,
-    StatusBadgeComponent,
-    DataTableComponent
-  ],
+  imports: [CommonModule, RouterLink, StatusBadgeComponent, DataTableComponent],
   templateUrl: 'agency-detail.page.html',
 })
 export class AgencyDetailPage implements OnInit {
@@ -26,237 +27,244 @@ export class AgencyDetailPage implements OnInit {
 
   readonly agencyId = signal<number | null>(null);
   readonly agency = this.agencyService.currentAgency;
+  readonly stats = this.agencyService.agencyStats;
   readonly trips = this.agencyService.agencyTrips;
   readonly reservations = this.agencyService.agencyReservations;
+  readonly agents = this.agencyService.currentAgencyAgents;
+  readonly buses = this.agencyService.currentAgencyBuses;
+  readonly points = this.agencyService.currentAgencyBordingPoind;
+
   readonly loading = this.agencyService.loadingAgency;
+  readonly loadingStats = this.agencyService.loadingStats;
   readonly loadingTrips = this.agencyService.loadingTrips;
   readonly loadingReservations = this.agencyService.loadingReservations;
+  readonly loadingAgents = this.agencyService.loadingAgencyAgents;
+  readonly loadingBuses = this.agencyService.loadingAgencyBuses;
+  readonly loadingPoints = this.agencyService.loadingAgencyBordingPoind;
 
-  // Tabs
   readonly activeTab = signal<Tab>('info');
-  readonly tabs: Tab[] = ['info', 'trips', 'bookings'];
+  readonly loadedTabs = new Set<Tab>();
+  readonly tabs: Tab[] = ['info', 'admin', 'agents', 'trips', 'bookings', 'buses', 'points', 'finance'];
 
-  // DataTable columns for trips
   readonly tripColumns: DataTableColumn[] = [
     { key: 'route', label: 'Trajet', align: 'left' },
     { key: 'tripDate', label: 'Date', align: 'left' },
     { key: 'departureTime', label: 'Heure', align: 'left' },
+    { key: 'bus', label: 'Bus', align: 'left' },
     { key: 'price', label: 'Prix', align: 'right' },
     { key: 'status', label: 'Statut', align: 'center' },
     { key: 'seats', label: 'Places', align: 'center' },
   ];
 
-  // DataTable columns for reservations
   readonly reservationColumns: DataTableColumn[] = [
-    { key: 'reference', label: 'Reference', align: 'left' },
+    { key: 'reference', label: 'Référence', align: 'left' },
     { key: 'tripRoute', label: 'Trajet', align: 'left' },
     { key: 'userName', label: 'Passager', align: 'left' },
+    { key: 'userPhone', label: 'Téléphone', align: 'left' },
     { key: 'createdAt', label: 'Date', align: 'left' },
     { key: 'totalAmount', label: 'Montant', align: 'right' },
-    { key: 'paymentStatus', label: 'Statut', align: 'center' },
+    { key: 'paymentStatus', label: 'Paiement', align: 'center' },
   ];
 
-  // Computed data for trips with formatted values
-  readonly formattedTrips = computed(() => {
-    return this.trips().map(trip => ({
-      ...trip,
-      route: `${trip.departureCity} -> ${trip.arrivalCity}`,
-      tripDate: trip.tripDate ? this.formatDate(trip.tripDate) : this.formatDate(trip.departureTime),
-      departureTime: trip.departureTimeOfDay
-        ? trip.departureTimeOfDay
-        : this.formatTime(trip.departureTime),
-      price: this.fcfa(trip.price),
-      status: this.getTripStatusText(trip.status),
-      statusRaw: trip.status,
-      seats: `${trip.seatsReserved}/${trip.maxSeats}`,
-    }));
-  });
+  readonly formattedTrips = computed(() => this.trips().map(trip => ({
+    ...trip,
+    route: `${trip.departureCity} → ${trip.arrivalCity}`,
+    tripDate: trip.tripDate ? this.formatDate(trip.tripDate) : this.formatDate(trip.departureTime),
+    departureTime: trip.departureTimeOfDay || this.formatTime(trip.departureTime),
+    bus: trip.busPlate ? `${trip.busPlate}${trip.busType ? ` · ${trip.busType}` : ''}` : 'Non affecté',
+    price: this.fcfa(trip.price),
+    status: this.getTripStatusText(trip.status),
+    statusRaw: trip.status,
+    seats: `${trip.seatsReserved}/${trip.maxSeats}`,
+  })));
 
-  // Computed data for reservations with formatted values
-  readonly formattedReservations = computed(() => {
-    return this.reservations().map(reservation => ({
-      ...reservation,
-      reference: reservation.reference || '#' + reservation.id,
-      userName: reservation.userName || 'Anonyme',
-      createdAt: this.formatDateTime(reservation.createdAt).split(', ')[0],
-      totalAmount: this.fcfa(reservation.totalAmount),
-      paymentStatus: this.getPaymentStatusText(reservation.paymentStatus),
-    }));
-  });
+  readonly formattedReservations = computed(() => this.reservations().map(reservation => ({
+    ...reservation,
+    reference: reservation.reference || `#${reservation.id}`,
+    userName: reservation.userName || 'Anonyme',
+    userPhone: reservation.userPhone || '—',
+    createdAt: this.formatDateTime(reservation.createdAt),
+    totalAmount: this.fcfa(reservation.totalAmount),
+    paymentStatus: this.getPaymentStatusText(reservation.paymentStatus),
+  })));
+
+  readonly admin = computed(() => this.agency()?.admin || null);
+  readonly activeTripsCount = computed(() => this.stats()?.general.activeTripsCount ?? 0);
+  readonly totalRevenue = computed(() => this.stats()?.general.totalRevenue ?? 0);
+  readonly fillRate = computed(() => this.stats()?.general.fillRate ?? 0);
 
   constructor() {
     const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.agencyId.set(Number(id));
-    }
+    if (id && Number.isFinite(Number(id))) this.agencyId.set(Number(id));
   }
 
-  ngOnInit() {
-    this.loadData();
+  ngOnInit(): void {
+    this.loadBaseData();
   }
 
-  private loadData() {
+  private loadBaseData(): void {
     const id = this.agencyId();
-    if (id) {
-      // Load agency details
-      this.agencyService.getAgency(id).subscribe();
-    }
+    if (!id) return;
+    this.agencyService.getAgency(id).subscribe();
+    this.agencyService.getAgencyStats(id).subscribe();
+    this.loadedTabs.add('info');
   }
 
-  // Tab switching
-  setTab(tab: Tab) {
+  setTab(tab: Tab): void {
     this.activeTab.set(tab);
+    this.loadTab(tab);
+  }
+
+  private loadTab(tab: Tab, force = false): void {
     const id = this.agencyId();
-    if (id) {
-      if (tab === 'trips') {
-        this.agencyService.getAgencyTrips(id).subscribe();
-      } else if (tab === 'bookings') {
-        this.agencyService.getAgencyReservations(id).subscribe();
-      }
+    if (!id || (!force && this.loadedTabs.has(tab))) return;
+
+    switch (tab) {
+      case 'admin':
+      case 'agents':
+        this.agencyService.getAgencyAgents(id).subscribe(() => this.loadedTabs.add(tab));
+        break;
+      case 'trips':
+        this.agencyService.getAgencyTrips(id).subscribe(() => this.loadedTabs.add(tab));
+        break;
+      case 'bookings':
+        this.agencyService.getAgencyReservations(id).subscribe(() => this.loadedTabs.add(tab));
+        break;
+      case 'buses':
+        this.agencyService.getAgencyBuses(id).subscribe(() => this.loadedTabs.add(tab));
+        break;
+      case 'points':
+        this.agencyService.getAgencyBordingPoind(id).subscribe(() => this.loadedTabs.add(tab));
+        break;
+      case 'finance':
+        this.agencyService.getAgencyStats(id).subscribe(() => this.loadedTabs.add(tab));
+        break;
+      case 'info':
+        this.agencyService.getAgency(id).subscribe(() => this.loadedTabs.add(tab));
+        break;
     }
   }
 
-  // Get tab label
   getTabLabel(tab: Tab): string {
-    switch (tab) {
-      case 'info': return 'Informations';
-      case 'trips': return `Voyages (${this.trips().length})`;
-      case 'bookings': return `Reservations (${this.reservations().length})`;
-      default: return '';
-    }
+    const counts: Partial<Record<Tab, number>> = {
+      agents: this.agency()?.agentsCount ?? this.agents().length,
+      trips: this.agency()?.tripsCount ?? this.trips().length,
+      bookings: this.agency()?.reservationsCount ?? this.reservations().length,
+      buses: this.agency()?.busesCount ?? this.buses().length,
+      points: this.agency()?.boardingPointsCount ?? this.points().length,
+    };
+    const labels: Record<Tab, string> = {
+      info: 'Vue générale', admin: 'Administrateur', agents: 'Agents', trips: 'Voyages',
+      bookings: 'Réservations', buses: 'Bus', points: 'Embarquement', finance: 'Finances',
+    };
+    return counts[tab] !== undefined ? `${labels[tab]} (${counts[tab]})` : labels[tab];
   }
 
-  // Get tab icon
   getTabIcon(tab: Tab): string {
-    switch (tab) {
-      case 'info': return 'fa-circle-info';
-      case 'trips': return 'fa-road';
-      case 'bookings': return 'fa-ticket';
-      default: return '';
-    }
+    return ({
+      info: 'fa-circle-info', admin: 'fa-user-shield', agents: 'fa-users', trips: 'fa-road',
+      bookings: 'fa-ticket', buses: 'fa-bus', points: 'fa-location-dot', finance: 'fa-wallet',
+    } as Record<Tab, string>)[tab];
   }
 
-  // Formatters
-  fcfa(n: number) {
-    return this.agencyService.formatCurrency(n);
-  }
+  fcfa(n: number): string { return this.agencyService.formatCurrency(n); }
+  initials(name: string): string { return this.agencyService.getInitials(name); }
+  formatDate(value: string | null | undefined): string { return value ? this.agencyService.formatDate(value) : '—'; }
+  formatDateTime(value: string | null | undefined): string { return value ? this.agencyService.formatDateTime(value) : '—'; }
+  formatTime(value: string | null | undefined): string { return value ? this.agencyService.formatTime(value) : '—'; }
 
-  initials(name: string) {
-    return this.agencyService.getInitials(name);
-  }
+  getKycBadgeVariant(kyc: string | undefined) { return this.agencyService.getKycBadgeVariant(kyc || 'missing'); }
+  getStatusBadgeVariant(status: string) { return this.agencyService.getStatusBadgeVariant(status); }
 
-  formatDate(dateString: string) {
-    return this.agencyService.formatDate(dateString);
-  }
-
-  formatDateTime(dateString: string) {
-    return this.agencyService.formatDateTime(dateString);
-  }
-
-  formatTime(timeString: string) {
-    return this.agencyService.formatTime(timeString);
-  }
-
-  getKycBadgeVariant(kyc: string | undefined) {
-    return this.agencyService.getKycBadgeVariant(kyc || 'missing');
-  }
-
-  getStatusBadgeVariant(status: string) {
-    return this.agencyService.getStatusBadgeVariant(status);
-  }
-
-  // Get status text for trips
   getTripStatusText(status: string): string {
     switch (status) {
-      case 'planifie':
-      case 'SCHEDULED':
-        return 'Planifié';
-      case 'embarquement':
-      case 'en_route':
-      case 'IN_PROGRESS':
-        return 'En cours';
-      case 'termine':
-      case 'COMPLETED':
-        return 'Terminé';
-      case 'annule':
-      case 'CANCELLED':
-        return 'Annulé';
-      case 'DELAYED':
-        return 'Retardé';
-      default:
-        return status;
-    }
-  }
-
-  // Get payment status text
-  getPaymentStatusText(status: string): string {
-    switch (status) {
-      case 'en_attente': return 'En attente';
-      case 'paye': return 'Paye';
-      case 'echoue': return 'Echoue';
-      case 'rembourse': return 'Rembourse';
+      case 'planifie': case 'SCHEDULED': return 'Planifié';
+      case 'embarquement': case 'en_route': case 'IN_PROGRESS': return 'En cours';
+      case 'termine': case 'COMPLETED': return 'Terminé';
+      case 'annule': case 'CANCELLED': return 'Annulé';
+      case 'DELAYED': return 'Retardé';
       default: return status;
     }
   }
 
-  // Get KYC label
+  getPaymentStatusText(status: string): string {
+    switch (status) {
+      case 'en_attente': return 'En attente';
+      case 'paye': return 'Payé';
+      case 'echoue': return 'Échoué';
+      case 'rembourse': return 'Remboursé';
+      default: return status;
+    }
+  }
+
   getKycLabel(kyc: string | undefined): string {
-    if (!kyc) return 'Manquant';
     switch (kyc) {
-      case 'verified': return 'Verifie';
-      case 'pending': return 'A valider';
-      case 'missing': return 'Manquant';
-      case 'rejected': return 'Rejete';
+      case 'verified': return 'Vérifié';
+      case 'pending': return 'À valider';
+      case 'rejected': return 'Rejeté';
       default: return 'Manquant';
     }
   }
 
-  // Get KYC icon
   getKycIcon(kyc: string | undefined): string {
-    if (!kyc) return 'fa-file-circle-xmark';
     switch (kyc) {
       case 'verified': return 'fa-circle-check';
       case 'pending': return 'fa-clock';
-      case 'missing': return 'fa-file-circle-xmark';
       case 'rejected': return 'fa-circle-xmark';
       default: return 'fa-file-circle-xmark';
     }
   }
 
-  // Refresh data
-  refresh() {
-    const id = this.agencyId();
-    if (id) {
-      this.agencyService.getAgency(id).subscribe();
-      if (this.activeTab() === 'trips') {
-        this.agencyService.getAgencyTrips(id).subscribe();
-      } else if (this.activeTab() === 'bookings') {
-        this.agencyService.getAgencyReservations(id).subscribe();
-      }
+  getAgentRoleLabel(role: string): string {
+    switch (role) {
+      case 'admin_agence': return 'Administrateur agence';
+      case 'agent': return 'Agent';
+      default: return role || 'Agent';
     }
   }
 
-  // Toggle agency status
-  toggleStatus() {
-    const id = this.agencyId();
-    if (id) {
-      this.agencyService.toggleAgencyStatus(id).subscribe();
+  getAgentStatusVariant(status: string): 'active' | 'suspended' | 'pending' {
+    if (status === 'active') return 'active';
+    if (status === 'pending') return 'pending';
+    return 'suspended';
+  }
+
+  getBusStatusLabel(status: string): string {
+    switch (status) {
+      case 'disponible': return 'Disponible';
+      case 'maintenance': return 'Maintenance';
+      case 'hors_service': return 'Hors service';
+      default: return status;
     }
   }
 
-  // Check if trip is active
-  isTripActive(trip: Trip): boolean {
-    return this.isTripActiveByStatus(trip.status);
+  getPointTypeLabel(type: string): string {
+    switch (type) {
+      case 'principal': return 'Principal';
+      case 'secondaire': return 'Secondaire';
+      case 'relais': return 'Relais';
+      default: return type || 'Point';
+    }
   }
 
-  // Check if trip is active by status string
+  isFeatureEnabled(value: boolean | number): boolean { return value === true || value === 1; }
   isTripActiveByStatus(status: string): boolean {
-    return status === 'planifie' || status === 'embarquement' || status === 'en_route' || status === 'SCHEDULED' || status === 'IN_PROGRESS';
+    return ['planifie', 'embarquement', 'en_route', 'SCHEDULED', 'IN_PROGRESS'].includes(status);
+  }
+  getFillRate(trip: Trip): number { return trip.maxSeats ? Math.round((trip.seatsReserved / trip.maxSeats) * 100) : 0; }
+
+  refresh(): void {
+    const id = this.agencyId();
+    if (!id) return;
+    this.agencyService.getAgency(id).subscribe();
+    this.agencyService.getAgencyStats(id).subscribe();
+    this.loadedTabs.clear();
+    this.loadedTabs.add('info');
+    this.loadTab(this.activeTab(), true);
   }
 
-  // Get fill rate percentage
-  getFillRate(trip: Trip): number {
-    if (trip.maxSeats === 0) return 0;
-    return Math.round((trip.seatsReserved / trip.maxSeats) * 100);
+  toggleStatus(): void {
+    const id = this.agencyId();
+    if (id) this.agencyService.toggleAgencyStatus(id).subscribe();
   }
 }

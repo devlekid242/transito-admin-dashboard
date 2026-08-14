@@ -1,7 +1,8 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
-import { environment } from "../../environments/environment.prod";
+import { environment } from "../../environments/environment";
 import { catchError, of, tap } from "rxjs";
+import { UserSearchItem } from "./reservation.service";
 
 // User Type
 export type UserRole = "CLIENT" | "AGENT" | "ADMIN";
@@ -224,6 +225,9 @@ export class UserService {
 	readonly currentUser = signal<UserProfile | null>(null);
 	readonly userKpis = signal<UserKpis | null>(null);
 
+	readonly userItems = signal<UserSearchItem[]>([]);
+	
+
 	// Loading states
 	readonly loadingUsers = signal<boolean>(false);
 	readonly loadingProfile = signal<boolean>(false);
@@ -296,6 +300,17 @@ export class UserService {
 							status: u.status as UserStatus,
 							role: u.role as UserRole,
 						}));
+
+						const userItems = users.map((u) => ({
+							id: u.id,
+							label: u.fullName,
+							sublabel: u.email ?? "",
+							phoneNumber: u.phoneNumber,
+							email: u.email,
+						}));
+
+						this.userItems.set(userItems);
+						
 						this.users.set(users);
 						this.currentPage.set(page);
 
@@ -316,6 +331,17 @@ export class UserService {
 				}),
 				tap(() => this.loadingUsers.set(false)),
 			);
+	}
+
+	/**
+	 * Search users for the search select component.
+	 * This method is used to fetch users based on a search query.
+	 * It updates the userItems signal with the search results.
+	 * @param query The search query string.
+	 * @returns An observable of the API response.
+	 */
+	getUsersForSearch(query: string, role?: UserRole) {
+		return this.getUsers(1, 10, { search: query, role: role ?? "CLIENT" });
 	}
 
 	/**

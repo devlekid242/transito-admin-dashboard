@@ -45,8 +45,8 @@ export class DashboardPage {
       revenueLabels: revenueData?.labels ?? [],
       revenueSeries: revenueData?.series[0] ?? [],
       newUsersSeries: revenueData?.series[1] ?? [],
-      reservationsLabels: reservationsData?.labels ?? this.getReservationLabels(),
-      reservationsSeries: reservationsData?.series ?? this.getReservationSeries(),
+      reservationsLabels: reservationsData?.labels ?? [],
+      reservationsSeries: reservationsData?.series ?? [],
       userDistribution: this.mapToChartData(this.dashboardService.userDistribution()),
       paymentDistribution: this.mapToChartData(this.dashboardService.paymentDistribution()),
       kycDistribution: this.mapToChartData(this.dashboardService.kycDistribution()),
@@ -114,32 +114,6 @@ export class DashboardPage {
     };
   }
 
-  /**
-   * Get reservation chart labels (last 7 days)
-   */
-  private getReservationLabels(): string[] {
-    const labels = [];
-    const date = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(date);
-      d.setDate(d.getDate() - i);
-      labels.push(d.toLocaleDateString('fr-FR', { weekday: 'short' }));
-    }
-    return labels;
-  }
-
-  /**
-   * Get reservation chart series (mock data for now, will be replaced by API)
-   * TODO: Update backend to provide reservation trend data
-   */
-  private getReservationSeries(): number[] {
-    // Generate mock reservation trend data
-    const data = [];
-    for (let i = 0; i < 7; i++) {
-      data.push(Math.floor(Math.random() * 50) + 10);
-    }
-    return data;
-  }
 
   /**
    * Map chart data to template format

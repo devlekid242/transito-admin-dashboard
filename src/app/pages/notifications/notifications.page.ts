@@ -1,20 +1,32 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { StatCardComponent } from '../../shared/stat-card.component';
 import { StatusBadgeComponent } from '../../shared/status-badge.component';
 import { NotificationService, AdminNotification } from '../../services/notification.service';
+import { ReactiveFormsModule } from '@angular/forms';
+import { UserService } from '../../services/user.service';
+import { SearchSelectComponent, SearchSelectItem } from '../../shared/search-select.component';
 
 @Component({
   selector: 'app-notifications',
-  imports: [CommonModule, PageHeaderComponent, StatCardComponent, StatusBadgeComponent],
+  imports: [CommonModule, PageHeaderComponent, SearchSelectComponent, ReactiveFormsModule, StatCardComponent, StatusBadgeComponent],
   templateUrl: 'notifications.page.html',
 })
-export class NotificationsPage {
+export class NotificationsPage implements OnInit {
   readonly notificationService = inject(NotificationService);
+  readonly userItems = inject(UserService).userItems;
+  readonly users = inject(UserService);
   readonly showSingle = signal(false);
   readonly showMulti = signal(false);
   readonly selectedTargets = signal<string[]>([]);
+
+  readonly userSearchItems = computed<SearchSelectItem[]>(() =>
+    this.userItems().map(u => ({ ...u, id: String(u.id) }))
+  );
+
+  readonly selectedUser = signal<SearchSelectItem | null>(null);
+
 
   readonly targetTypes = [
     { value: 'users', label: 'Tous les utilisateurs' },
@@ -22,7 +34,14 @@ export class NotificationsPage {
     { value: 'agents', label: 'Tous les agents' },
   ];
 
+
   readonly notifications = this.notificationService.notifications;
+
+  constructor() {}
+
+  ngOnInit(): void {
+    this.loadUsers();
+  }
 
   openSingle() { this.showSingle.set(true); }
   openMulti() { this.showMulti.set(true); this.selectedTargets.set([]); }
@@ -53,7 +72,7 @@ export class NotificationsPage {
       title,
       content: msg,
       recipientType: 'user',
-      recipientId: 1,
+      recipientId: this.selectedUser()?.id ? Number(this.selectedUser()?.id) : null,
       category: 'INFO',
     }).subscribe({
       next: () => this.showSingle.set(false),
@@ -78,5 +97,20 @@ export class NotificationsPage {
       next: () => this.showMulti.set(false),
       error: (err) => console.error('Diffusion notification échouée', err),
     });
+  }
+
+  private loadUsers(): void {
+    // Load users for search select
+    this.users.getUsers().subscribe();
+  }
+
+  onUserSearch(query: string) {
+    if (query.length >= 2) {
+      this.users.getUsersForSearch(query).subscribe();
+    }
+  }
+
+  onUserSelected(item: SearchSelectItem | null) {
+    this.selectedUser.set(item);
   }
 }

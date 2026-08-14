@@ -55,15 +55,15 @@
 		<div class="flex-1 overflow-y-auto">
 			@for (c of filteredConversations(); track c.id) {
 			<button
-				(click)="selectConversation(c.id)"
+				(click)="selectConversation(c)"
 				class="flex w-full items-start gap-3 border-b border-gray-50 px-4 py-3 text-left transition-colors hover:bg-gray-50"
 				[class.bg-green-50]="selectedId() === c.id"
 				[class.font-semibold]="c.unread">
 				<div class="relative shrink-0">
 					<div
 						class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white"
-						[class]="getUserAvatarColor(c.user.id || 0)">
-						{{ initials(c.user.fullName || 'User') }}
+						[class]="getUserAvatarColor(c.user?.id || 0)">
+						{{ initials(c.user?.fullName || 'User') }}
 					</div>
 					@if (c.unread) {
 					<span
@@ -75,7 +75,7 @@
 				<div class="min-w-0 flex-1">
 					<div class="flex items-center justify-between">
 						<p class="truncate text-sm font-semibold text-gray-800">
-							{{ c.user.fullName || 'Unknown User' }}
+							{{ c.user?.fullName || 'Unknown User' }}
 						</p>
 						<div class="flex shrink-0 items-center gap-1">
 							@if (c.priority === 'high') {
@@ -104,9 +104,9 @@
 							[class]="getStatusColor(c.status)">
 							{{ getStatusLabel(c.status) }}
 						</span>
-						@if (c.user.phoneNumber) {
+						@if (c.user?.phoneNumber) {
 						<span class="text-[10px] text-gray-400"
-							>{{ c.user.phoneNumber }}</span
+							>{{ c.user?.phoneNumber }}</span
 						>
 						}
 					</div>
@@ -133,20 +133,20 @@
 					<div class="mt-2 flex items-center gap-3">
 						<div
 							class="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white"
-							[class]="getUserAvatarColor(selectedConversation()!.user.id || 0)">
-							{{ initials(selectedConversation()!.user.fullName ||
-							'User') }}
+							[class]="getUserAvatarColor(selectedConversation()!.user?.id || 0)">
+							{{ initials(selectedConversation()!.user?.fullName
+							|| 'User') }}
 						</div>
 						<div>
 							<p class="text-sm font-semibold text-gray-800">
-								{{ selectedConversation()!.user.fullName ||
+								{{ selectedConversation()!.user?.fullName ||
 								'Unknown User' }}
 							</p>
 							<p class="text-xs text-gray-400">
 								{{ selectedConversation()!.createdAt |
 								date:'short' }} @if
-								(selectedConversation()!.user.phoneNumber) { ·
-								{{ selectedConversation()!.user.phoneNumber }}}
+								(selectedConversation()!.user?.phoneNumber) { ·
+								{{ selectedConversation()!.user?.phoneNumber }}}
 							</p>
 						</div>
 					</div>
@@ -159,6 +159,7 @@
 						getPriorityLabel(selectedConversation()!.priority) }}
 					</span>
 					<button
+						(click)="markCurrentAsRead()"
 						class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100"
 						title="Marquer comme lu">
 						<i class="fa-solid fa-envelope-open"></i>
@@ -180,14 +181,73 @@
 
 		<!-- Email thread -->
 		<div class="flex-1 overflow-y-auto bg-gray-50 p-6">
-			@for (m of selectedConversation()!.responses; track m.id; let i =
-			$index) {
+			@if (isLoadingThread()) {
+			<!-- Loader pendant le chargement des réponses -->
+			<div class="flex h-full items-center justify-center py-12">
+				<div class="flex items-center gap-2 text-gray-500">
+					<svg
+						class="h-5 w-5 animate-spin text-slate-700"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24">
+						<circle
+							class="opacity-25"
+							cx="12"
+							cy="12"
+							r="10"
+							stroke="currentColor"
+							stroke-width="4"></circle>
+						<path
+							class="opacity-75"
+							fill="currentColor"
+							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+					</svg>
+					<span class="text-sm font-medium"
+						>Chargement de la discussion...</span
+					>
+				</div>
+			</div>
+			} @else if (selectedConversation()) {
+
+			<!-- 1. Message original du client (toujours visible) -->
 			<div
 				class="mb-4 rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
 				<div
 					class="mb-2 flex items-center justify-between border-b border-gray-50 pb-2">
 					<div class="flex items-center gap-2">
-						@if (m.agent) {
+						<div
+							class="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white"
+							[class]="getUserAvatarColor(selectedConversation()!.user?.id || 0)">
+							{{ initials(selectedConversation()!.user?.fullName
+							|| 'User') }}
+						</div>
+						<span class="text-sm font-semibold text-gray-800">
+							{{ selectedConversation()!.user?.fullName || 'User'
+							}}
+						</span>
+						<span
+							class="rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-600">
+							Message original
+						</span>
+					</div>
+					<span class="text-xs text-gray-400">
+						{{ selectedConversation()!.createdAt | date:'shortTime'
+						}}
+					</span>
+				</div>
+				<p class="text-sm leading-relaxed text-gray-700">
+					{{ selectedConversation()!.message }}
+				</p>
+			</div>
+
+			<!-- 2. Historique des réponses -->
+			@for (m of selectedConversation()!.responses; track m.id) {
+			<div
+				class="mb-4 rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
+				<div
+					class="mb-2 flex items-center justify-between border-b border-gray-50 pb-2">
+					<div class="flex items-center gap-2">
+						@if (m.isFromSupport) {
 						<div
 							class="flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-[10px] font-bold text-white">
 							SA
@@ -198,61 +258,25 @@
 						} @else {
 						<div
 							class="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white"
-							[class]="getUserAvatarColor(selectedConversation()!.user.id || 0)">
-							{{ initials(selectedConversation()!.user.fullName ||
-							'User') }}
+							[class]="getUserAvatarColor(selectedConversation()!.user?.id || 0)">
+							{{ initials(selectedConversation()!.user?.fullName
+							|| 'User') }}
 						</div>
-						<span class="text-sm font-semibold text-gray-800"
-							>{{ selectedConversation()!.user.fullName || 'User'
-							}}</span
-						>
-						} @if (i === 0) {
-						<span
-							class="rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-600"
-							>Message original</span
-						>
+						<span class="text-sm font-semibold text-gray-800">
+							{{ selectedConversation()!.user?.fullName || 'User'
+							}}
+						</span>
 						}
 					</div>
-					<span class="text-xs text-gray-400"
-						>{{ m.createdAt | date:'shortTime' }}</span
-					>
+					<span class="text-xs text-gray-400">
+						{{ m.createdAt | date:'shortTime' }}
+					</span>
 				</div>
 				<p class="text-sm leading-relaxed text-gray-700">
 					{{ m.message }}
 				</p>
 			</div>
-			} @empty {
-			<!-- Show original ticket message if no responses -->
-			<div
-				class="mb-4 rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
-				<div
-					class="mb-2 flex items-center justify-between border-b border-gray-50 pb-2">
-					<div class="flex items-center gap-2">
-						<div
-							class="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white"
-							[class]="getUserAvatarColor(selectedConversation()!.user.id || 0)">
-							{{ initials(selectedConversation()!.user.fullName ||
-							'User') }}
-						</div>
-						<span class="text-sm font-semibold text-gray-800"
-							>{{ selectedConversation()!.user.fullName || 'User'
-							}}</span
-						>
-						<span
-							class="rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-600"
-							>Message original</span
-						>
-					</div>
-					<span class="text-xs text-gray-400"
-						>{{ selectedConversation()!.createdAt | date:'shortTime'
-						}}</span
-					>
-				</div>
-				<p class="text-sm leading-relaxed text-gray-700">
-					{{ selectedConversation()!.message }}
-				</p>
-			</div>
-			}
+			} }
 		</div>
 
 		<!-- Reply box -->
@@ -261,7 +285,7 @@
 				<textarea
 					#replyInput
 					rows="2"
-					placeholder="Répondre à {{ selectedConversation()!.user.fullName || 'User' }}..."
+					placeholder="Répondre à {{ selectedConversation()!.user?.fullName || 'User' }}..."
 					class="w-full resize-none bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"></textarea>
 				<div class="mt-2 flex items-center justify-between">
 					<div class="flex items-center gap-2">
@@ -276,11 +300,20 @@
 							<i class="fa-regular fa-face-smile"></i>
 						</button>
 					</div>
+					@if (!isRepling()) {
 					<button
 						(click)="sendReply(replyInput.value); replyInput.value=''"
 						class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-green-700 active:scale-95">
 						<i class="fa-solid fa-paper-plane"></i> Envoyer
 					</button>
+					} @else {
+					<button
+						disabled
+						class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white opacity-75 cursor-not-allowed">
+						<i class="fa-solid fa-circle-notch fa-spin"></i> Envoi
+						en cours...
+					</button>
+					}
 				</div>
 			</div>
 		</div>

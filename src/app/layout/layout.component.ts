@@ -10,7 +10,7 @@ import {
 import { AdminAuthService, AdminUser } from "../services/admin-auth.service";
 import { SystemSettingsService } from "../services/system-settings.service";
 import { NotificationService } from "../services/notification.service";
-import { environment } from "../../environments/environment.prod";
+import { environment } from "../../environments/environment";
 
 interface NavItem {
 	label: string;
@@ -164,21 +164,25 @@ export class LayoutComponent {
 					label: "Réservations",
 					icon: "fa-solid fa-ticket",
 					route: "/moderation/reservations",
+					permission: "view_users",
 				},
 				{
 					label: "Trajets",
 					icon: "fa-solid fa-route",
 					route: "/moderation/trips",
+					permission: "view_users",
 				},
 				{
 					label: "Candidatures",
 					icon: "fa-solid fa-handshake",
 					route: "/moderation/applications",
+					permission: "view_users",
 				},
 				{
 					label: "Stats modération",
 					icon: "fa-solid fa-chart-pie",
 					route: "/moderation/stats",
+					permission: "view_users",
 				},
 			],
 		},

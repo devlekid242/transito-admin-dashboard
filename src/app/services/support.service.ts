@@ -1,554 +1,345 @@
-import { Injectable, inject, signal } from "@angular/core";
-import { HttpClient, HttpParams } from "@angular/common/http";
-import { environment } from "../../environments/environment.prod";
-import { catchError, of, tap } from "rxjs";
+import { Injectable, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, catchError, map, of, tap } from 'rxjs';
+import { environment } from '../../environments/environment.prod';
 
-// Support Ticket Types
-export type SupportTicketStatus = "open" | "answered" | "closed" | "pending";
-export type SupportTicketPriority = "low" | "medium" | "high" | "critical";
-export type SupportTicketCategory =
-	| "general"
-	| "payment"
-	| "reservation"
-	| "technical"
-	| "account"
-	| "other";
+/**
+ * 👈 Ce service n'a pas été fourni dans l'upload initial alors qu'il est
+ * utilisé par support.page.ts ET faq-management.page.ts. Reconstruit à
+ * partir de l'usage réel des deux composants (voir erreurs de build) et
+ * aligné sur les réponses de AdminSupportController (désormais correctement
+ * sérialisées en tableaux).
+ *
+ * 👈 CORRIGÉ (v2) : les méthodes getTickets/getSupportStats/getTicketDetails/
+ * addResponse renvoyaient l'enveloppe brute du back (`{ data: ... }`,
+ * `{ stats: ..., recent_tickets: ... }`, `{ response: ... }`) au lieu de la
+ * valeur "démoulée" annoncée par leur type de retour → erreurs TS2322 au
+ * build. Un `map()` extrait maintenant la bonne valeur avant le `tap()`.
+ */
 
-// Support Ticket Interface
-export interface SupportTicket {
-	id: number;
-	ticketId: string;
-	subject: string;
-	message: string;
-	user: {
-		id: number;
-		fullName: string;
-		email: string | null;
-		phoneNumber: string;
-	};
-	category: SupportTicketCategory;
-	priority: SupportTicketPriority;
-	status: SupportTicketStatus;
-	createdAt: string;
-	updatedAt: string | null;
-	responsesCount: number;
-	unread: boolean;
-	responses?: SupportResponse[];
-	lastResponse?: {
-		id: number;
-		message: string;
-		createdAt: string;
-		agent?: {
-			id: number;
-			fullName: string;
-		};
-	};
+// ==================== TICKETS ====================
+
+export type SupportTicketStatus = 'open' | 'answered' | 'closed' | 'pending';
+export type SupportTicketPriority = 'low' | 'medium' | 'high' | 'critical';
+
+export interface SupportTicketUser {
+  id: number;
+  fullName: string;
+  email?: string | null;
+  phoneNumber?: string | null;
 }
 
-// Support Response Interface
 export interface SupportResponse {
-	id: number;
-	message: string;
-	createdAt: string;
-	ticket: SupportTicket;
-	agent?: {
-		id: number;
-		fullName: string;
-	};
+  id: number;
+  ticketId?: number;
+  message: string;
+  createdAt: string;
+  isFromSupport: boolean;
+  author?: { id: number; fullName: string } | null;
 }
 
-// FAQ Interface
-export interface FAQ {
-	id: number;
-	question: string;
-	answer: string;
-	category: string;
-	orderPriority: number;
-	isActive: boolean;
-	createdAt: string;
-	updatedAt: string | null;
+export interface SupportTicket {
+  id: number;
+  subject: string;
+  message: string;
+  category: string;
+  status: SupportTicketStatus;
+  priority: SupportTicketPriority;
+  createdAt: string;
+  updatedAt?: string;
+  closedAt?: string | null;
+  closedReason?: string | null;
+  slaDueAt?: string | null;
+  slaBreached?: boolean;
+  responseCount?: number;
+  // 👈 Peut être null (ticket créé par un visiteur non authentifié) : le
+  // template doit utiliser la navigation sécurisée `?.` sur ce champ.
+  user: SupportTicketUser | null;
+  assignedTo?: { id: number; fullName: string } | null;
+  lastResponse?: { id: number; message: string; createdAt: string } | null;
+  responses?: SupportResponse[];
+  /** Champ calculé côté client (non stocké en base), voir attachUnread(). */
+  unread?: boolean;
 }
 
-// Support Statistics Interface
 export interface SupportStats {
-	open: number;
-	answered: number;
-	closed: number;
-	pending: number;
-	highPriority: number;
-	criticalPriority: number;
+  open: number;
+  answered: number;
+  closed: number;
+  pending: number;
+  high_priority: number;
+  critical_priority: number;
+  sla_breached: number;
 }
 
-@Injectable({
-	providedIn: "root",
-})
+// ==================== FAQ ====================
+
+export interface FAQ {
+  id: number;
+  question: string;
+  answer: string;
+  category: string;
+  orderPriority: number;
+  isActive: boolean;
+  createdAt?: string;
+}
+
+export interface FAQFilter {
+  search?: string;
+  category?: string;
+  activeOnly: boolean;
+}
+
+const LAST_SEEN_STORAGE_KEY = 'admin_support_last_seen_v1';
+
+@Injectable({ providedIn: 'root' })
 export class SupportService {
-	private readonly http = inject(HttpClient);
-	private readonly apiUrl = environment.apiUrl;
+  private apiUrl = `${environment.apiUrl}/admin/support`;
 
-	// State management
-	readonly tickets = signal<SupportTicket[]>([]);
-	readonly currentTicket = signal<SupportTicket | null>(null);
-	readonly faqs = signal<FAQ[]>([]);
-	readonly stats = signal<SupportStats | null>(null);
-	readonly isLoading = signal<boolean>(false);
-	readonly error = signal<string | null>(null);
+  // ---- Tickets ----
+  readonly tickets = signal<SupportTicket[]>([]);
+  readonly currentTicket = signal<SupportTicket | null>(null);
+  readonly stats = signal<SupportStats | null>(null);
+  /**
+   * Compteur incrémenté quand un rafraîchissement détecte de nouveaux
+   * tickets/messages non lus. La page peut l'observer pour déclencher un
+   * toast ou un son sans dupliquer la logique de détection.
+   */
+  readonly newActivity = signal(0);
 
-	// Filter states
-	readonly currentFilter = signal<{
-		status: SupportTicketStatus | "all";
-		priority: SupportTicketPriority | "all";
-		category: SupportTicketCategory | "all";
-		search: string;
-	}>({
-		status: "all",
-		priority: "all",
-		category: "all",
-		search: "",
-	});
+  // ---- FAQ ----
+  readonly faqs = signal<FAQ[]>([]);
+  readonly faqCategories = signal<string[]>([]);
+  readonly currentFAQFilter = signal<FAQFilter>({ activeOnly: true });
+  readonly error = signal<string | null>(null);
 
-	// FAQ filter states
-	readonly currentFAQFilter = signal<{
-		category: string | "all";
-		search: string;
-		activeOnly: boolean;
-	}>({
-		category: "all",
-		search: "",
-		activeOnly: true,
-	});
+  private lastSeen = this.loadLastSeen();
+  private hasLoadedOnce = false;
 
-	/**
-	 * Get all support tickets with optional filtering
-	 */
-	getTickets(limit: number = 50, offset: number = 0) {
-		this.isLoading.set(true);
-		this.error.set(null);
+  constructor(private http: HttpClient) {}
 
-		const filter = this.currentFilter();
-		let params = new HttpParams()
-			.set("limit", limit.toString())
-			.set("offset", offset.toString());
+  // ==================== TICKETS ====================
 
-		if (filter.status !== "all") {
-			params = params.set("status", filter.status);
-		}
-		if (filter.priority !== "all") {
-			params = params.set("priority", filter.priority);
-		}
-		if (filter.category !== "all") {
-			params = params.set("category", filter.category);
-		}
-		if (filter.search.trim()) {
-			params = params.set("search", filter.search.trim());
-		}
+  getTickets(
+    params: { status?: string; priority?: string; category?: string; search?: string } = {},
+  ): Observable<SupportTicket[]> {
+    let url = `${this.apiUrl}/tickets`;
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v) query.set(k, v);
+    });
+    if (query.toString()) url += `?${query.toString()}`;
 
-		return this.http
-			.get<{
-				data: SupportTicket[];
-				total: number;
-				limit: number;
-				offset: number;
-			}>(`${this.apiUrl}/admin/support/tickets`, { params })
-			.pipe(
-				tap((response) => {
-					this.tickets.set(response.data);
-					this.isLoading.set(false);
-				}),
-				catchError((error) => {
-					this.isLoading.set(false);
-					this.error.set(error.message || "Failed to load tickets");
-					return of(null);
-				}),
-			);
-	}
+    return this.http.get<{ data: SupportTicket[]; total: number }>(url).pipe(
+      map((res) => res.data || []),
+      tap((data) => {
+        const previousIds = new Set(this.tickets().map((t) => t.id));
+        const withUnread = data.map((t) => this.attachUnread(t));
 
-	/**
-	 * Get a single ticket with its responses
-	 */
-	getTicketDetails(id: number) {
-		this.isLoading.set(true);
-		this.error.set(null);
+        if (this.hasLoadedOnce) {
+          const total = withUnread.filter((t) => t.unread).filter(
+            (t) => !previousIds.has(t.id) || !this.tickets().find((old) => old.id === t.id)?.unread,
+          ).length;
+          if (total > 0) {
+            this.newActivity.update((n) => n + total);
+            this.notifyBrowser(total);
+          }
+        }
 
-		return this.http
-			.get<{
-				ticket: SupportTicket;
-				responses: SupportResponse[];
-			}>(`${this.apiUrl}/admin/support/tickets/${id}`)
-			.pipe(
-				tap((response) => {
-					this.currentTicket.set({
-						...response.ticket,
-						responses: response.responses,
-					});
-					this.isLoading.set(false);
-				}),
-				catchError((error) => {
-					this.isLoading.set(false);
-					this.error.set(
-						error.message || "Failed to load ticket details",
-					);
-					return of(null);
-				}),
-			);
-	}
+        this.hasLoadedOnce = true;
+        this.tickets.set(withUnread);
+      }),
+      catchError((err) => {
+        console.error('Erreur chargement tickets admin:', err);
+        this.error.set("Impossible de charger les tickets.");
+        return of([]);
+      }),
+    );
+  }
 
-	/**
-	 * Update ticket status
-	 */
-	updateTicketStatus(id: number, status: SupportTicketStatus) {
-		return this.http
-			.put<{
-				message: string;
-				ticket: SupportTicket;
-			}>(`${this.apiUrl}/admin/support/tickets/${id}/status`, { status })
-			.pipe(
-				tap((response) => {
-					// Update the ticket in the list
-					this.tickets.update((tickets) =>
-						tickets.map((ticket) =>
-							ticket.id === id ? { ...ticket, status } : ticket,
-						),
-					);
-					// Update current ticket if it's the one being updated
-					if (this.currentTicket()?.id === id) {
-						this.currentTicket.set({
-							...this.currentTicket()!,
-							status,
-						});
-					}
-				}),
-				catchError((error) => {
-					this.error.set(
-						error.message || "Failed to update ticket status",
-					);
-					return of(null);
-				}),
-			);
-	}
+  getSupportStats(): Observable<SupportStats | null> {
+    return this.http
+      .get<{ stats: SupportStats; recent_tickets: SupportTicket[] }>(`${this.apiUrl}/tickets/stats`)
+      .pipe(
+        map((res) => res.stats),
+        tap((stats) => this.stats.set(stats)),
+        catchError((err) => {
+          console.error('Erreur stats support:', err);
+          return of(null);
+        }),
+      );
+  }
 
-	/**
-	 * Update ticket priority
-	 */
-	updateTicketPriority(id: number, priority: SupportTicketPriority) {
-		return this.http
-			.put<{
-				message: string;
-				ticket: SupportTicket;
-			}>(`${this.apiUrl}/admin/support/tickets/${id}/priority`, {
-				priority,
-			})
-			.pipe(
-				tap((response) => {
-					this.tickets.update((tickets) =>
-						tickets.map((ticket) =>
-							ticket.id === id ? { ...ticket, priority } : ticket,
-						),
-					);
-					if (this.currentTicket()?.id === id) {
-						this.currentTicket.set({
-							...this.currentTicket()!,
-							priority,
-						});
-					}
-				}),
-				catchError((error) => {
-					this.error.set(
-						error.message || "Failed to update ticket priority",
-					);
-					return of(null);
-				}),
-			);
-	}
+  getTicketDetails(id: number): Observable<SupportTicket | null> {
+    return this.http.get<{ data: SupportTicket }>(`${this.apiUrl}/tickets/${id}`).pipe(
+      map((res) => res.data),
+      tap((ticket) => this.currentTicket.set(this.attachUnread(ticket))),
+      catchError((err) => {
+        console.error('Erreur détail ticket:', err);
+        return of(null);
+      }),
+    );
+  }
 
-	/**
-	 * Add a response to a support ticket
-	 */
-	addResponse(ticketId: number, message: string) {
-		return this.http
-			.post<{
-				message: string;
-				response: SupportResponse;
-			}>(`${this.apiUrl}/admin/support/tickets/${ticketId}/responses`, {
-				message,
-			})
-			.pipe(
-				tap((response) => {
-					// Add the response to the current ticket
-					if (this.currentTicket()?.id === ticketId) {
-						const currentTicket = this.currentTicket();
-						if (currentTicket) {
-							const updatedTicket: SupportTicket = {
-								...currentTicket,
-								responsesCount:
-									currentTicket.responsesCount + 1,
-								status: "answered" as SupportTicketStatus,
-							};
-							this.currentTicket.set(updatedTicket);
-						}
-					}
-					// Refresh the ticket list
-					this.getTickets().subscribe();
-				}),
-				catchError((error) => {
-					this.error.set(error.message || "Failed to add response");
-					return of(null);
-				}),
-			);
-	}
+  addResponse(id: number, message: string): Observable<SupportResponse | null> {
+    return this.http
+      .post<{ response: SupportResponse }>(`${this.apiUrl}/tickets/${id}/responses`, { message })
+      .pipe(
+        map((res) => res.response),
+        tap((response) => {
+          this.markAsRead(id);
+          const current = this.currentTicket();
+          if (current && current.id === id) {
+            this.currentTicket.set({
+              ...current,
+              status: 'answered',
+              responses: [...(current.responses || []), response],
+            });
+          }
+        }),
+        catchError((err) => {
+          console.error('Erreur envoi réponse:', err);
+          return of(null);
+        }),
+      );
+  }
 
-	/**
-	 * Get support statistics
-	 */
-	getSupportStats() {
-		return this.http
-			.get<{
-				stats: SupportStats;
-				recent_tickets: SupportTicket[];
-			}>(`${this.apiUrl}/admin/support/tickets/stats`)
-			.pipe(
-				tap((response) => {
-					this.stats.set(response.stats);
-				}),
-				catchError((error) => {
-					this.error.set(
-						error.message || "Failed to load support stats",
-					);
-					return of(null);
-				}),
-			);
-	}
+  updateTicketStatus(id: number, status: SupportTicketStatus, reason?: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/tickets/${id}/status`, { status, reason });
+  }
 
-	// ==================== FAQ MANAGEMENT ====================
+  updateTicketPriority(id: number, priority: SupportTicketPriority): Observable<any> {
+    return this.http.put(`${this.apiUrl}/tickets/${id}/priority`, { priority });
+  }
 
-	/**
-	 * Get all FAQs with optional filtering
-	 */
-	getFAQs(limit: number = 100, offset: number = 0) {
-		this.isLoading.set(true);
-		this.error.set(null);
+  assignTicket(id: number, userId: number | null): Observable<any> {
+    return this.http.put(`${this.apiUrl}/tickets/${id}/assign`, { userId });
+  }
 
-		const filter = this.currentFAQFilter();
-		let params = new HttpParams()
-			.set("limit", limit.toString())
-			.set("offset", offset.toString())
-			.set("active_only", filter.activeOnly.toString());
+  markAsRead(id: number): void {
+    this.lastSeen[id] = new Date().toISOString();
+    this.persistLastSeen();
+    this.tickets.update((list) => list.map((t) => (t.id === id ? { ...t, unread: false } : t)));
+    const current = this.currentTicket();
+    if (current && current.id === id) {
+      this.currentTicket.set({ ...current, unread: false });
+    }
+  }
 
-		if (filter.category !== "all") {
-			params = params.set("category", filter.category);
-		}
-		if (filter.search.trim()) {
-			params = params.set("search", filter.search.trim());
-		}
+  private attachUnread(t: SupportTicket): SupportTicket {
+    const seenAt = this.lastSeen[t.id];
+    const reference = t.updatedAt || t.createdAt;
+    const unread = !seenAt || (!!reference && new Date(reference).getTime() > new Date(seenAt).getTime());
+    return { ...t, unread };
+  }
 
-		return this.http
-			.get<{
-				data: FAQ[];
-				total: number;
-				limit: number;
-				offset: number;
-			}>(`${this.apiUrl}/admin/support/faqs`, { params })
-			.pipe(
-				tap((response) => {
-					this.faqs.set(response.data);
-					this.isLoading.set(false);
-				}),
-				catchError((error) => {
-					this.isLoading.set(false);
-					this.error.set(error.message || "Failed to load FAQs");
-					return of(null);
-				}),
-			);
-	}
+  private loadLastSeen(): Record<number, string> {
+    try {
+      const raw = localStorage.getItem(LAST_SEEN_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
 
-	/**
-	 * Get a single FAQ
-	 */
-	getFAQ(id: number) {
-		return this.http
-			.get<{ faq: FAQ }>(`${this.apiUrl}/admin/support/faqs/${id}`)
-			.pipe(
-				catchError((error) => {
-					this.error.set(error.message || "Failed to load FAQ");
-					return of(null);
-				}),
-			);
-	}
+  private persistLastSeen(): void {
+    try {
+      localStorage.setItem(LAST_SEEN_STORAGE_KEY, JSON.stringify(this.lastSeen));
+    } catch {
+      // Stockage indisponible (navigation privée, quota) : on continue sans persister.
+    }
+  }
 
-	/**
-	 * Create a new FAQ
-	 */
-	createFAQ(faq: Omit<FAQ, "id" | "createdAt" | "updatedAt">) {
-		return this.http
-			.post<{
-				message: string;
-				faq: FAQ;
-			}>(`${this.apiUrl}/admin/support/faqs`, faq)
-			.pipe(
-				tap((response) => {
-					// Add the new FAQ to the list
-					this.faqs.update((faqs) => [response.faq, ...faqs]);
-				}),
-				catchError((error) => {
-					this.error.set(error.message || "Failed to create FAQ");
-					return of(null);
-				}),
-			);
-	}
+  private notifyBrowser(count: number): void {
+    if (typeof Notification === 'undefined') return;
+    if (Notification.permission === 'granted') {
+      new Notification('Support Tansico', {
+        body: count === 1 ? 'Nouveau message reçu.' : `${count} nouveaux messages reçus.`,
+      });
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+  }
 
-	/**
-	 * Update an existing FAQ
-	 */
-	updateFAQ(
-		id: number,
-		faq: Partial<Omit<FAQ, "id" | "createdAt" | "updatedAt">>,
-	) {
-		return this.http
-			.put<{
-				message: string;
-				faq: FAQ;
-			}>(`${this.apiUrl}/admin/support/faqs/${id}`, faq)
-			.pipe(
-				tap((response) => {
-					// Update the FAQ in the list
-					this.faqs.update((faqs) =>
-						faqs.map((existingFAQ) =>
-							existingFAQ.id === id ? response.faq : existingFAQ,
-						),
-					);
-				}),
-				catchError((error) => {
-					this.error.set(error.message || "Failed to update FAQ");
-					return of(null);
-				}),
-			);
-	}
+  // ==================== FAQ ====================
 
-	/**
-	 * Delete an FAQ
-	 */
-	deleteFAQ(id: number) {
-		return this.http
-			.delete<{
-				message: string;
-			}>(`${this.apiUrl}/admin/support/faqs/${id}`)
-			.pipe(
-				tap((response) => {
-					// Remove the FAQ from the list
-					this.faqs.update((faqs) =>
-						faqs.filter((existingFAQ) => existingFAQ.id !== id),
-					);
-				}),
-				catchError((error) => {
-					this.error.set(error.message || "Failed to delete FAQ");
-					return of(null);
-				}),
-			);
-	}
+  getFAQs(): Observable<FAQ[]> {
+    const f = this.currentFAQFilter();
+    const query = new URLSearchParams();
+    if (f.search) query.set('search', f.search);
+    if (f.category) query.set('category', f.category);
+    query.set('active_only', String(f.activeOnly));
 
-	/**
-	 * Get FAQ categories
-	 */
-	getFAQCategories() {
-		return this.http
-			.get<{
-				categories: string[];
-			}>(`${this.apiUrl}/admin/support/faqs/categories`)
-			.pipe(
-				catchError((error) => {
-					this.error.set(
-						error.message || "Failed to load FAQ categories",
-					);
-					return of(null);
-				}),
-			);
-	}
+    return this.http
+      .get<{ data: FAQ[]; total: number }>(`${this.apiUrl}/faqs?${query.toString()}`)
+      .pipe(
+        map((res) => res.data || []),
+        tap((data) => this.faqs.set(data)),
+        catchError((err) => {
+          console.error('Erreur chargement FAQ:', err);
+          this.error.set('Impossible de charger les FAQ.');
+          return of([]);
+        }),
+      );
+  }
 
-	/**
-	 * Reorder FAQs
-	 */
-	reorderFAQs(orderedIds: number[]) {
-		return this.http
-			.put<{
-				message: string;
-			}>(`${this.apiUrl}/admin/support/faqs/reorder`, { orderedIds })
-			.pipe(
-				tap((response) => {
-					// Refresh the FAQ list
-					this.getFAQs().subscribe();
-				}),
-				catchError((error) => {
-					this.error.set(error.message || "Failed to reorder FAQs");
-					return of(null);
-				}),
-			);
-	}
+  getFAQCategories(): Observable<{ categories: string[] }> {
+    return this.http.get<{ categories: string[] }>(`${this.apiUrl}/faqs/categories`).pipe(
+      tap((res) => this.faqCategories.set(res.categories || [])),
+      catchError((err) => {
+        console.error('Erreur catégories FAQ:', err);
+        return of({ categories: [] });
+      }),
+    );
+  }
 
-	/**
-	 * Update filter for tickets
-	 */
-	updateTicketFilter(
-		filter: Partial<{
-			status: SupportTicketStatus | "all";
-			priority: SupportTicketPriority | "all";
-			category: SupportTicketCategory | "all";
-			search: string;
-		}>,
-	) {
-		this.currentFilter.update((current) => ({ ...current, ...filter }));
-	}
+  updateFAQFilter(partial: Partial<FAQFilter>): void {
+    this.currentFAQFilter.update((f) => ({ ...f, ...partial }));
+    this.getFAQs().subscribe();
+  }
 
-	/**
-	 * Update filter for FAQs
-	 */
-	updateFAQFilter(
-		filter: Partial<{
-			category: string | "all";
-			search: string;
-			activeOnly: boolean;
-		}>,
-	) {
-		this.currentFAQFilter.update((current) => ({ ...current, ...filter }));
-	}
+  resetFAQFilters(): void {
+    this.currentFAQFilter.set({ activeOnly: true });
+    this.getFAQs().subscribe();
+  }
 
-	/**
-	 * Reset all filters
-	 */
-	resetTicketFilters() {
-		this.currentFilter.set({
-			status: "all",
-			priority: "all",
-			category: "all",
-			search: "",
-		});
-	}
+  createFAQ(faq: Partial<FAQ>): Observable<FAQ | null> {
+    return this.http.post<{ message: string; faq: FAQ }>(`${this.apiUrl}/faqs`, faq).pipe(
+      map((res) => res.faq),
+      tap((created) => this.faqs.update((list) => [...list, created])),
+      catchError((err) => {
+        console.error('Erreur création FAQ:', err);
+        this.error.set("Impossible de créer la FAQ.");
+        return of(null);
+      }),
+    );
+  }
 
-	/**
-	 * Reset FAQ filters
-	 */
-	resetFAQFilters() {
-		this.currentFAQFilter.set({
-			category: "all",
-			search: "",
-			activeOnly: true,
-		});
-	}
+  updateFAQ(id: number, updates: Partial<FAQ>): Observable<FAQ | null> {
+    return this.http.put<{ message: string; faq: FAQ }>(`${this.apiUrl}/faqs/${id}`, updates).pipe(
+      map((res) => res.faq),
+      tap((updated) => this.faqs.update((list) => list.map((f) => (f.id === id ? updated : f)))),
+      catchError((err) => {
+        console.error('Erreur mise à jour FAQ:', err);
+        this.error.set("Impossible de mettre à jour la FAQ.");
+        return of(null);
+      }),
+    );
+  }
 
-	/**
-	 * Mark ticket as read
-	 */
-	markAsRead(ticketId: number) {
-		this.tickets.update((tickets) =>
-			tickets.map((ticket) =>
-				ticket.id === ticketId ? { ...ticket, unread: false } : ticket,
-			),
-		);
-	}
+  deleteFAQ(id: number): Observable<boolean> {
+    return this.http.delete<{ message: string }>(`${this.apiUrl}/faqs/${id}`).pipe(
+      map(() => true),
+      tap(() => this.faqs.update((list) => list.filter((f) => f.id !== id))),
+      catchError((err) => {
+        console.error('Erreur suppression FAQ:', err);
+        this.error.set('Impossible de supprimer la FAQ.');
+        return of(false);
+      }),
+    );
+  }
 
-	/**
-	 * Clear error state
-	 */
-	clearError() {
-		this.error.set(null);
-	}
+  clearError(): void {
+    this.error.set(null);
+  }
 }

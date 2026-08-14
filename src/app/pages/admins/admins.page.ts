@@ -9,7 +9,7 @@ import {
 import { PageHeaderComponent } from "../../shared/page-header.component";
 import { StatCardComponent } from "../../shared/stat-card.component";
 import { ModalComponent } from "../../shared/modal.component";
-import { environment } from "../../../environments/environment.prod";
+import { environment } from "../../../environments/environment";
 
 @Component({
 	selector: "app-admins",
@@ -49,8 +49,11 @@ export class AdminsPage {
 		notes: "",
 	});
 
+	readonly adminKpis = this.adminService.kpis;
+
 	constructor() {
 		this.adminService.getAdmins(1).subscribe();
+		this.adminService.getKpi().subscribe();
 	}
 
 	initials(name: string) {

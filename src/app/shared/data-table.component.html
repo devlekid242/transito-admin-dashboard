@@ -50,6 +50,37 @@
 									}"></ng-container>
 							} @else {
 								@for (col of columns(); track col.key) {
+									@if (col.isImage) {
+										<td
+											class="px-5 py-4 text-gray-700"
+											[class.text-right]="
+												col.align === 'right'
+											"
+											[class.text-center]="
+												col.align === 'center'
+											">
+											<img
+												[src]="
+													resolveImageUrl(
+														row[col.key]
+													)
+												"
+												(error)="onImageError($event)"
+												alt="Image"
+												class="h-10 w-10 rounded-full object-cover" />
+										</td>
+									} @else {
+										<td
+											class="px-5 py-4 text-gray-700"
+											[class.text-right]="
+												col.align === 'right'
+											"
+											[class.text-center]="
+												col.align === 'center'
+											">
+											{{ row[col.key] }}
+										</td>
+									}
 									<td
 										class="px-5 py-4 text-gray-700"
 										[class.text-right]="

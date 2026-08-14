@@ -18,6 +18,7 @@ import { PageHeaderComponent } from "../../shared/page-header.component";
 export class SupportPage implements OnInit, OnDestroy {
 	readonly supportService = inject(SupportService);
 	readonly selectedId = signal<number | null>(null);
+	readonly isRepling = signal<boolean>(false);
 	readonly search = signal("");
 	readonly activeFilter = signal<
 		"ALL" | "OPEN" | "ANSWERED" | "CLOSED" | "PENDING"
@@ -33,10 +34,26 @@ export class SupportPage implements OnInit, OnDestroy {
 
 	private refreshInterval: any;
 
+	// Signal pour la conversation sélectionnée
+	selectedConversation = signal<SupportTicket | null>(null);
+
+	// Signal pour indiquer le chargement du fil de discussion
+	isLoadingThread = signal<boolean>(false);
+
 	constructor() {}
 
 	ngOnInit(): void {
 		this.loadTickets();
+
+		// 👈 NOUVEAU : demande la permission de notification navigateur une
+		// fois, pour que le service puisse notifier l'admin des nouveaux
+		// tickets/messages détectés lors du polling ci-dessous.
+		if (
+			typeof Notification !== "undefined" &&
+			Notification.permission === "default"
+		) {
+			Notification.requestPermission();
+		}
 
 		// Set up auto-refresh every 30 seconds
 		this.refreshInterval = setInterval(() => {
@@ -60,18 +77,18 @@ export class SupportPage implements OnInit, OnDestroy {
 		this.supportService.getSupportStats().subscribe();
 	}
 
-	selectedConversation(): SupportTicket | null {
-		const id = this.selectedId();
-		if (!id) return null;
-		const ticket = this.supportService.tickets().find((t) => t.id === id);
-		if (!ticket) return null;
+	// selectedConversation(): SupportTicket | null {
+	// 	const id = this.selectedId();
+	// 	if (!id) return null;
+	// 	const ticket = this.supportService.tickets().find((t) => t.id === id);
+	// 	if (!ticket) return null;
 
-		const current = this.supportService.currentTicket();
-		if (current && current.id === id && current.responses) {
-			return { ...ticket, responses: current.responses };
-		}
-		return ticket;
-	}
+	// 	const current = this.supportService.currentTicket();
+	// 	if (current && current.id === id && current.responses) {
+	// 		return { ...ticket, responses: current.responses };
+	// 	}
+	// 	return ticket;
+	// }
 
 	filteredConversations() {
 		const s = this.search().toLowerCase().trim();
@@ -128,21 +145,60 @@ export class SupportPage implements OnInit, OnDestroy {
 		return this.supportService.tickets().filter((t) => t.unread).length;
 	}
 
-	selectConversation(id: number) {
-		this.selectedId.set(id);
-		// Mark as read in the service
-		this.supportService.markAsRead(id);
+	// selectConversation(id: number) {
+	// 	this.selectedId.set(id);
+	// 	// Mark as read in the service
+	// 	this.supportService.markAsRead(id);
 
-		// Load detailed ticket info if not already loaded
-		if (!this.selectedConversation()) {
-			this.supportService.getTicketDetails(id).subscribe();
-		}
+	// 	// Load detailed ticket info if not already loaded
+	// 	if (!this.selectedConversation()) {
+	// 		this.supportService.getTicketDetails(id).subscribe();
+	// 	}
+	// }
+
+	selectConversation(ticket: SupportTicket): void {
+		this.selectedId.set(ticket.id);
+		// Affiche immédiatement le ticket (données de base) et déclenche l'état de chargement
+		this.selectedConversation.set(ticket);
+		this.isLoadingThread.set(true);
+
+		// Charge les détails complets (avec les réponses) depuis l'API
+		this.supportService.getTicketDetails(ticket.id).subscribe({
+			next: (fullTicket) => {
+				this.selectedConversation.set(fullTicket);
+				this.isLoadingThread.set(false);
+			},
+			error: (err) => {
+				console.error(
+					"Erreur lors du chargement de la discussion",
+					err,
+				);
+				this.isLoadingThread.set(false);
+			},
+		});
+	}
+
+	markCurrentAsRead(): void {
+		const id = this.selectedId();
+		if (id) this.supportService.markAsRead(id);
 	}
 
 	sendReply(text: string) {
-		if (!text.trim() || !this.selectedId()) return;
+		this.isRepling.set(true)
+
+		if (!text.trim() || !this.selectedId()) {
+			console.error("Impossible d'envoyer la réponse. Aucun ticket sélectionné ou message vide.");
+			return;
+		}
+
 		const id = this.selectedId()!;
 		this.supportService.addResponse(id, text.trim()).subscribe();
+
+		this.isRepling.set(true)
+
+		setTimeout(() => {
+			window.location.reload();
+		}, 1000);
 	}
 
 	initials(name: string) {

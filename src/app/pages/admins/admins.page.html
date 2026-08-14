@@ -13,29 +13,29 @@
 
 <div class="mt-6 grid gap-4 lg:grid-cols-4">
 	<app-stat-card
-		label="Total admins"
-		[value]="str(admins().length)"
+		label="SUPER ADMINS"
+		[value]="str(adminKpis()?.['superAdmin'] || 0)"
 		icon="fa-user-shield"
 		iconBg="bg-green-600"
 		accentBar="bg-green-500" />
 	<app-stat-card
-		label="Filtrer par rôle"
-		[value]="selectedRole()"
-		icon="fa-filter"
-		iconBg="bg-cyan-600"
-		accentBar="bg-cyan-500" />
+		label="FINANCE ADMINS"
+		[value]="str(adminKpis()?.['financeAdmin'] || 0)"
+		icon="fa-coins"
+		iconBg="bg-blue-600"
+		accentBar="bg-blue-500" />
 	<app-stat-card
-		label="Filtrer par statut"
-		[value]="statusLabel[selectedStatus()]"
+		label="MODERATION ADMINS"
+		[value]="str(adminKpis()?.['moderationAdmin'] || 0)"
 		icon="fa-user-check"
-		iconBg="bg-emerald-600"
-		accentBar="bg-emerald-500" />
+		iconBg="bg-amber-600"
+		accentBar="bg-amber-500" />
 	<app-stat-card
-		label="Recherche"
-		[value]="searchQuery() || 'Aucun'"
-		icon="fa-search"
-		iconBg="bg-violet-600"
-		accentBar="bg-violet-500" />
+		label="SUPPORT ADMINS"
+		[value]="str(adminKpis()?.['supportAdmin'] || 0)"
+		icon="fa-headset"
+		iconBg="bg-purple-600"
+		accentBar="bg-purple-500" />
 </div>
 
 <div class="mt-6 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">

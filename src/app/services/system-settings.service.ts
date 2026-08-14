@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { catchError, of, tap } from "rxjs";
-import { environment } from "../../environments/environment.prod";
+import { environment } from "../../environments/environment";
 
 export interface PaymentMethodSetting {
 	name: string;
@@ -114,22 +114,22 @@ export class SystemSettingsService {
 
 	get defaultSettings(): SystemSettings {
 		return {
-			platformName: "Tansico",
-			supportEmail: "support@tansico.com",
-			supportPhone: "+221 33 800 00 00",
+			platformName: "Transito",
+			supportEmail: "support@transito.cg",
+			supportPhone: "+242 06 000 0000",
 			currency: "FCFA",
-			platformFee: 350,
+			platformFee: 500,
 			paymentMethods: [
-				{ name: "Wave", icon: "fa-wave-square", enabled: true },
+				{ name: "Airtel Money", icon: "", enabled: true },
 				{
-					name: "Orange Money",
-					icon: "fa-mobile-screen-button",
+					name: "MTN Mobile Money",
+					icon: "",
 					enabled: true,
 				},
 				{
 					name: "Carte bancaire",
 					icon: "fa-credit-card",
-					enabled: true,
+					enabled: false,
 				},
 			],
 			security: {

@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { environment } from "../../environments/environment.prod";
+import { environment } from "../../environments/environment";
 import { catchError, of, tap } from "rxjs";
 
 // Interfaces for Dashboard KPIs
@@ -17,6 +17,7 @@ export interface DashboardKpis {
 	finance: {
 		totalBalanceLocked: number;
 		totalBalanceAvailable: number;
+		totalBlockedBalance: number;
 		platformRevenue: number;
 		pendingRefunds: number;
 	};
@@ -130,7 +131,7 @@ export class DashboardService {
 				}),
 			)
 			.subscribe({
-				next: (response) => {
+				next: (response: any ) => {
 					if (response?.success && response.data) {
 						this.kpis.set(response.data);
 					}
@@ -162,7 +163,7 @@ export class DashboardService {
 				}),
 			)
 			.subscribe({
-				next: (response) => {
+				next: (response: any ) => {
 					if (response?.success && response.data) {
 						this.activity.set(response.data);
 					}
@@ -192,7 +193,7 @@ export class DashboardService {
 				}),
 			)
 			.subscribe({
-				next: (response) => {
+				next: (response: any ) => {
 					if (response?.success && response.data) {
 						this.alerts.set(response.data);
 					}
@@ -221,7 +222,7 @@ export class DashboardService {
 				};
 			}>(`${this.apiBaseUrl}/admin/dashboard/charts/revenue`)
 			.subscribe({
-				next: (response) => {
+				next: (response: any ) => {
 					if (response?.success && response.data) {
 						this.revenueChartData.set({
 							labels: response.data.labels,
@@ -241,7 +242,7 @@ export class DashboardService {
 				data: { labels: string[]; series: number[] };
 			}>(`${this.apiBaseUrl}/admin/dashboard/charts/reservations`)
 			.subscribe({
-				next: (response) => {
+				next: (response: any ) => {
 					if (response?.success && response.data) {
 						this.reservationsChartData.set(response.data);
 					}
@@ -255,7 +256,7 @@ export class DashboardService {
 				data: { labels: string[]; series: number[] };
 			}>(`${this.apiBaseUrl}/admin/dashboard/charts/new-users`)
 			.subscribe({
-				next: (response) => {
+				next: (response: any ) => {
 					if (response?.success && response.data) {
 						this.newUsersChartData.set(response.data);
 					}
@@ -269,7 +270,7 @@ export class DashboardService {
 				data: DonutChartData[];
 			}>(`${this.apiBaseUrl}/admin/dashboard/charts/users`)
 			.subscribe({
-				next: (response) => {
+				next: (response: any ) => {
 					if (response?.success && response.data) {
 						this.userDistribution.set(response.data);
 					}
@@ -283,7 +284,7 @@ export class DashboardService {
 				data: DonutChartData[];
 			}>(`${this.apiBaseUrl}/admin/dashboard/charts/payments`)
 			.subscribe({
-				next: (response) => {
+				next: (response: any ) => {
 					if (response?.success && response.data) {
 						this.paymentDistribution.set(response.data);
 					}
@@ -297,7 +298,7 @@ export class DashboardService {
 				data: DonutChartData[];
 			}>(`${this.apiBaseUrl}/admin/dashboard/charts/kyc`)
 			.subscribe({
-				next: (response) => {
+				next: (response: any ) => {
 					if (response?.success && response.data) {
 						this.kycDistribution.set(response.data);
 					}
@@ -311,7 +312,7 @@ export class DashboardService {
 				data: TopRoute[];
 			}>(`${this.apiBaseUrl}/admin/dashboard/top-routes`)
 			.subscribe({
-				next: (response) => {
+				next: (response: any ) => {
 					if (response?.success && response.data) {
 						this.topRoutes.set(response.data);
 					}
