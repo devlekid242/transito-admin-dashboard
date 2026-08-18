@@ -48,6 +48,17 @@ export interface AgencyBoardingPoint {
 	createdAt: string | null;
 }
 
+/** Document justificatif (KYC) uploadé par une agence. */
+export interface AgencyDocumentAdmin {
+	id: number;
+	name: string;
+	fileUrl: string;
+	type: string | null;
+	status: "pending" | "approved" | "rejected" | string;
+	expiryDate: string | null;
+	createdAt: string;
+}
+
 export interface Agency {
 	id: number;
 	name: string;
@@ -58,6 +69,7 @@ export interface Agency {
 	logoUrl: string | null;
 	bannerUrl: string | null;
 	websiteUrl: string | null;
+	city: string | null;
 	mapUrl: string | null;
 	description: string | null;
 	status: "active" | "suspended" | "pending";
@@ -82,6 +94,22 @@ export interface Agency {
 		email: string;
 		phone: string;
 	};
+	/** Numéro mobile money validé, utilisé pour les retraits. Absent tant que normalizeAgency() ne l'expose pas côté back. */
+	payoutMsisdn?: string | null;
+	/** Numéro proposé par l'agence, en attente de validation admin. */
+	pendingPayoutMsisdn?: string | null;
+	pendingPayoutMsisdnRequestedAt?: string | null;
+	/** Documents justificatifs (KYC) de l'agence. */
+	documents?: AgencyDocumentAdmin[];
+}
+
+/** Ligne renvoyée par GET /admin/agencies/payout-msisdn/pending */
+export interface PayoutMsisdnRequest {
+	agencyId: number;
+	agencyName: string;
+	currentPayoutMsisdn: string | null;
+	pendingPayoutMsisdn: string;
+	requestedAt: string | null;
 }
 
 export interface AgencyAdminInput {
@@ -228,6 +256,8 @@ export class AgencyService {
 	readonly agencyTrips = signal<Trip[]>([]);
 	readonly agencyReservations = signal<Reservation[]>([]);
 	readonly kycDistribution = signal<Record<string, number>>({});
+	// Toutes les demandes de retrait mobile money en attente, tous agences confondues.
+	readonly payoutPendingRequests = signal<PayoutMsisdnRequest[]>([]);
 
 	// Loading states
 	readonly loadingAgencies = signal<boolean>(false);
@@ -238,6 +268,9 @@ export class AgencyService {
 	readonly loadingStats = signal<boolean>(false);
 	readonly loadingTrips = signal<boolean>(false);
 	readonly loadingReservations = signal<boolean>(false);
+	readonly loadingPayoutRequests = signal<boolean>(false);
+	readonly submittingPayoutDecision = signal<boolean>(false);
+	readonly submittingDocumentDecision = signal<boolean>(false);
 
 	// Pagination state
 	readonly currentPage = signal<number>(1);
@@ -700,6 +733,207 @@ export class AgencyService {
 	}
 
 	/**
+	 * Demande de retrait mobile money en attente pour l'agence actuellement affichée
+	 * (recoupe currentAgency avec la liste globale des demandes en attente).
+	 */
+	readonly currentAgencyPayoutRequest = computed(() => {
+		const agency = this.currentAgency();
+		if (!agency) return null;
+		return this.payoutPendingRequests().find((r) => r.agencyId === agency.id) ?? null;
+	});
+
+	/**
+	 * Liste toutes les demandes de numéro de retrait mobile money en attente de validation.
+	 */
+	getPendingPayoutMsisdnRequests() {
+		this.loadingPayoutRequests.set(true);
+
+		return this.http
+			.get<PayoutMsisdnRequest[]>(
+				`${this.apiBaseUrl}/admin/agencies/payout-msisdn/pending`,
+			)
+			.pipe(
+				tap((requests) => this.payoutPendingRequests.set(requests ?? [])),
+				catchError((error) => {
+					console.error("Error fetching pending payout msisdn requests:", error);
+					this.payoutPendingRequests.set([]);
+					return of([] as PayoutMsisdnRequest[]);
+				}),
+				tap(() => this.loadingPayoutRequests.set(false)),
+			);
+	}
+
+	/**
+	 * Valide le numéro mobile money proposé par une agence : il devient le payoutMsisdn actif.
+	 */
+	approvePayoutMsisdn(agencyId: number) {
+		this.submittingPayoutDecision.set(true);
+
+		return this.http
+			.post<{
+				message: string;
+				payoutMsisdn: string;
+			}>(`${this.apiBaseUrl}/admin/agencies/${agencyId}/payout-msisdn/approve`, {})
+			.pipe(
+				tap((response) => {
+					this.payoutPendingRequests.update((list) =>
+						list.filter((r) => r.agencyId !== agencyId),
+					);
+					if (this.currentAgency()?.id === agencyId) {
+						this.currentAgency.update((agency) =>
+							agency
+								? {
+										...agency,
+										payoutMsisdn: response.payoutMsisdn,
+										pendingPayoutMsisdn: null,
+										pendingPayoutMsisdnRequestedAt: null,
+									}
+								: null,
+						);
+					}
+				}),
+				catchError((error) => {
+					console.error(`Error approving payout msisdn for agency ${agencyId}:`, error);
+					return of({
+						success: false,
+						message:
+							error.error?.message ||
+							"Erreur lors de la validation du numéro de retrait",
+					});
+				}),
+				tap(() => this.submittingPayoutDecision.set(false)),
+			);
+	}
+
+	/**
+	 * Rejette le numéro mobile money proposé par une agence.
+	 */
+	rejectPayoutMsisdn(agencyId: number, reason?: string) {
+		this.submittingPayoutDecision.set(true);
+
+		return this.http
+			.post<{
+				message: string;
+			}>(`${this.apiBaseUrl}/admin/agencies/${agencyId}/payout-msisdn/reject`, {
+				reason: reason || undefined,
+			})
+			.pipe(
+				tap(() => {
+					this.payoutPendingRequests.update((list) =>
+						list.filter((r) => r.agencyId !== agencyId),
+					);
+					if (this.currentAgency()?.id === agencyId) {
+						this.currentAgency.update((agency) =>
+							agency
+								? { ...agency, pendingPayoutMsisdn: null, pendingPayoutMsisdnRequestedAt: null }
+								: null,
+						);
+					}
+				}),
+				catchError((error) => {
+					console.error(`Error rejecting payout msisdn for agency ${agencyId}:`, error);
+					return of({
+						success: false,
+						message:
+							error.error?.message ||
+							"Erreur lors du rejet du numéro de retrait",
+					});
+				}),
+				tap(() => this.submittingPayoutDecision.set(false)),
+			);
+	}
+
+	/**
+	 * Recalcule le statut KYC global d'une agence à partir du statut de ses
+	 * documents, avec la même logique que AdminAgencyController::normalizeAgencyWithStats().
+	 */
+	private computeKycFromDocuments(documents: AgencyDocumentAdmin[]): string {
+		if (!documents.length) return "missing";
+		const hasApproved = documents.some((d) => d.status === "approved");
+		const hasPending = documents.some((d) => d.status === "pending");
+		const hasRejected = documents.some((d) => d.status === "rejected");
+		if (hasRejected) return "rejected";
+		if (hasPending && !hasApproved) return "pending";
+		if (hasApproved) return "verified";
+		return "missing";
+	}
+
+	/** Met à jour un document dans currentAgency() et recalcule le KYC global. */
+	private patchCurrentAgencyDocument(agencyId: number, documentId: number, status: AgencyDocumentAdmin["status"]) {
+		if (this.currentAgency()?.id !== agencyId) return;
+
+		this.currentAgency.update((agency) => {
+			if (!agency) return agency;
+			const documents = (agency.documents ?? []).map((d) =>
+				d.id === documentId ? { ...d, status } : d,
+			);
+			return { ...agency, documents, kyc: this.computeKycFromDocuments(documents) };
+		});
+	}
+
+	/**
+	 * Valide un document KYC d'une agence.
+	 */
+	approveAgencyDocument(agencyId: number, documentId: number) {
+		this.submittingDocumentDecision.set(true);
+
+		return this.http
+			.post<{
+				success: boolean;
+				message: string;
+				data: AgencyDocumentAdmin;
+			}>(`${this.apiBaseUrl}/admin/agencies/${agencyId}/documents/${documentId}/approve`, {})
+			.pipe(
+				tap((response) => {
+					if (response.success !== false) {
+						this.patchCurrentAgencyDocument(agencyId, documentId, "approved");
+					}
+				}),
+				catchError((error) => {
+					console.error(`Error approving document ${documentId} for agency ${agencyId}:`, error);
+					return of({
+						success: false,
+						message: error.error?.message || "Erreur lors de la validation du document",
+						data: undefined as unknown as AgencyDocumentAdmin,
+					});
+				}),
+				tap(() => this.submittingDocumentDecision.set(false)),
+			);
+	}
+
+	/**
+	 * Rejette un document KYC d'une agence.
+	 */
+	rejectAgencyDocument(agencyId: number, documentId: number, reason?: string) {
+		this.submittingDocumentDecision.set(true);
+
+		return this.http
+			.post<{
+				success: boolean;
+				message: string;
+				data: AgencyDocumentAdmin;
+			}>(`${this.apiBaseUrl}/admin/agencies/${agencyId}/documents/${documentId}/reject`, {
+				reason: reason || undefined,
+			})
+			.pipe(
+				tap((response) => {
+					if (response.success !== false) {
+						this.patchCurrentAgencyDocument(agencyId, documentId, "rejected");
+					}
+				}),
+				catchError((error) => {
+					console.error(`Error rejecting document ${documentId} for agency ${agencyId}:`, error);
+					return of({
+						success: false,
+						message: error.error?.message || "Erreur lors du rejet du document",
+						data: undefined as unknown as AgencyDocumentAdmin,
+					});
+				}),
+				tap(() => this.submittingDocumentDecision.set(false)),
+			);
+	}
+
+	/**
 	 * Set search query.
 	 */
 	setSearchQuery(query: string) {
@@ -809,6 +1043,40 @@ export class AgencyService {
 				return "rejected";
 			default:
 				return "missing";
+		}
+	}
+
+	/**
+	 * Get badge variant for a single document's status.
+	 */
+	getDocumentStatusVariant(
+		status: string,
+	): "verified" | "info" | "missing" | "rejected" {
+		switch (status) {
+			case "approved":
+				return "verified";
+			case "pending":
+				return "info";
+			case "rejected":
+				return "rejected";
+			default:
+				return "missing";
+		}
+	}
+
+	/**
+	 * Get a human-readable label for a document's status.
+	 */
+	getDocumentStatusLabel(status: string): string {
+		switch (status) {
+			case "approved":
+				return "Validé";
+			case "pending":
+				return "En attente";
+			case "rejected":
+				return "Rejeté";
+			default:
+				return status || "Inconnu";
 		}
 	}
 

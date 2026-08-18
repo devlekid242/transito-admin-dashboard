@@ -1,150 +1,914 @@
 @if (loading() && !agency()) {
-  <div class="flex min-h-[420px] items-center justify-center text-gray-500">
-    <div class="text-center"><i class="fa-solid fa-spinner fa-spin text-3xl text-green-500"></i><p class="mt-3">Chargement de l'agence...</p></div>
-  </div>
+<div class="flex min-h-[420px] items-center justify-center text-gray-500">
+	<div class="text-center">
+		<i class="fa-solid fa-spinner fa-spin text-3xl text-green-500"></i>
+		<p class="mt-3">Chargement de l'agence...</p>
+	</div>
+</div>
 } @else if (agency(); as a) {
-  <div class="mb-4 flex items-center gap-2 text-sm">
-    <a routerLink="/moderation/agencies" class="text-gray-500 hover:text-green-600">Agences</a>
-    <i class="fa-solid fa-chevron-right text-xs text-gray-300"></i>
-    <span class="font-medium text-gray-700">{{ a.name }}</span>
-  </div>
+<div class="mb-4 flex items-center gap-2 text-sm">
+	<a
+		routerLink="/moderation/agencies"
+		class="text-gray-500 hover:text-green-600"
+		>Agences</a
+	>
+	<i class="fa-solid fa-chevron-right text-xs text-gray-300"></i>
+	<span class="font-medium text-gray-700">{{ a.name }}</span>
+</div>
 
-  <section class="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-    <div class="h-20 bg-gradient-to-r from-green-50 via-white to-emerald-50"></div>
-    <div class="px-5 pb-5 sm:px-6">
-      <div class="-mt-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div class="flex items-end gap-4">
-          <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-4 border-white bg-green-600 text-2xl font-bold text-white shadow">{{ initials(a.name) }}</div>
-          <div class="pb-1">
-            <div class="flex flex-wrap items-center gap-2">
-              <h1 class="text-2xl font-bold text-gray-900">{{ a.name }}</h1>
-              <app-status-badge [variant]="getStatusBadgeVariant(a.status)" [label]="a.status === 'active' ? 'Actif' : a.status === 'suspended' ? 'Suspendu' : 'En attente'" />
-            </div>
-            <p class="mt-1 text-sm text-gray-500">ID #{{ a.id }} · Créée le {{ formatDate(a.createdAt) }}{{ a.address ? ' · ' + a.address : '' }}</p>
-          </div>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" (click)="refresh()" class="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"><i class="fa-solid fa-rotate-right mr-1"></i>Actualiser</button>
-          <a [routerLink]="['/moderation/agencies', a.id, 'stats']" class="rounded-lg bg-green-50 px-3 py-2 text-sm font-semibold text-green-700 hover:bg-green-100"><i class="fa-solid fa-chart-bar mr-1"></i>Statistiques</a>
-          <a [routerLink]="['/moderation/agencies', a.id, 'edit']" class="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"><i class="fa-solid fa-edit mr-1"></i>Modifier</a>
-        </div>
-      </div>
-    </div>
-  </section>
+<section
+	class="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+	<div class="h-20 bg-gradient-to-r from-green-50 via-white to-emerald-50">
+		@if (a.bannerUrl) {
+		<img
+			[src]="baseApiUrl + a.bannerUrl"
+			alt="Banniere de l'agence"
+			class="h-full w-full object-cover" />
+		}
+	</div>
+	<div class="px-5 pb-5 sm:px-6">
+		<div
+			class="-mt-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+			<div class="flex items-end gap-4">
+				<div
+					class="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-brand-50 text-brand-600 shadow-lg">
+					@if (a.logoUrl) {
+					<img
+						[src]="baseApiUrl + a.logoUrl"
+						alt="Logo de l'agence"
+						class="h-full w-full object-cover" />
+					} @else {
+					<div
+						class="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-4 border-white bg-green-600 text-2xl font-bold text-white shadow">
+						{{ initials(a.name) }}
+					</div>
+					}
+				</div>
+				<div class="pb-1">
+					<div class="flex flex-wrap items-center gap-2">
+						<h1 class="text-2xl font-bold text-gray-900">
+							{{ a.name }}
+						</h1>
+						<app-status-badge
+							[variant]="getStatusBadgeVariant(a.status)"
+							[label]="a.status === 'active' ? 'Actif' : a.status === 'suspended' ? 'Suspendu' : 'En attente'" />
+					</div>
+					<p class="mt-1 text-sm text-gray-500">
+						ID #{{ a.id }} · Créée le {{ formatDate(a.createdAt) }}
+						{{ a.city ? ' · ' + a.city : '' }} {{ a.address ? ' · '
+						+ a.address : '' }}
+					</p>
+				</div>
+			</div>
+			<div class="flex flex-wrap gap-2">
+				<button
+					type="button"
+					(click)="refresh()"
+					class="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">
+					<i class="fa-solid fa-rotate-right mr-1"></i>Actualiser
+				</button>
+				<a
+					[routerLink]="['/moderation/agencies', a.id, 'stats']"
+					class="rounded-lg bg-green-50 px-3 py-2 text-sm font-semibold text-green-700 hover:bg-green-100"
+					><i class="fa-solid fa-chart-bar mr-1"></i>Statistiques</a
+				>
+				<a
+					[routerLink]="['/moderation/agencies', a.id, 'edit']"
+					class="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+					><i class="fa-solid fa-edit mr-1"></i>Modifier</a
+				>
+			</div>
+		</div>
+	</div>
+</section>
 
-  <section class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-    @for (item of [
-      {label:'Voyages', value:a.tripsCount || 0, icon:'fa-road'},
-      {label:'Réservations', value:a.reservationsCount || 0, icon:'fa-ticket'},
-      {label:'Voyages actifs', value:activeTripsCount(), icon:'fa-route'},
-      {label:'Bus', value:a.busesCount || 0, icon:'fa-bus'},
-      {label:'Agents', value:a.agentsCount || 0, icon:'fa-users'},
-      {label:'Points', value:a.boardingPointsCount || 0, icon:'fa-location-dot'},
-      {label:'Remplissage', value:fillRate() + '%', icon:'fa-chart-pie'},
-      {label:'Revenus', value:fcfa(totalRevenue()), icon:'fa-coins'}
-    ]; track item.label) {
-      <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <div class="mb-2 flex items-center justify-between"><span class="text-xs font-medium text-gray-500">{{ item.label }}</span><i class="fa-solid {{ item.icon }} text-green-500"></i></div>
-        <div class="truncate text-lg font-bold text-gray-900">{{ item.value }}</div>
-      </div>
-    }
-  </section>
+<section class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+	@for (item of [ {label:'Voyages', value:a.tripsCount || 0, icon:'fa-road'},
+	{label:'Réservations', value:a.reservationsCount || 0, icon:'fa-ticket'},
+	{label:'Voyages actifs', value:activeTripsCount(), icon:'fa-route'},
+	{label:'Bus', value:a.busesCount || 0, icon:'fa-bus'}, {label:'Agents',
+	value:a.agentsCount || 0, icon:'fa-users'}, {label:'Points',
+	value:a.boardingPointsCount || 0, icon:'fa-location-dot'},
+	{label:'Remplissage', value:fillRate() + '%', icon:'fa-chart-pie'},
+	{label:'Revenus', value:fcfa(totalRevenue()), icon:'fa-coins'} ]; track
+	item.label) {
+	<div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+		<div class="mb-2 flex items-center justify-between">
+			<span class="text-xs font-medium text-gray-500"
+				>{{ item.label }}</span
+			><i class="fa-solid {{ item.icon }} text-green-500"></i>
+		</div>
+		<div class="truncate text-lg font-bold text-gray-900">
+			{{ item.value }}
+		</div>
+	</div>
+	}
+</section>
 
-  <div class="mb-6 overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm">
-    <nav class="flex min-w-max" aria-label="Sections de l'agence">
-      @for (tab of tabs; track tab) {
-        <button type="button" (click)="setTab(tab)" class="border-b-2 px-4 py-3 text-sm font-medium transition-colors" [class.border-green-500]="activeTab() === tab" [class.text-green-600]="activeTab() === tab" [class.border-transparent]="activeTab() !== tab" [class.text-gray-500]="activeTab() !== tab" [class.hover:text-gray-800]="activeTab() !== tab">
-          <i class="fa-solid {{ getTabIcon(tab) }} mr-1.5"></i>{{ getTabLabel(tab) }}
-        </button>
-      }
-    </nav>
-  </div>
+<div
+	class="mb-6 overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm">
+	<nav class="flex min-w-max" aria-label="Sections de l'agence">
+		@for (tab of tabs; track tab) {
+		<button
+			type="button"
+			(click)="setTab(tab)"
+			class="border-b-2 px-4 py-3 text-sm font-medium transition-colors"
+			[class.border-green-500]="activeTab() === tab"
+			[class.text-green-600]="activeTab() === tab"
+			[class.border-transparent]="activeTab() !== tab"
+			[class.text-gray-500]="activeTab() !== tab"
+			[class.hover:text-gray-800]="activeTab() !== tab">
+			<i class="fa-solid {{ getTabIcon(tab) }} mr-1.5"></i>{{
+			getTabLabel(tab) }}
+		</button>
+		}
+	</nav>
+</div>
 
-  @if (activeTab() === 'info') {
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-      <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm xl:col-span-2">
-        <h2 class="mb-5 flex items-center gap-2 font-semibold text-gray-800"><i class="fa-solid fa-building text-green-500"></i>Informations de l'agence</h2>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          @for (item of [
-            {label:'Nom',value:a.name,icon:'fa-building'}, {label:'Email',value:a.email,icon:'fa-envelope'},
-            {label:'Téléphone',value:a.phone,icon:'fa-phone'}, {label:'Ville',value:a.address || 'Non renseignée',icon:'fa-location-dot'},
-            {label:'N° immatriculation',value:a.registrationNumber || 'Non renseigné',icon:'fa-id-card'}, {label:'Commission',value:a.commissionRate + '%',icon:'fa-percent'},
-            {label:'Site web',value:a.websiteUrl || 'Non renseigné',icon:'fa-globe'}, {label:'Créée le',value:formatDate(a.createdAt),icon:'fa-calendar'}
-          ]; track item.label) {
-            <div class="rounded-lg bg-gray-50 p-4"><div class="mb-1 flex items-center gap-2 text-xs text-gray-500"><i class="fa-solid {{ item.icon }} text-green-500"></i>{{ item.label }}</div><div class="break-words text-sm font-semibold text-gray-800">{{ item.value }}</div></div>
-          }
-        </div>
-        @if (a.description) { <div class="mt-4 rounded-lg border border-gray-100 p-4"><p class="mb-1 text-xs font-medium text-gray-500">Description</p><p class="text-sm leading-6 text-gray-700">{{ a.description }}</p></div> }
-      </div>
+@if (activeTab() === 'info') {
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+	<div
+		class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm xl:col-span-2">
+		<h2 class="mb-5 flex items-center gap-2 font-semibold text-gray-800">
+			<i class="fa-solid fa-building text-green-500"></i>Informations de
+			l'agence
+		</h2>
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+			@for (item of [ {label:'Nom',value:a.name,icon:'fa-building'},
+			{label:'Email',value:a.email,icon:'fa-envelope'},
+			{label:'Téléphone',value:a.phone,icon:'fa-phone'},
+			{label:'Ville',value:a.city || 'Non
+			renseignée',icon:'fa-location-dot'},
+			{label:'Adresse',value:a.address,icon:'fa-location'}, {label:'N°
+			immatriculation',value:a.registrationNumber || 'Non
+			renseigné',icon:'fa-id-card'},
+			{label:'Commission',value:a.commissionRate + '%',icon:'fa-percent'},
+			{label:'Site web',value:a.websiteUrl || 'Non
+			renseigné',icon:'fa-globe'}, {label:'Créée
+			le',value:formatDate(a.createdAt),icon:'fa-calendar'} ]; track
+			item.label) {
+			<div class="rounded-lg bg-gray-50 p-4">
+				<div class="mb-1 flex items-center gap-2 text-xs text-gray-500">
+					<i class="fa-solid {{ item.icon }} text-green-500"></i>{{
+					item.label }}
+				</div>
+				<div class="break-words text-sm font-semibold text-gray-800">
+					{{ item.value }}
+				</div>
+			</div>
+			}
+		</div>
+		@if (a.description) {
+		<div class="mt-4 rounded-lg border border-gray-100 p-4">
+			<p class="mb-1 text-xs font-medium text-gray-500">Description</p>
+			<p class="text-sm leading-6 text-gray-700">{{ a.description }}</p>
+		</div>
+		}
+	</div>
 
-      <div class="space-y-6">
-        <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <h2 class="mb-4 flex items-center gap-2 font-semibold text-gray-800"><i class="fa-solid fa-shield-halved text-green-500"></i>Conformité</h2>
-          <div class="space-y-4 text-sm">
-            <div class="flex items-center justify-between"><span class="text-gray-500">Compte</span><app-status-badge [variant]="getStatusBadgeVariant(a.status)" [label]="a.status === 'active' ? 'Actif' : a.status === 'suspended' ? 'Suspendu' : 'En attente'" /></div>
-            <div class="flex items-center justify-between"><span class="text-gray-500">KYC</span><app-status-badge [variant]="getKycBadgeVariant(a.kyc)" [label]="getKycLabel(a.kyc)" [icon]="getKycIcon(a.kyc)" /></div>
-            <div class="flex items-center justify-between"><span class="text-gray-500">Note</span><span class="font-semibold text-gray-800">{{ a.ratingCache || '0' }}/5</span></div>
-          </div>
-        </div>
-        <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <h2 class="mb-4 flex items-center gap-2 font-semibold text-gray-800"><i class="fa-solid fa-wallet text-green-500"></i>Portefeuille</h2>
-          <div class="text-2xl font-bold text-gray-900">{{ fcfa(a.wallet?.availableBalance || 0) }}</div>
-          <p class="mt-1 text-xs text-gray-500">Solde disponible</p>
-          <div class="mt-4 grid grid-cols-2 gap-3 text-sm"><div><p class="text-gray-500">Solde</p><p class="font-semibold">{{ fcfa(a.wallet?.balance || 0) }}</p></div><div><p class="text-gray-500">Réservé</p><p class="font-semibold">{{ fcfa(a.wallet?.reservedBalance || 0) }}</p></div></div>
-        </div>
-      </div>
-    </div>
-  }
+	<div class="space-y-6">
+		<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+			<h2
+				class="mb-4 flex items-center gap-2 font-semibold text-gray-800">
+				<i class="fa-solid fa-shield-halved text-green-500"></i
+				>Conformité
+			</h2>
+			<div class="space-y-4 text-sm">
+				<div class="flex items-center justify-between">
+					<span class="text-gray-500">Compte</span
+					><app-status-badge
+						[variant]="getStatusBadgeVariant(a.status)"
+						[label]="a.status === 'active' ? 'Actif' : a.status === 'suspended' ? 'Suspendu' : 'En attente'" />
+				</div>
+				<div class="flex items-center justify-between">
+					<span class="text-gray-500">KYC</span
+					><app-status-badge
+						[variant]="getKycBadgeVariant(a.kyc)"
+						[label]="getKycLabel(a.kyc)"
+						[icon]="getKycIcon(a.kyc)" />
+				</div>
+				<div class="flex items-center justify-between">
+					<span class="text-gray-500">Note</span
+					><span class="font-semibold text-gray-800"
+						>{{ a.ratingCache || '0' }}/5</span
+					>
+				</div>
+			</div>
+		</div>
+		<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+			<h2
+				class="mb-4 flex items-center gap-2 font-semibold text-gray-800">
+				<i class="fa-solid fa-wallet text-green-500"></i>Portefeuille
+			</h2>
+			<div class="text-2xl font-bold text-gray-900">
+				{{ fcfa(a.wallet?.availableBalance || 0) }}
+			</div>
+			<p class="mt-1 text-xs text-gray-500">Solde disponible</p>
+			<div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+				<div>
+					<p class="text-gray-500">Solde</p>
+					<p class="font-semibold">
+						{{ fcfa(a.wallet?.balance || 0) }}
+					</p>
+				</div>
+				<div>
+					<p class="text-gray-500">Réservé</p>
+					<p class="font-semibold">
+						{{ fcfa(a.wallet?.reservedBalance || 0) }}
+					</p>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
 
-  @if (activeTab() === 'admin') {
-    <div class="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-      <div class="mb-6 flex items-center justify-between"><div><h2 class="text-lg font-semibold text-gray-900">Administrateur lié à l'agence</h2><p class="mt-1 text-sm text-gray-500">Compte responsable créé avec le rôle administrateur agence.</p></div><i class="fa-solid fa-user-shield text-2xl text-green-500"></i></div>
-      @if (loadingAgents()) { <div class="py-10 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2 text-green-500"></i>Chargement...</div> }
-      @else if (admin(); as ad) {
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div class="rounded-xl bg-green-50 p-5 md:col-span-1"><div class="flex h-14 w-14 items-center justify-center rounded-full bg-green-600 text-xl font-bold text-white">{{ initials(ad.name || 'A') }}</div><h3 class="mt-4 font-bold text-gray-900">{{ ad.name }}</h3><p class="text-sm text-green-700">Administrateur agence</p></div>
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:col-span-2"><div class="rounded-lg border border-gray-100 p-4"><p class="text-xs text-gray-500">Email</p><p class="mt-1 font-semibold text-gray-800">{{ ad.email || '—' }}</p></div><div class="rounded-lg border border-gray-100 p-4"><p class="text-xs text-gray-500">Téléphone</p><p class="mt-1 font-semibold text-gray-800">{{ ad.phone || '—' }}</p></div><div class="rounded-lg border border-gray-100 p-4"><p class="text-xs text-gray-500">Identifiant utilisateur</p><p class="mt-1 font-semibold text-gray-800">#{{ ad.id }}</p></div><div class="rounded-lg border border-gray-100 p-4"><p class="text-xs text-gray-500">Rôle</p><p class="mt-1 font-semibold text-gray-800">admin_agence</p></div></div>
-        </div>
-      } @else { <div class="rounded-lg border border-dashed border-gray-200 py-10 text-center text-gray-500">Aucun administrateur agence trouvé.</div> }
-    </div>
-  }
+<div class="mt-6 rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+	<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+		<h2 class="flex items-center gap-2 font-semibold text-gray-800">
+			<i class="fa-solid fa-folder-open text-green-500"></i>Documents de
+			l'agence (KYC)
+			<span
+				class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-500"
+				>{{ documents().length }}</span
+			>
+		</h2>
+	</div>
 
-  @if (activeTab() === 'agents') {
-    <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-      <div class="mb-5"><h2 class="font-semibold text-gray-900">Équipe de l'agence</h2><p class="mt-1 text-sm text-gray-500">Administrateur et agents rattachés à cette agence.</p></div>
-      @if (loadingAgents()) { <div class="py-10 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2 text-green-500"></i>Chargement des agents...</div> }
-      @else if (!agents().length) { <div class="rounded-lg border border-dashed border-gray-200 py-12 text-center text-gray-500">Aucun agent trouvé.</div> }
-      @else {
-        <div class="overflow-x-auto"><table class="w-full min-w-[720px] text-left text-sm"><thead><tr class="border-b border-gray-100 text-xs uppercase tracking-wide text-gray-400"><th class="px-4 py-3">Agent</th><th class="px-4 py-3">Rôle</th><th class="px-4 py-3">Téléphone</th><th class="px-4 py-3">Commission</th><th class="px-4 py-3">Statut</th></tr></thead><tbody class="divide-y divide-gray-50">@for (agent of agents(); track agent.id) {<tr class="hover:bg-gray-50"><td class="px-4 py-4"><div class="flex items-center gap-3"><div class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 font-semibold text-gray-600">{{ initials(agent.name || 'A') }}</div><div><p class="font-semibold text-gray-800">{{ agent.name || 'Sans nom' }}</p><p class="text-xs text-gray-400">{{ agent.email || '—' }}</p></div></div></td><td class="px-4 py-4 text-gray-600">{{ getAgentRoleLabel(agent.role) }}</td><td class="px-4 py-4 text-gray-600">{{ agent.phone || '—' }}</td><td class="px-4 py-4 text-gray-600">{{ agent.commissionRate }}%</td><td class="px-4 py-4"><app-status-badge [variant]="getAgentStatusVariant(agent.status)" [label]="agent.status === 'active' ? 'Actif' : agent.status === 'pending' ? 'En attente' : 'Suspendu'" /></td></tr>}</tbody></table></div>
-      }
-    </div>
-  }
+	@if (documentActionMessage(); as msg) {
+	<div
+		class="mb-4 rounded-lg px-4 py-3 text-sm"
+		[class.bg-green-50]="msg.type === 'success'"
+		[class.text-green-700]="msg.type === 'success'"
+		[class.bg-red-50]="msg.type === 'error'"
+		[class.text-red-700]="msg.type === 'error'">
+		{{ msg.text }}
+	</div>
+	} @if (documents().length) {
+	<div class="overflow-hidden rounded-xl border border-gray-100">
+		@for (doc of documents(); track doc.id) {
+		<div
+			class="flex flex-col gap-3 border-b border-gray-100 p-4 last:border-b-0 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between">
+			<div class="flex min-w-0 items-center gap-3">
+				<div
+					class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
+					<i class="fa-solid fa-file-lines"></i>
+				</div>
+				<div class="min-w-0">
+					<p class="truncate text-sm font-semibold text-gray-800">
+						{{ doc.name }}
+					</p>
+					<p class="mt-0.5 text-xs text-gray-500">
+						{{ doc.type || 'Document' }} @if (doc.expiryDate) { ·
+						Expire le {{ formatDate(doc.expiryDate) }} } · Ajouté le
+						{{ formatDate(doc.createdAt) }}
+					</p>
+				</div>
+			</div>
+			<div class="flex shrink-0 flex-wrap items-center gap-2">
+				<app-status-badge
+					[variant]="getDocumentStatusVariant(doc.status)"
+					[label]="getDocumentStatusLabel(doc.status)" />
+				@if (doc.fileUrl) {
+				<a
+					[href]="documentFileUrl(doc)"
+					target="_blank"
+					rel="noopener"
+					class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">
+					<i class="fa-solid fa-arrow-up-right-from-square mr-1"></i
+					>Voir le document
+				</a>
+				} @if (doc.status !== 'approved') {
+				<button
+					type="button"
+					class="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+					[disabled]="submittingDocumentDecision()"
+					(click)="approveDocument(doc)">
+					<i class="fa-solid fa-check"></i>Valider
+				</button>
+				} @if (doc.status !== 'rejected') {
+				<button
+					type="button"
+					class="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+					[disabled]="submittingDocumentDecision()"
+					(click)="openRejectDocumentModal(doc)">
+					<i class="fa-solid fa-xmark"></i>Rejeter
+				</button>
+				}
+			</div>
+		</div>
+		}
+	</div>
+	} @else {
+	<div
+		class="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 py-10 text-center text-gray-400">
+		<i class="fa-solid fa-folder-open text-3xl"></i>
+		<p class="mt-3 text-sm">
+			Aucun document n'a été téléversé par cette agence.
+		</p>
+	</div>
+	}
+</div>
+} @if (activeTab() === 'admin') {
+<div class="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+	<div class="mb-6 flex items-center justify-between">
+		<div>
+			<h2 class="text-lg font-semibold text-gray-900">
+				Administrateur lié à l'agence
+			</h2>
+			<p class="mt-1 text-sm text-gray-500">
+				Compte responsable créé avec le rôle administrateur agence.
+			</p>
+		</div>
+		<i class="fa-solid fa-user-shield text-2xl text-green-500"></i>
+	</div>
+	@if (loadingAgents()) {
+	<div class="py-10 text-center text-gray-500">
+		<i class="fa-solid fa-spinner fa-spin mr-2 text-green-500"></i
+		>Chargement...
+	</div>
+	} @else if (admin(); as ad) {
+	<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+		<div class="rounded-xl bg-green-50 p-5 md:col-span-1">
+			<div
+				class="flex h-14 w-14 items-center justify-center rounded-full bg-green-600 text-xl font-bold text-white">
+				{{ initials(ad.name || 'A') }}
+			</div>
+			<h3 class="mt-4 font-bold text-gray-900">{{ ad.name }}</h3>
+			<p class="text-sm text-green-700">Administrateur agence</p>
+		</div>
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:col-span-2">
+			<div class="rounded-lg border border-gray-100 p-4">
+				<p class="text-xs text-gray-500">Email</p>
+				<p class="mt-1 font-semibold text-gray-800">
+					{{ ad.email || '—' }}
+				</p>
+			</div>
+			<div class="rounded-lg border border-gray-100 p-4">
+				<p class="text-xs text-gray-500">Téléphone</p>
+				<p class="mt-1 font-semibold text-gray-800">
+					{{ ad.phone || '—' }}
+				</p>
+			</div>
+			<div class="rounded-lg border border-gray-100 p-4">
+				<p class="text-xs text-gray-500">Identifiant utilisateur</p>
+				<p class="mt-1 font-semibold text-gray-800">#{{ ad.id }}</p>
+			</div>
+			<div class="rounded-lg border border-gray-100 p-4">
+				<p class="text-xs text-gray-500">Rôle</p>
+				<p class="mt-1 font-semibold text-gray-800">admin_agence</p>
+			</div>
+		</div>
+	</div>
+	} @else {
+	<div
+		class="rounded-lg border border-dashed border-gray-200 py-10 text-center text-gray-500">
+		Aucun administrateur agence trouvé.
+	</div>
+	}
+</div>
+} @if (activeTab() === 'agents') {
+<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+	<div class="mb-5">
+		<h2 class="font-semibold text-gray-900">Équipe de l'agence</h2>
+		<p class="mt-1 text-sm text-gray-500">
+			Administrateur et agents rattachés à cette agence.
+		</p>
+	</div>
+	@if (loadingAgents()) {
+	<div class="py-10 text-center text-gray-500">
+		<i class="fa-solid fa-spinner fa-spin mr-2 text-green-500"></i
+		>Chargement des agents...
+	</div>
+	} @else if (!agents().length) {
+	<div
+		class="rounded-lg border border-dashed border-gray-200 py-12 text-center text-gray-500">
+		Aucun agent trouvé.
+	</div>
+	} @else {
+	<div class="overflow-x-auto">
+		<table class="w-full min-w-[720px] text-left text-sm">
+			<thead>
+				<tr
+					class="border-b border-gray-100 text-xs uppercase tracking-wide text-gray-400">
+					<th class="px-4 py-3">Agent</th>
+					<th class="px-4 py-3">Rôle</th>
+					<th class="px-4 py-3">Téléphone</th>
+					<th class="px-4 py-3">Commission</th>
+					<th class="px-4 py-3">Statut</th>
+				</tr>
+			</thead>
+			<tbody class="divide-y divide-gray-50">
+				@for (agent of agents(); track agent.id) {
+				<tr class="hover:bg-gray-50">
+					<td class="px-4 py-4">
+						<div class="flex items-center gap-3">
+							<div
+								class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 font-semibold text-gray-600">
+								{{ initials(agent.name || 'A') }}
+							</div>
+							<div>
+								<p class="font-semibold text-gray-800">
+									{{ agent.name || 'Sans nom' }}
+								</p>
+								<p class="text-xs text-gray-400">
+									{{ agent.email || '—' }}
+								</p>
+							</div>
+						</div>
+					</td>
+					<td class="px-4 py-4 text-gray-600">
+						{{ getAgentRoleLabel(agent.role) }}
+					</td>
+					<td class="px-4 py-4 text-gray-600">
+						{{ agent.phone || '—' }}
+					</td>
+					<td class="px-4 py-4 text-gray-600">
+						{{ agent.commissionRate }}%
+					</td>
+					<td class="px-4 py-4">
+						<app-status-badge
+							[variant]="getAgentStatusVariant(agent.status)"
+							[label]="agent.status === 'active' ? 'Actif' : agent.status === 'pending' ? 'En attente' : 'Suspendu'" />
+					</td>
+				</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+	}
+</div>
+} @if (activeTab() === 'trips') {
+<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+	<h2 class="mb-4 font-semibold text-gray-900">Voyages de l'agence</h2>
+	@if (loadingTrips()) {
+	<div class="py-10 text-center text-gray-500">
+		<i class="fa-solid fa-spinner fa-spin mr-2 text-green-500"></i
+		>Chargement...
+	</div>
+	} @else {<app-data-table
+		[columns]="tripColumns"
+		[rows]="formattedTrips()"
+		[trackKey]="'id'"
+		[pageSize]="10"
+		[emptyMessage]="'Aucun voyage trouvé.'"
+		><ng-template #rowTemplate let-row="row"
+			><td class="px-5 py-4 font-medium text-gray-800">
+				{{ row.route }}
+			</td>
+			<td class="px-5 py-4 text-gray-600">{{ row.tripDate }}</td>
+			<td class="px-5 py-4 text-gray-600">{{ row.departureTime }}</td>
+			<td class="px-5 py-4 text-gray-600">{{ row.bus }}</td>
+			<td class="px-5 py-4 text-right font-semibold">{{ row.price }}</td>
+			<td class="px-5 py-4 text-center">
+				<span
+					class="rounded-full px-2 py-1 text-xs font-semibold"
+					[class.bg-green-100]="isTripActiveByStatus(row.statusRaw)"
+					[class.text-green-700]="isTripActiveByStatus(row.statusRaw)"
+					[class.bg-gray-100]="!isTripActiveByStatus(row.statusRaw)"
+					[class.text-gray-500]="!isTripActiveByStatus(row.statusRaw)"
+					>{{ row.status }}</span
+				>
+			</td>
+			<td class="px-5 py-4 text-center text-gray-600">
+				{{ row.seats }}
+			</td></ng-template
+		></app-data-table
+	>}
+</div>
+} @if (activeTab() === 'bookings') {
+<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+	<h2 class="mb-4 font-semibold text-gray-900">Réservations de l'agence</h2>
+	@if (loadingReservations()) {
+	<div class="py-10 text-center text-gray-500">
+		<i class="fa-solid fa-spinner fa-spin mr-2 text-green-500"></i
+		>Chargement...
+	</div>
+	} @else {<app-data-table
+		[columns]="reservationColumns"
+		[rows]="formattedReservations()"
+		[trackKey]="'id'"
+		[pageSize]="10"
+		[emptyMessage]="'Aucune réservation trouvée.'"
+		><ng-template #rowTemplate let-row="row"
+			><td class="px-5 py-4 font-medium text-gray-800">
+				{{ row.reference }}
+			</td>
+			<td class="px-5 py-4 text-gray-600">{{ row.tripRoute || '—' }}</td>
+			<td class="px-5 py-4 text-gray-600">{{ row.userName }}</td>
+			<td class="px-5 py-4 text-gray-600">{{ row.userPhone }}</td>
+			<td class="px-5 py-4 text-gray-600">{{ row.createdAt }}</td>
+			<td class="px-5 py-4 text-right font-semibold">
+				{{ row.totalAmount }}
+			</td>
+			<td class="px-5 py-4 text-center">
+				<span
+					class="rounded-full px-2 py-1 text-xs font-semibold"
+					[class.bg-green-100]="row.paymentStatus === 'Payé'"
+					[class.text-green-700]="row.paymentStatus === 'Payé'"
+					[class.bg-amber-100]="row.paymentStatus === 'En attente'"
+					[class.text-amber-700]="row.paymentStatus === 'En attente'"
+					[class.bg-red-100]="row.paymentStatus === 'Échoué' || row.paymentStatus === 'Remboursé'"
+					[class.text-red-700]="row.paymentStatus === 'Échoué' || row.paymentStatus === 'Remboursé'"
+					>{{ row.paymentStatus }}</span
+				>
+			</td></ng-template
+		></app-data-table
+	>}
+</div>
+} @if (activeTab() === 'buses') {
+<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+	<div class="mb-5">
+		<h2 class="font-semibold text-gray-900">Flotte de bus</h2>
+		<p class="mt-1 text-sm text-gray-500">
+			Bus actuellement rattachés à cette agence.
+		</p>
+	</div>
+	@if (loadingBuses()) {
+	<div class="py-10 text-center text-gray-500">
+		<i class="fa-solid fa-spinner fa-spin mr-2 text-green-500"></i
+		>Chargement...
+	</div>
+	} @else if (!buses().length) {
+	<div
+		class="rounded-lg border border-dashed border-gray-200 py-12 text-center text-gray-500">
+		Aucun bus rattaché.
+	</div>
+	} @else {
+	<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+		@for (bus of buses(); track bus.id) {
+		<article
+			class="rounded-xl border border-gray-100 p-5 transition hover:shadow-sm">
+			<div class="flex items-start justify-between">
+				<div
+					class="flex h-11 w-11 items-center justify-center rounded-lg bg-green-50 text-green-600">
+					<i class="fa-solid fa-bus"></i>
+				</div>
+				<app-status-badge
+					[variant]="bus.status === 'disponible' ? 'active' : bus.status === 'maintenance' ? 'pending' : 'suspended'"
+					[label]="getBusStatusLabel(bus.status)" />
+			</div>
+			<h3 class="mt-4 font-bold text-gray-900">
+				{{ bus.registrationNumber }}
+			</h3>
+			<p class="text-sm text-gray-500">
+				{{ bus.brand || 'Marque inconnue' }} {{ bus.model || '' }} · {{
+				bus.category }}
+			</p>
+			<div class="mt-4 grid grid-cols-2 gap-3 text-xs">
+				<div>
+					<p class="text-gray-400">Capacité</p>
+					<p class="font-semibold text-gray-700">
+						{{ bus.capacity }} places
+					</p>
+				</div>
+				<div>
+					<p class="text-gray-400">Kilométrage</p>
+					<p class="font-semibold text-gray-700">
+						{{ bus.mileage ?? '—' }} km
+					</p>
+				</div>
+				<div>
+					<p class="text-gray-400">Acquisition</p>
+					<p class="font-semibold text-gray-700">
+						{{ formatDate(bus.acquisitionDate) }}
+					</p>
+				</div>
+				<div>
+					<p class="text-gray-400">Maintenance</p>
+					<p class="font-semibold text-gray-700">
+						{{ formatDate(bus.lastMaintenanceDate) }}
+					</p>
+				</div>
+			</div>
+		</article>
+		}
+	</div>
+	}
+</div>
+} @if (activeTab() === 'points') {
+<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+	<div class="mb-5">
+		<h2 class="font-semibold text-gray-900">Points d'embarquement</h2>
+		<p class="mt-1 text-sm text-gray-500">
+			Lieux utilisés par les voyages de cette agence.
+		</p>
+	</div>
+	@if (loadingPoints()) {
+	<div class="py-10 text-center text-gray-500">
+		<i class="fa-solid fa-spinner fa-spin mr-2 text-green-500"></i
+		>Chargement...
+	</div>
+	} @else if (!points().length) {
+	<div
+		class="rounded-lg border border-dashed border-gray-200 py-12 text-center text-gray-500">
+		Aucun point d'embarquement trouvé.
+	</div>
+	} @else {
+	<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+		@for (point of points(); track point.id) {
+		<article class="rounded-xl border border-gray-100 p-5">
+			<div class="flex items-start justify-between gap-4">
+				<div class="flex gap-3">
+					<div
+						class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-green-50 text-green-600">
+						<i class="fa-solid fa-location-dot"></i>
+					</div>
+					<div>
+						<h3 class="font-semibold text-gray-900">
+							{{ point.name }}
+						</h3>
+						<p class="text-sm text-gray-500">
+							{{ point.city }}{{ point.quartier ? ' · ' +
+							point.quartier : '' }}
+						</p>
+					</div>
+				</div>
+				<app-status-badge
+					[variant]="point.status === 'actif' ? 'active' : 'suspended'"
+					[label]="point.status === 'actif' ? 'Actif' : 'Inactif'" />
+			</div>
+			<div class="mt-4 space-y-2 text-sm">
+				<p class="text-gray-600">
+					<i class="fa-solid fa-location-dot mr-2 text-gray-400"></i
+					>{{ point.address || 'Adresse non renseignée' }}
+				</p>
+				<p class="text-gray-600">
+					<i class="fa-solid fa-phone mr-2 text-gray-400"></i>{{
+					point.phoneNumber || 'Téléphone non renseigné' }}
+				</p>
+			</div>
+			<div class="mt-4 flex flex-wrap gap-2">
+				<span
+					class="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600"
+					>{{ getPointTypeLabel(point.pointType) }}</span
+				>@if (isFeatureEnabled(point.hasVipLounge)) {<span
+					class="rounded-full bg-purple-50 px-2 py-1 text-xs text-purple-700"
+					>Salon VIP</span
+				>}@if (isFeatureEnabled(point.hasWifi)) {<span
+					class="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700"
+					>Wi-Fi</span
+				>}@if (isFeatureEnabled(point.hasAc)) {<span
+					class="rounded-full bg-cyan-50 px-2 py-1 text-xs text-cyan-700"
+					>Climatisation</span
+				>}@if (isFeatureEnabled(point.hasParking)) {<span
+					class="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-700"
+					>Parking</span
+				>}
+			</div>
+		</article>
+		}
+	</div>
+	}
+</div>
+} @if (activeTab() === 'finance') {
+<div class="space-y-6">
+	@if (loadingStats()) {
+	<div
+		class="rounded-xl border border-gray-100 bg-white py-12 text-center text-gray-500">
+		<i class="fa-solid fa-spinner fa-spin mr-2 text-green-500"></i
+		>Chargement des finances...
+	</div>
+	} @else if (stats(); as st) {
+	<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+		<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+			<p class="text-xs text-gray-500">Solde</p>
+			<p class="mt-2 text-2xl font-bold">
+				{{ fcfa(st.finance.balance) }}
+			</p>
+		</div>
+		<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+			<p class="text-xs text-gray-500">Réservé</p>
+			<p class="mt-2 text-2xl font-bold">
+				{{ fcfa(st.finance.reservedBalance) }}
+			</p>
+		</div>
+		<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+			<p class="text-xs text-gray-500">Disponible</p>
+			<p class="mt-2 text-2xl font-bold text-green-600">
+				{{ fcfa(st.finance.availableBalance) }}
+			</p>
+		</div>
+		<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+			<p class="text-xs text-gray-500">Commission plateforme</p>
+			<p class="mt-2 text-2xl font-bold">
+				{{ st.finance.commissionRate }}%
+			</p>
+		</div>
+	</div>
+	<div class="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+		<div class="mb-5 flex items-center justify-between">
+			<h2 class="flex items-center gap-2 font-semibold text-gray-800">
+				<i class="fa-solid fa-mobile-screen-button text-green-500"></i
+				>Numéro de retrait Mobile Money
+			</h2>
+			@if (payoutRequest(); as pr) {
+			<span
+				class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+				<i class="fa-solid fa-clock"></i>En attente de validation
+			</span>
+			}
+		</div>
 
-  @if (activeTab() === 'trips') {
-    <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"><h2 class="mb-4 font-semibold text-gray-900">Voyages de l'agence</h2>@if (loadingTrips()) {<div class="py-10 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2 text-green-500"></i>Chargement...</div>} @else {<app-data-table [columns]="tripColumns" [rows]="formattedTrips()" [trackKey]="'id'" [pageSize]="10" [emptyMessage]="'Aucun voyage trouvé.'"><ng-template #rowTemplate let-row="row"><td class="px-5 py-4 font-medium text-gray-800">{{ row.route }}</td><td class="px-5 py-4 text-gray-600">{{ row.tripDate }}</td><td class="px-5 py-4 text-gray-600">{{ row.departureTime }}</td><td class="px-5 py-4 text-gray-600">{{ row.bus }}</td><td class="px-5 py-4 text-right font-semibold">{{ row.price }}</td><td class="px-5 py-4 text-center"><span class="rounded-full px-2 py-1 text-xs font-semibold" [class.bg-green-100]="isTripActiveByStatus(row.statusRaw)" [class.text-green-700]="isTripActiveByStatus(row.statusRaw)" [class.bg-gray-100]="!isTripActiveByStatus(row.statusRaw)" [class.text-gray-500]="!isTripActiveByStatus(row.statusRaw)">{{ row.status }}</span></td><td class="px-5 py-4 text-center text-gray-600">{{ row.seats }}</td></ng-template></app-data-table>}</div>
-  }
+		@if (payoutActionMessage(); as msg) {
+		<div
+			class="mb-4 rounded-lg px-4 py-3 text-sm"
+			[class.bg-green-50]="msg.type === 'success'"
+			[class.text-green-700]="msg.type === 'success'"
+			[class.bg-red-50]="msg.type === 'error'"
+			[class.text-red-700]="msg.type === 'error'">
+			{{ msg.text }}
+		</div>
+		}
 
-  @if (activeTab() === 'bookings') {
-    <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"><h2 class="mb-4 font-semibold text-gray-900">Réservations de l'agence</h2>@if (loadingReservations()) {<div class="py-10 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2 text-green-500"></i>Chargement...</div>} @else {<app-data-table [columns]="reservationColumns" [rows]="formattedReservations()" [trackKey]="'id'" [pageSize]="10" [emptyMessage]="'Aucune réservation trouvée.'"><ng-template #rowTemplate let-row="row"><td class="px-5 py-4 font-medium text-gray-800">{{ row.reference }}</td><td class="px-5 py-4 text-gray-600">{{ row.tripRoute || '—' }}</td><td class="px-5 py-4 text-gray-600">{{ row.userName }}</td><td class="px-5 py-4 text-gray-600">{{ row.userPhone }}</td><td class="px-5 py-4 text-gray-600">{{ row.createdAt }}</td><td class="px-5 py-4 text-right font-semibold">{{ row.totalAmount }}</td><td class="px-5 py-4 text-center"><span class="rounded-full px-2 py-1 text-xs font-semibold" [class.bg-green-100]="row.paymentStatus === 'Payé'" [class.text-green-700]="row.paymentStatus === 'Payé'" [class.bg-amber-100]="row.paymentStatus === 'En attente'" [class.text-amber-700]="row.paymentStatus === 'En attente'" [class.bg-red-100]="row.paymentStatus === 'Échoué' || row.paymentStatus === 'Remboursé'" [class.text-red-700]="row.paymentStatus === 'Échoué' || row.paymentStatus === 'Remboursé'">{{ row.paymentStatus }}</span></td></ng-template></app-data-table>}</div>
-  }
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+			<div class="rounded-lg border border-gray-100 p-4">
+				<p class="text-xs text-gray-500">Numéro validé (actif)</p>
+				<p class="mt-1 font-mono text-lg font-semibold text-gray-800">
+					{{ activePayoutMsisdn() || 'Non renseigné' }}
+				</p>
+			</div>
+			@if (payoutRequest(); as pr) {
+			<div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
+				<p class="text-xs text-amber-700">
+					Numéro proposé par l'agence
+				</p>
+				<p class="mt-1 font-mono text-lg font-semibold text-amber-900">
+					{{ pr.pendingPayoutMsisdn }}
+				</p>
+				@if (pr.requestedAt) {
+				<p class="mt-1 text-xs text-amber-600">
+					Demandé le {{ formatDateTime(pr.requestedAt) }}
+				</p>
+				}
+			</div>
+			}
+		</div>
 
-  @if (activeTab() === 'buses') {
-    <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"><div class="mb-5"><h2 class="font-semibold text-gray-900">Flotte de bus</h2><p class="mt-1 text-sm text-gray-500">Bus actuellement rattachés à cette agence.</p></div>@if (loadingBuses()) {<div class="py-10 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2 text-green-500"></i>Chargement...</div>} @else if (!buses().length) {<div class="rounded-lg border border-dashed border-gray-200 py-12 text-center text-gray-500">Aucun bus rattaché.</div>} @else {<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">@for (bus of buses(); track bus.id) {<article class="rounded-xl border border-gray-100 p-5 transition hover:shadow-sm"><div class="flex items-start justify-between"><div class="flex h-11 w-11 items-center justify-center rounded-lg bg-green-50 text-green-600"><i class="fa-solid fa-bus"></i></div><app-status-badge [variant]="bus.status === 'disponible' ? 'active' : bus.status === 'maintenance' ? 'pending' : 'suspended'" [label]="getBusStatusLabel(bus.status)" /></div><h3 class="mt-4 font-bold text-gray-900">{{ bus.registrationNumber }}</h3><p class="text-sm text-gray-500">{{ bus.brand || 'Marque inconnue' }} {{ bus.model || '' }} · {{ bus.category }}</p><div class="mt-4 grid grid-cols-2 gap-3 text-xs"><div><p class="text-gray-400">Capacité</p><p class="font-semibold text-gray-700">{{ bus.capacity }} places</p></div><div><p class="text-gray-400">Kilométrage</p><p class="font-semibold text-gray-700">{{ bus.mileage ?? '—' }} km</p></div><div><p class="text-gray-400">Acquisition</p><p class="font-semibold text-gray-700">{{ formatDate(bus.acquisitionDate) }}</p></div><div><p class="text-gray-400">Maintenance</p><p class="font-semibold text-gray-700">{{ formatDate(bus.lastMaintenanceDate) }}</p></div></div></article>}</div>}</div>
-  }
+		@if (payoutRequest()) {
+		<div
+			class="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row">
+			<button
+				type="button"
+				class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+				[disabled]="submittingPayoutDecision()"
+				(click)="approvePayoutMsisdn()">
+				<i class="fa-solid fa-check"></i>Valider ce numéro
+			</button>
+			<button
+				type="button"
+				class="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+				[disabled]="submittingPayoutDecision()"
+				(click)="openRejectPayoutModal()">
+				<i class="fa-solid fa-xmark"></i>Rejeter
+			</button>
+		</div>
+		} @else if (!loadingPayoutRequest()) {
+		<p class="mt-4 text-sm text-gray-400">
+			Aucune demande de changement de numéro de retrait en attente.
+		</p>
+		}
+	</div>
 
-  @if (activeTab() === 'points') {
-    <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"><div class="mb-5"><h2 class="font-semibold text-gray-900">Points d'embarquement</h2><p class="mt-1 text-sm text-gray-500">Lieux utilisés par les voyages de cette agence.</p></div>@if (loadingPoints()) {<div class="py-10 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2 text-green-500"></i>Chargement...</div>} @else if (!points().length) {<div class="rounded-lg border border-dashed border-gray-200 py-12 text-center text-gray-500">Aucun point d'embarquement trouvé.</div>} @else {<div class="grid grid-cols-1 gap-4 md:grid-cols-2">@for (point of points(); track point.id) {<article class="rounded-xl border border-gray-100 p-5"><div class="flex items-start justify-between gap-4"><div class="flex gap-3"><div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-green-50 text-green-600"><i class="fa-solid fa-location-dot"></i></div><div><h3 class="font-semibold text-gray-900">{{ point.name }}</h3><p class="text-sm text-gray-500">{{ point.city }}{{ point.quartier ? ' · ' + point.quartier : '' }}</p></div></div><app-status-badge [variant]="point.isActive ? 'active' : 'suspended'" [label]="point.isActive ? 'Actif' : 'Inactif'" /></div><div class="mt-4 space-y-2 text-sm"><p class="text-gray-600"><i class="fa-solid fa-location-dot mr-2 text-gray-400"></i>{{ point.address || 'Adresse non renseignée' }}</p><p class="text-gray-600"><i class="fa-solid fa-phone mr-2 text-gray-400"></i>{{ point.phoneNumber || 'Téléphone non renseigné' }}</p></div><div class="mt-4 flex flex-wrap gap-2"><span class="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600">{{ getPointTypeLabel(point.pointType) }}</span>@if (isFeatureEnabled(point.hasVipLounge)) {<span class="rounded-full bg-purple-50 px-2 py-1 text-xs text-purple-700">Salon VIP</span>}@if (isFeatureEnabled(point.hasWifi)) {<span class="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700">Wi-Fi</span>}@if (isFeatureEnabled(point.hasAc)) {<span class="rounded-full bg-cyan-50 px-2 py-1 text-xs text-cyan-700">Climatisation</span>}@if (isFeatureEnabled(point.hasParking)) {<span class="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-700">Parking</span>}</div></article>}</div>}</div>
-  }
-
-  @if (activeTab() === 'finance') {
-    <div class="space-y-6">
-      @if (loadingStats()) {<div class="rounded-xl border border-gray-100 bg-white py-12 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2 text-green-500"></i>Chargement des finances...</div>}
-      @else if (stats(); as st) {
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4"><div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"><p class="text-xs text-gray-500">Solde</p><p class="mt-2 text-2xl font-bold">{{ fcfa(st.finance.balance) }}</p></div><div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"><p class="text-xs text-gray-500">Réservé</p><p class="mt-2 text-2xl font-bold">{{ fcfa(st.finance.reservedBalance) }}</p></div><div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"><p class="text-xs text-gray-500">Disponible</p><p class="mt-2 text-2xl font-bold text-green-600">{{ fcfa(st.finance.availableBalance) }}</p></div><div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"><p class="text-xs text-gray-500">Commission plateforme</p><p class="mt-2 text-2xl font-bold">{{ st.finance.commissionRate }}%</p></div></div>
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3"><div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"><h3 class="font-semibold">Performance</h3><div class="mt-4 space-y-4 text-sm"><div class="flex justify-between"><span class="text-gray-500">Revenus période</span><b>{{ fcfa(st.general.totalRevenue) }}</b></div><div class="flex justify-between"><span class="text-gray-500">Taux de remplissage</span><b>{{ st.general.fillRate }}%</b></div><div class="flex justify-between"><span class="text-gray-500">Taux d'annulation</span><b>{{ st.general.cancellationRate }}%</b></div><div class="flex justify-between"><span class="text-gray-500">Note</span><b>{{ st.general.rating }}/5</b></div></div></div><div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-2"><h3 class="font-semibold">Top trajets</h3><div class="mt-4 overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-gray-100 text-left text-xs text-gray-400"><th class="pb-3">Trajet</th><th class="pb-3">Réservations</th><th class="pb-3">Revenus</th><th class="pb-3">Remplissage</th></tr></thead><tbody class="divide-y divide-gray-50">@for (route of st.topRoutes; track route.route) {<tr><td class="py-3 font-medium">{{ route.route }}</td><td class="py-3">{{ route.reservationsCount }}</td><td class="py-3">{{ fcfa(route.totalRevenue) }}</td><td class="py-3">{{ route.fillRate }}%</td></tr>}</tbody></table></div></div></div>
-      } @else {<div class="rounded-xl border border-dashed border-gray-200 bg-white py-12 text-center text-gray-500">Aucune donnée financière disponible.</div>}
-    </div>
-  }
-} @else {
-  <div class="flex flex-col items-center justify-center py-20 text-gray-400"><i class="fa-solid fa-building-circle-exclamation text-4xl"></i><p class="mt-3">Agence introuvable.</p><a routerLink="/moderation/agencies" class="mt-3 text-green-600 hover:underline">Retour à la liste</a></div>
+	<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+		<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+			<h3 class="font-semibold">Performance</h3>
+			<div class="mt-4 space-y-4 text-sm">
+				<div class="flex justify-between">
+					<span class="text-gray-500">Revenus période</span
+					><b>{{ fcfa(st.general.totalRevenue) }}</b>
+				</div>
+				<div class="flex justify-between">
+					<span class="text-gray-500">Taux de remplissage</span
+					><b>{{ st.general.fillRate }}%</b>
+				</div>
+				<div class="flex justify-between">
+					<span class="text-gray-500">Taux d'annulation</span
+					><b>{{ st.general.cancellationRate }}%</b>
+				</div>
+				<div class="flex justify-between">
+					<span class="text-gray-500">Note</span
+					><b>{{ st.general.rating }}/5</b>
+				</div>
+			</div>
+		</div>
+		<div
+			class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-2">
+			<h3 class="font-semibold">Top trajets</h3>
+			<div class="mt-4 overflow-x-auto">
+				<table class="w-full text-sm">
+					<thead>
+						<tr
+							class="border-b border-gray-100 text-left text-xs text-gray-400">
+							<th class="pb-3">Trajet</th>
+							<th class="pb-3">Réservations</th>
+							<th class="pb-3">Revenus</th>
+							<th class="pb-3">Remplissage</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-gray-50">
+						@for (route of st.topRoutes; track route.route) {
+						<tr>
+							<td class="py-3 font-medium">{{ route.route }}</td>
+							<td class="py-3">{{ route.reservationsCount }}</td>
+							<td class="py-3">{{ fcfa(route.totalRevenue) }}</td>
+							<td class="py-3">{{ route.fillRate }}%</td>
+						</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	} @else {
+	<div
+		class="rounded-xl border border-dashed border-gray-200 bg-white py-12 text-center text-gray-500">
+		Aucune donnée financière disponible.
+	</div>
+	}
+</div>
+} @if (showRejectPayoutModal()) {
+<div
+	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+	<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+		<h3 class="flex items-center gap-2 text-lg font-semibold text-gray-900">
+			<i class="fa-solid fa-triangle-exclamation text-red-500"></i>Rejeter
+			la proposition
+		</h3>
+		<p class="mt-2 text-sm text-gray-500">
+			Le numéro proposé par l'agence ne sera pas activé. Vous pouvez
+			indiquer un motif, il sera visible dans le journal d'audit.
+		</p>
+		<textarea
+			rows="3"
+			class="mt-4 w-full rounded-lg border border-gray-200 p-3 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+			placeholder="Motif du rejet (optionnel)"
+			[value]="rejectPayoutReason()"
+			(input)="rejectPayoutReason.set($any($event.target).value)"></textarea>
+		<div class="mt-5 flex justify-end gap-3">
+			<button
+				type="button"
+				class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+				(click)="closeRejectPayoutModal()">
+				Annuler
+			</button>
+			<button
+				type="button"
+				class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+				[disabled]="submittingPayoutDecision()"
+				(click)="confirmRejectPayoutMsisdn()">
+				@if (submittingPayoutDecision()) {
+				<i class="fa-solid fa-spinner fa-spin"></i>
+				} Confirmer le rejet
+			</button>
+		</div>
+	</div>
+</div>
+} @if (showRejectDocumentModal()) {
+<div
+	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+	<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+		<h3 class="flex items-center gap-2 text-lg font-semibold text-gray-900">
+			<i class="fa-solid fa-triangle-exclamation text-red-500"></i>Rejeter
+			le document
+		</h3>
+		<p class="mt-2 text-sm text-gray-500">
+			@if (documentPendingRejection(); as doc) { Le document « {{ doc.name
+			}} » sera marqué comme rejeté. } Vous pouvez indiquer un motif, il
+			sera visible dans le journal d'audit.
+		</p>
+		<textarea
+			rows="3"
+			class="mt-4 w-full rounded-lg border border-gray-200 p-3 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+			placeholder="Motif du rejet (optionnel)"
+			[value]="rejectDocumentReason()"
+			(input)="rejectDocumentReason.set($any($event.target).value)"></textarea>
+		<div class="mt-5 flex justify-end gap-3">
+			<button
+				type="button"
+				class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+				(click)="closeRejectDocumentModal()">
+				Annuler
+			</button>
+			<button
+				type="button"
+				class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+				[disabled]="submittingDocumentDecision()"
+				(click)="confirmRejectDocument()">
+				@if (submittingDocumentDecision()) {
+				<i class="fa-solid fa-spinner fa-spin"></i>
+				} Confirmer le rejet
+			</button>
+		</div>
+	</div>
+</div>
+} } @else {
+<div class="flex flex-col items-center justify-center py-20 text-gray-400">
+	<i class="fa-solid fa-building-circle-exclamation text-4xl"></i>
+	<p class="mt-3">Agence introuvable.</p>
+	<a
+		routerLink="/moderation/agencies"
+		class="mt-3 text-green-600 hover:underline"
+		>Retour à la liste</a
+	>
+</div>
 }

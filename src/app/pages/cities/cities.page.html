@@ -1,0 +1,240 @@
+<app-page-header
+  title="Villes desservies"
+  subtitle="Gerez les villes disponibles pour les trajets et points d'embarquement."
+  [actions]="true">
+  <ng-template #buttonAction>
+    <button
+      (click)="openCreateModal()"
+      class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-green-700 active:scale-95">
+      <i class="fa-solid fa-plus"></i> Ajouter une ville
+    </button>
+  </ng-template>
+</app-page-header>
+
+<!-- Stats row -->
+<div class="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-3">
+  <div class="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50">
+      <i class="fa-solid fa-city text-green-600"></i>
+    </div>
+    <div>
+      <p class="text-xs text-gray-500">Total villes</p>
+      <p class="text-lg font-bold text-gray-900">{{ totalCities() }}</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50">
+      <i class="fa-solid fa-circle-check text-green-600"></i>
+    </div>
+    <div>
+      <p class="text-xs text-gray-500">Actives</p>
+      <p class="text-lg font-bold text-gray-900">{{ activeCitiesCount() }}</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50">
+      <i class="fa-solid fa-ban text-red-500"></i>
+    </div>
+    <div>
+      <p class="text-xs text-gray-500">Inactives</p>
+      <p class="text-lg font-bold text-gray-900">{{ inactiveCitiesCount() }}</p>
+    </div>
+  </div>
+</div>
+
+<!-- Filters and Search -->
+<div class="mb-4 flex flex-col gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+  <div class="flex-1">
+    <label class="block text-xs font-medium text-gray-600 mb-1.5">Rechercher</label>
+    <input
+      type="text"
+      [value]="cityService.searchQuery()"
+      (input)="onSearch($any($event).target.value)"
+      placeholder="Rechercher par nom ou code..."
+      class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100"
+    />
+  </div>
+  <div>
+    <label class="block text-xs font-medium text-gray-600 mb-1.5">Statut</label>
+    <select
+      [value]="cityService.statusFilter() || ''"
+      (change)="onStatusFilter($any($event).target.value || null)"
+      class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100">
+      <option value="">Tous les statuts</option>
+      <option value="active">Active</option>
+      <option value="inactive">Inactive</option>
+    </select>
+  </div>
+</div>
+
+<!-- DataTable -->
+<app-data-table
+  [columns]="columns"
+  [rows]="cities()"
+  [trackKey]="'id'"
+  [pageSize]="10"
+  [searchPlaceholder]="'Rechercher par nom ou code...'"
+  [searchKeys]="['name', 'code', 'country']"
+  [emptyMessage]="'Aucune ville trouvee.'">
+
+  <!-- Custom row template -->
+  <ng-template #rowTemplate let-row="row">
+    <td class="px-5 py-4">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 text-sm font-bold text-green-700">
+          <i class="fa-solid fa-city"></i>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-800">{{ row.name }}</p>
+          <p class="text-xs text-gray-400">Depuis {{ formatDate(row.createdAt) }}</p>
+        </div>
+      </div>
+    </td>
+    <td class="px-5 py-4 text-center text-gray-700">{{ row.code || '-' }}</td>
+    <td class="px-5 py-4 text-gray-700">{{ row.country || '-' }}</td>
+    <td class="px-5 py-4 text-center">
+      <app-status-badge
+        [variant]="getStatusBadgeVariant(row.isActive)"
+        [label]="getStatusText(row.isActive)" />
+    </td>
+    <td class="px-5 py-4 text-center text-gray-600">{{ row.tripsCount || 0 }}</td>
+    <td class="px-5 py-4 text-center text-gray-600">{{ row.boardingPointsCount || 0 }}</td>
+    <td class="px-5 py-4">
+      <div class="flex items-center justify-end gap-2">
+        <button
+          (click)="toggleStatus(row)"
+          class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100"
+          [class.hover:text-amber-600]="row.isActive"
+          [class.hover:text-green-600]="!row.isActive"
+          [title]="row.isActive ? 'Desactiver' : 'Activer'">
+          <i class="fa-solid" [class.fa-toggle-on]="row.isActive" [class.fa-toggle-off]="!row.isActive"></i>
+        </button>
+        <button
+          (click)="openEditModal(row)"
+          class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600"
+          title="Modifier">
+          <i class="fa-solid fa-edit"></i>
+        </button>
+        <button
+          (click)="confirmDelete(row)"
+          class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors text-red-500 hover:bg-red-50"
+          title="Supprimer">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    </td>
+  </ng-template>
+</app-data-table>
+
+<!-- Create / Edit Modal -->
+<app-modal
+  [open]="showFormModal()"
+  [title]="formMode() === 'edit' ? 'Modifier la ville' : 'Ajouter une ville'"
+  (close)="closeFormModal()">
+  <div class="p-6">
+    <form (ngSubmit)="saveCity()" #cityForm="ngForm">
+      <div class="space-y-4">
+        @if (formError()) {
+          <div class="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600">
+            {{ formError() }}
+          </div>
+        }
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1.5">Nom de la ville *</label>
+          <input
+            type="text"
+            name="name"
+            [(ngModel)]="form.name"
+            required
+            placeholder="Ex: Brazzaville"
+            class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1.5">Code</label>
+            <input
+              type="text"
+              name="code"
+              [(ngModel)]="form.code"
+              placeholder="Ex: BZV"
+              maxlength="10"
+              class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1.5">Pays</label>
+            <input
+              type="text"
+              name="country"
+              [(ngModel)]="form.country"
+              placeholder="Ex: Congo"
+              class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-green-400 focus:bg-white focus:ring-2 focus:ring-green-100" />
+          </div>
+        </div>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            name="isActive"
+            [(ngModel)]="form.isActive"
+            class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-400" />
+          <span class="text-sm text-gray-700">Ville active</span>
+        </label>
+      </div>
+
+      <div class="mt-6 flex justify-end gap-3">
+        <button
+          type="button"
+          (click)="closeFormModal()"
+          class="rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50">
+          Annuler
+        </button>
+        <button
+          type="submit"
+          [disabled]="formSaving() || !form.name.trim()"
+          class="rounded-lg bg-green-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
+          @if (formSaving()) {
+            <i class="fa-solid fa-spinner fa-spin mr-1"></i> Enregistrement...
+          } @else {
+            <i class="fa-solid fa-check mr-1"></i> {{ formMode() === 'edit' ? 'Enregistrer' : 'Ajouter' }}
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</app-modal>
+
+<!-- Delete Confirmation Modal -->
+<app-modal
+  [open]="showDeleteModal()"
+  [title]="'Confirmer la suppression'"
+  (close)="cancelDelete()">
+  <div class="p-6">
+    <h3 class="text-lg font-bold text-gray-900 mb-4">
+      <i class="fa-solid fa-exclamation-triangle text-red-500 mr-2"></i>
+      Confirmer la suppression
+    </h3>
+    @if (cityToDelete()) {
+      <p class="text-gray-600 mb-4">
+        Etes-vous sur de vouloir supprimer la ville <strong>{{ cityToDelete()!.name }}</strong> ?
+        Cette action ne peut pas etre annulee.
+      </p>
+    }
+    @if (deleteError()) {
+      <div class="mb-4 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600">
+        {{ deleteError() }}
+      </div>
+    }
+    <div class="flex justify-end gap-3">
+      <button
+        (click)="cancelDelete()"
+        class="rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50">
+        Annuler
+      </button>
+      <button
+        (click)="deleteCity()"
+        [disabled]="deleting()"
+        class="rounded-lg bg-red-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50">
+        <i class="fa-solid fa-trash mr-1"></i> Supprimer
+      </button>
+    </div>
+  </div>
+</app-modal>

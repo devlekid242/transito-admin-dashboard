@@ -7,12 +7,14 @@ import {
   AgencyAgent,
   AgencyBus,
   AgencyBoardingPoint,
+  AgencyDocumentAdmin,
   AgencyStats,
   Trip,
   Reservation,
 } from '../../services/agency.service';
 import { StatusBadgeComponent } from '../../shared/status-badge.component';
 import { DataTableComponent, DataTableColumn } from '../../shared/data-table.component';
+import { environment } from '../../../environments/environment';
 
 type Tab = 'info' | 'admin' | 'agents' | 'trips' | 'bookings' | 'buses' | 'points' | 'finance';
 
@@ -24,6 +26,8 @@ type Tab = 'info' | 'admin' | 'agents' | 'trips' | 'bookings' | 'buses' | 'point
 export class AgencyDetailPage implements OnInit {
   private readonly agencyService = inject(AgencyService);
   private readonly route = inject(ActivatedRoute);
+
+  readonly baseApiUrl = environment.baseApiUrl;
 
   readonly agencyId = signal<number | null>(null);
   readonly agency = this.agencyService.currentAgency;
@@ -93,6 +97,27 @@ export class AgencyDetailPage implements OnInit {
   readonly totalRevenue = computed(() => this.stats()?.general.totalRevenue ?? 0);
   readonly fillRate = computed(() => this.stats()?.general.fillRate ?? 0);
 
+  // ---- Retrait mobile money ----
+  readonly payoutRequest = this.agencyService.currentAgencyPayoutRequest;
+  readonly loadingPayoutRequest = this.agencyService.loadingPayoutRequests;
+  readonly submittingPayoutDecision = this.agencyService.submittingPayoutDecision;
+  readonly payoutActionMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+  readonly showRejectPayoutModal = signal(false);
+  readonly rejectPayoutReason = signal('');
+
+  // ---- Documents / validation KYC ----
+  readonly documents = computed<AgencyDocumentAdmin[]>(() => this.agency()?.documents ?? []);
+  readonly submittingDocumentDecision = this.agencyService.submittingDocumentDecision;
+  readonly documentActionMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+  readonly showRejectDocumentModal = signal(false);
+  readonly rejectDocumentReason = signal('');
+  readonly documentPendingRejection = signal<AgencyDocumentAdmin | null>(null);
+
+  /** Numéro actif : d'abord celui de l'agence (si le back l'expose), sinon celui rapporté par la demande en attente. */
+  readonly activePayoutMsisdn = computed(
+    () => this.agency()?.payoutMsisdn || this.payoutRequest()?.currentPayoutMsisdn || null,
+  );
+
   constructor() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id && Number.isFinite(Number(id))) this.agencyId.set(Number(id));
@@ -107,6 +132,9 @@ export class AgencyDetailPage implements OnInit {
     if (!id) return;
     this.agencyService.getAgency(id).subscribe();
     this.agencyService.getAgencyStats(id).subscribe();
+    // Chargé tôt (liste légère) pour pouvoir afficher un indicateur sur l'onglet Finances
+    // sans attendre que l'admin clique dessus.
+    this.agencyService.getPendingPayoutMsisdnRequests().subscribe();
     this.loadedTabs.add('info');
   }
 
@@ -138,6 +166,7 @@ export class AgencyDetailPage implements OnInit {
         break;
       case 'finance':
         this.agencyService.getAgencyStats(id).subscribe(() => this.loadedTabs.add(tab));
+        this.agencyService.getPendingPayoutMsisdnRequests().subscribe();
         break;
       case 'info':
         this.agencyService.getAgency(id).subscribe(() => this.loadedTabs.add(tab));
@@ -266,5 +295,128 @@ export class AgencyDetailPage implements OnInit {
   toggleStatus(): void {
     const id = this.agencyId();
     if (id) this.agencyService.toggleAgencyStatus(id).subscribe();
+  }
+
+  // ---- Retrait mobile money ----
+
+  approvePayoutMsisdn(): void {
+    const id = this.agencyId();
+    if (!id || this.submittingPayoutDecision()) return;
+
+    this.agencyService.approvePayoutMsisdn(id).subscribe({
+      next: (response: any) => {
+        if (response?.success === false) {
+          this.payoutActionMessage.set({ type: 'error', text: response.message });
+          return;
+        }
+        this.payoutActionMessage.set({ type: 'success', text: 'Numéro de retrait validé avec succès.' });
+      },
+      error: () => {
+        this.payoutActionMessage.set({
+          type: 'error',
+          text: 'Impossible de valider le numéro de retrait.',
+        });
+      },
+    });
+  }
+
+  openRejectPayoutModal(): void {
+    this.rejectPayoutReason.set('');
+    this.showRejectPayoutModal.set(true);
+  }
+
+  closeRejectPayoutModal(): void {
+    this.showRejectPayoutModal.set(false);
+  }
+
+  confirmRejectPayoutMsisdn(): void {
+    const id = this.agencyId();
+    if (!id || this.submittingPayoutDecision()) return;
+
+    this.agencyService.rejectPayoutMsisdn(id, this.rejectPayoutReason().trim() || undefined).subscribe({
+      next: (response: any) => {
+        this.showRejectPayoutModal.set(false);
+        if (response?.success === false) {
+          this.payoutActionMessage.set({ type: 'error', text: response.message });
+          return;
+        }
+        this.payoutActionMessage.set({ type: 'success', text: 'Proposition de numéro rejetée.' });
+      },
+      error: () => {
+        this.showRejectPayoutModal.set(false);
+        this.payoutActionMessage.set({
+          type: 'error',
+          text: 'Impossible de rejeter la proposition.',
+        });
+      },
+    });
+  }
+
+  // ---- Documents / validation KYC ----
+
+  documentFileUrl(doc: AgencyDocumentAdmin): string {
+    if (!doc.fileUrl) return '';
+    return /^https?:\/\//i.test(doc.fileUrl) ? doc.fileUrl : `${this.baseApiUrl}${doc.fileUrl}`;
+  }
+
+  getDocumentStatusVariant(status: string) { return this.agencyService.getDocumentStatusVariant(status); }
+  getDocumentStatusLabel(status: string): string { return this.agencyService.getDocumentStatusLabel(status); }
+
+  approveDocument(doc: AgencyDocumentAdmin): void {
+    const id = this.agencyId();
+    if (!id || this.submittingDocumentDecision()) return;
+
+    this.agencyService.approveAgencyDocument(id, doc.id).subscribe({
+      next: (response: any) => {
+        if (response?.success === false) {
+          this.documentActionMessage.set({ type: 'error', text: response.message });
+          return;
+        }
+        this.documentActionMessage.set({ type: 'success', text: `Document « ${doc.name} » validé avec succès.` });
+      },
+      error: () => {
+        this.documentActionMessage.set({
+          type: 'error',
+          text: `Impossible de valider le document « ${doc.name} ».`,
+        });
+      },
+    });
+  }
+
+  openRejectDocumentModal(doc: AgencyDocumentAdmin): void {
+    this.documentPendingRejection.set(doc);
+    this.rejectDocumentReason.set('');
+    this.showRejectDocumentModal.set(true);
+  }
+
+  closeRejectDocumentModal(): void {
+    this.showRejectDocumentModal.set(false);
+    this.documentPendingRejection.set(null);
+  }
+
+  confirmRejectDocument(): void {
+    const id = this.agencyId();
+    const doc = this.documentPendingRejection();
+    if (!id || !doc || this.submittingDocumentDecision()) return;
+
+    this.agencyService.rejectAgencyDocument(id, doc.id, this.rejectDocumentReason().trim() || undefined).subscribe({
+      next: (response: any) => {
+        this.showRejectDocumentModal.set(false);
+        this.documentPendingRejection.set(null);
+        if (response?.success === false) {
+          this.documentActionMessage.set({ type: 'error', text: response.message });
+          return;
+        }
+        this.documentActionMessage.set({ type: 'success', text: `Document « ${doc.name} » rejeté.` });
+      },
+      error: () => {
+        this.showRejectDocumentModal.set(false);
+        this.documentPendingRejection.set(null);
+        this.documentActionMessage.set({
+          type: 'error',
+          text: `Impossible de rejeter le document « ${doc.name} ».`,
+        });
+      },
+    });
   }
 }

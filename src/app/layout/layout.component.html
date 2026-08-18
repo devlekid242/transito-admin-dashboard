@@ -1,4 +1,4 @@
-<div class="flex h-screen overflow-hidden bg-gray-50">
+<div class="flex flex-1 flex-col min-w-0">
 	<!-- Sidebar -->
 	<aside
 		class="sidebar-scroll fixed inset-y-0 left-0 z-40 w-64 flex flex-col bg-black text-gray-400 transition-transform duration-300 lg:translate-x-0"
@@ -76,7 +76,7 @@
 		<!-- Topbar -->
 		<header
 			class="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-gray-200 bg-white px-4 md:px-6">
-			<div class="flex items-center gap-3">
+			<div class="flex items-center gap-3 min-w-0 flex-1">
 				<button
 					class="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 lg:hidden"
 					(click)="sidebarOpen.set(!sidebarOpen())"
@@ -84,13 +84,14 @@
 					<i class="fa-solid fa-bars text-lg"></i>
 				</button>
 				<!-- Search -->
-				<div class="relative hidden md:block">
+				<div
+					class="relative hidden md:block w-full max-w-xs lg:max-w-sm">
 					<i
 						class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
 					<input
 						type="text"
 						placeholder="Rechercher une agence, un utilisateur, une transaction..."
-						class="w-80 rounded-lg border border-gray-200 bg-gray-50 py-2 pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-500/10" />
+						class="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-500/10" />
 				</div>
 			</div>
 
@@ -103,18 +104,7 @@
 				</button>
 
 				<!-- Notifications -->
-				<button
-					class="relative flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100"
-					aria-label="Notifications"
-					routerLink="/admin/notifications">
-					<i class="fa-solid fa-bell text-lg"></i>
-					@if (unreadNotifications() > 0) {
-						<span
-							class="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-[10px] font-bold text-black"
-							>{{ unreadNotifications() }}</span
-						>
-					}
-				</button>
+				<app-notification-bell />
 
 				<!-- Profile -->
 				<div class="relative">
@@ -136,7 +126,9 @@
 							<p class="text-sm font-semibold text-gray-800">
 								{{ fullName() }}
 							</p>
-							<p class="text-xs text-gray-500">{{ adminRoleLabel() }}</p>
+							<p class="text-xs text-gray-500">
+								{{ adminRoleLabel() }}
+							</p>
 						</div>
 						<i
 							class="fa-solid fa-chevron-down hidden text-xs text-gray-400 transition-transform md:block"
@@ -175,7 +167,8 @@
 		</header>
 
 		<!-- Main content -->
-		<main class="flex-1 overflow-y-auto overflow-x-auto bg-gray-50 p-4 md:p-6">
+		<main
+			class="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-gray-50 p-4 md:p-6">
 			<router-outlet />
 		</main>
 	</div>

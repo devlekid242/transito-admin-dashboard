@@ -9,7 +9,7 @@ import {
 } from "@angular/router";
 import { AdminAuthService, AdminUser } from "../services/admin-auth.service";
 import { SystemSettingsService } from "../services/system-settings.service";
-import { NotificationService } from "../services/notification.service";
+import { NotificationBellComponent } from "../shared/notification-bell.component";
 import { environment } from "../../environments/environment";
 
 interface NavItem {
@@ -35,7 +35,13 @@ const ADMIN_ROLE_LABELS: Record<string, string> = {
 
 @Component({
 	selector: "app-layout",
-	imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
+	imports: [
+		CommonModule,
+		RouterLink,
+		RouterLinkActive,
+		RouterOutlet,
+		NotificationBellComponent,
+	],
 	templateUrl: "layout.component.html",
 	styles: [
 		`
@@ -85,9 +91,7 @@ export class LayoutComponent {
 	});
 
 	private readonly systemSettingsService = inject(SystemSettingsService);
-	private readonly notificationService = inject(NotificationService);
 	readonly systemSettings = this.systemSettingsService.settings;
-	readonly unreadNotifications = this.notificationService.unreadCount;
 
 	constructor() {
 		this.systemSettingsService.getSettings().subscribe();
@@ -217,6 +221,11 @@ export class LayoutComponent {
 					label: "Système",
 					icon: "fa-solid fa-sliders",
 					route: "/admin/settings",
+				},
+				{
+					label: "gestionnaire de ville",
+					icon: "fa-solid fa-city",
+					route: "/admin/cities",
 				},
 				{
 					label: "Notifications",

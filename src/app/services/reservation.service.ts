@@ -43,6 +43,10 @@ export interface Reservation {
 	} | null;
 	totalAmount: number;
 	seats: number;
+	/** Point d'embarquement choisi par le client à la réservation (Reservation::boardingPoint). */
+	boardingPoint: string | null;
+	/** Point de débarquement choisi par le client à la réservation (Reservation::deboardingPoint). */
+	deboardingPoint: string | null;
 	paymentMethod: string;
 	paymentStatus: ReservationPaymentStatus;
 	status: ReservationStatus;

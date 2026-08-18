@@ -30,6 +30,7 @@ import { AdminProfilePage } from "./pages/admin-profile/admin-profile.page";
 import { ReportsPage } from "./pages/reports/reports.page";
 import { authGuard } from "./guards/auth.guard";
 import { LayoutComponent } from "./layout/layout.component";
+import { CitiesPage } from "./pages/cities/cities.page";
 
 export const routes: Routes = [
 	{ path: "login", component: LoginPage, title: "Connexion · Tansico Admin" },
@@ -211,6 +212,12 @@ export const routes: Routes = [
 				path: "admin/settings",
 				component: SystemSettingsPage,
 				title: "Paramètres · Tansico Admin",
+				canActivate: [authGuard],
+			},
+			{
+				path: "admin/cities",
+				component: CitiesPage,
+				title: "gestionnaire de ville · Tansico Admin",
 				canActivate: [authGuard],
 			},
 			{

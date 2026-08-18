@@ -1,5 +1,7 @@
 import { Injectable, computed, inject, signal } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
+import { tap } from "rxjs/operators";
+import Pusher, { Channel } from "pusher-js";
 import { environment } from "../../environments/environment";
 import { AdminAuthService } from "./admin-auth.service";
 
@@ -56,14 +58,16 @@ export class NotificationService {
 				.length,
 	);
 
-	private pusherInstance: any = null;
-	private subscribedChannels: string[] = [];
+	private pusherInstance: Pusher | null = null;
+	private subscribedChannels = new Map<string, Channel>();
 
 	constructor() {
 		this.loadNotifications();
 		this.authService.admin$.subscribe((admin) => {
 			if (admin) {
 				this.connectToPusher();
+			} else {
+				this.disconnectPusher();
 			}
 		});
 	}
@@ -95,36 +99,43 @@ export class NotificationService {
 	markAsRead(id: number) {
 		return this.http
 			.patch<BackendNotification>(`${this.apiBaseUrl}/${id}/read`, {})
-			.pipe();
+			.pipe(
+				tap(() => {
+					this.notifications.update((list) =>
+						list.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+					);
+				}),
+			);
 	}
 
 	markAllAsRead() {
-		return this.http.patch<{ updated: number }>(
-			`${this.apiBaseUrl}/mark-all-read`,
-			{},
-		);
+		return this.http
+			.patch<{ updated: number }>(`${this.apiBaseUrl}/mark-all-read`, {})
+			.pipe(
+				tap(() => {
+					this.notifications.update((list) =>
+						list.map((n) => ({ ...n, isRead: true })),
+					);
+				}),
+			);
 	}
 
+	/**
+	 * 👈 CORRIGÉ : ce code lisait `window.Pusher`, une variable globale
+	 * attendue lorsqu'on charge Pusher via un <script> CDN dans index.html.
+	 * Ce projet installe la lib via npm (`pusher-js`), donc `window.Pusher`
+	 * était toujours `undefined` : la connexion échouait silencieusement
+	 * (juste un console.warn) et aucune notification temps réel n'arrivait
+	 * jamais côté admin. On utilise maintenant le vrai import du package.
+	 */
 	private connectToPusher(): void {
 		const token = this.authService.getToken();
 		const admin = this.authService.getAdmin();
-		if (!token || !admin) {
+		if (!token || !admin || this.pusherInstance) {
 			return;
 		}
 
-		const PusherCtor = (
-			window as Window & typeof globalThis & { Pusher?: any }
-		).Pusher;
-		if (!PusherCtor) {
-			console.warn("Pusher JS n’est pas chargé dans le dashboard.");
-			return;
-		}
-
-		if (this.pusherInstance) {
-			return;
-		}
-
-		this.pusherInstance = new PusherCtor(environment.pusherKey, {
+		this.pusherInstance = new Pusher(environment.pusherKey, {
 			cluster: environment.pusherCluster,
 			forceTLS: environment.pusherUseTLS,
 			authEndpoint: environment.pusherAuthEndpoint,
@@ -135,12 +146,25 @@ export class NotificationService {
 			},
 		});
 
+		this.pusherInstance.connection.bind("error", (err: unknown) => {
+			console.error("Erreur de connexion Pusher", err);
+		});
+
 		this.subscribeToChannel(`private-user-${admin.user.id}`);
 		this.subscribeToChannel("private-global");
 	}
 
+	private disconnectPusher(): void {
+		if (!this.pusherInstance) {
+			return;
+		}
+		this.pusherInstance.disconnect();
+		this.pusherInstance = null;
+		this.subscribedChannels.clear();
+	}
+
 	private subscribeToChannel(channelName: string): void {
-		if (this.subscribedChannels.includes(channelName)) {
+		if (!this.pusherInstance || this.subscribedChannels.has(channelName)) {
 			return;
 		}
 
@@ -152,7 +176,7 @@ export class NotificationService {
 			]);
 		});
 
-		this.subscribedChannels.push(channelName);
+		this.subscribedChannels.set(channelName, channel);
 	}
 
 	private mapBackendToAdminNotification(

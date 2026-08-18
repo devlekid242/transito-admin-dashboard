@@ -136,6 +136,12 @@
         <div class="flex flex-col">
           <span class="font-medium text-gray-800">{{ r.trip?.route ?? '—' }}</span>
           <span class="text-xs text-gray-400">{{ r.trip?.departure ?? '—' }}</span>
+          @if (r.boardingPoint || r.deboardingPoint) {
+            <span class="mt-0.5 flex items-center gap-1 text-[11px] text-gray-400" [title]="(r.boardingPoint ?? '—') + ' → ' + (r.deboardingPoint ?? '—')">
+              <i class="fa-solid fa-location-dot text-[9px]"></i>
+              <span class="truncate max-w-[160px]">{{ r.boardingPoint ?? '—' }} → {{ r.deboardingPoint ?? '—' }}</span>
+            </span>
+          }
         </div>
       </td>
 
@@ -221,6 +227,8 @@
             <div class="flex justify-between"><span class="text-gray-500">Trajet</span><span class="font-medium">{{ currentReservation()!.trip?.route ?? '—' }}</span></div>
             <div class="flex justify-between"><span class="text-gray-500">Date</span><span class="font-medium">{{ getReservationDate(currentReservation()!) }}</span></div>
             <div class="flex justify-between"><span class="text-gray-500">Départ</span><span class="font-medium">{{ currentReservation()!.trip?.departure ?? '—' }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Embarquement</span><span class="font-medium">{{ currentReservation()!.boardingPoint ?? '—' }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Débarquement</span><span class="font-medium">{{ currentReservation()!.deboardingPoint ?? '—' }}</span></div>
           </div>
         </div>
 
