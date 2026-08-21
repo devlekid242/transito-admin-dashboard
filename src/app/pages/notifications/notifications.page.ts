@@ -4,13 +4,13 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
 import { StatCardComponent } from '../../shared/stat-card.component';
 import { StatusBadgeComponent } from '../../shared/status-badge.component';
 import { NotificationService, AdminNotification } from '../../services/notification.service';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { UserService } from '../../services/user.service';
 import { SearchSelectComponent, SearchSelectItem } from '../../shared/search-select.component';
 
 @Component({
   selector: 'app-notifications',
-  imports: [CommonModule, PageHeaderComponent, SearchSelectComponent, ReactiveFormsModule, StatCardComponent, StatusBadgeComponent],
+  imports: [CommonModule, PageHeaderComponent, SearchSelectComponent, ReactiveFormsModule, StatCardComponent, StatusBadgeComponent, FormsModule],
   templateUrl: 'notifications.page.html',
 })
 export class NotificationsPage implements OnInit {
@@ -103,6 +103,8 @@ export class NotificationsPage implements OnInit {
     // Load users for search select
     this.users.getUsers().subscribe();
   }
+
+  
 
   onUserSearch(query: string) {
     if (query.length >= 2) {

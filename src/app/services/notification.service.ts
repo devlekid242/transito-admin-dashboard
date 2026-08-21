@@ -60,9 +60,11 @@ export class NotificationService {
 
 	private pusherInstance: Pusher | null = null;
 	private subscribedChannels = new Map<string, Channel>();
+	private audioContext: AudioContext | null = null;
 
 	constructor() {
 		this.loadNotifications();
+		this.initializeNotificationPermission();
 		this.authService.admin$.subscribe((admin) => {
 			if (admin) {
 				this.connectToPusher();
@@ -102,7 +104,9 @@ export class NotificationService {
 			.pipe(
 				tap(() => {
 					this.notifications.update((list) =>
-						list.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+						list.map((n) =>
+							n.id === id ? { ...n, isRead: true } : n,
+						),
 					);
 				}),
 			);
@@ -170,10 +174,12 @@ export class NotificationService {
 
 		const channel = this.pusherInstance.subscribe(channelName);
 		channel.bind("new-notification", (payload: BackendNotification) => {
-			this.notifications.update((list) => [
-				this.mapBackendToAdminNotification(payload),
-				...list,
-			]);
+			const notification = this.mapBackendToAdminNotification(payload);
+			this.notifications.update((list) => [notification, ...list]);
+
+			// 👈 Afficher notification push et jouer un son
+			this.showPushNotification(notification);
+			this.playNotificationSound();
 		});
 
 		this.subscribedChannels.set(channelName, channel);
@@ -219,5 +225,191 @@ export class NotificationService {
 		} catch {
 			return value;
 		}
+	}
+
+	/**
+	 * Affiche une notification push native du navigateur
+	 * Demande la permission si nécessaire
+	 */
+	private showPushNotification(notification: AdminNotification): void {
+		if (!("Notification" in window)) {
+			console.warn(
+				"Ce navigateur ne supporte pas les notifications push",
+			);
+			return;
+		}
+
+		// Vérifier les permissions
+		if (Notification.permission === "granted") {
+			this.createNotification(notification);
+		} else if (Notification.permission !== "denied") {
+			// Demander la permission si pas encore décidé
+			Notification.requestPermission().then((permission) => {
+				if (permission === "granted") {
+					this.createNotification(notification);
+				}
+			});
+		}
+	}
+
+	/**
+	 * Crée et affiche une notification push
+	 */
+	private createNotification(notification: AdminNotification): void {
+		const categoryEmoji = this.getCategoryEmoji(
+			notification.category || "INFO",
+		);
+		const title = `${categoryEmoji} ${notification.title}`;
+		const options: NotificationOptions = {
+			body: notification.message,
+			icon: "/assets/logo.png", // Adapter le chemin à votre logo
+			badge: "/assets/badge.png",
+			tag: `notification-${notification.id}`,
+			requireInteraction: true, // Garder la notification visible jusqu'au clic
+		};
+
+		// Ajouter des données de contexte
+		if (notification.payload) {
+			options.data = notification.payload;
+		}
+
+		const pushNotification = new Notification(title, options);
+
+		// Gérer les clics sur la notification
+		pushNotification.onclick = () => {
+			pushNotification.close();
+			window.focus(); // Ramener l'app au premier plan
+		};
+
+		pushNotification.onclose = () => {
+			// Marquer comme lu si fermée
+			this.markAsRead(notification.id).subscribe();
+		};
+	}
+
+	/**
+	 * Retourne un emoji en fonction de la catégorie de notification
+	 */
+	private getCategoryEmoji(category: string): string {
+		const emojiMap: Record<string, string> = {
+			AGENCY_CREATED: "🏢",
+			AGENCY_UPDATED: "✏️",
+			AGENCY_DELETED: "🗑️",
+			AGENCY_POINT_CREATED: "📍",
+			AGENCY_POINT_UPDATED: "📍",
+			AGENCY_POINT_DELETED: "📍",
+			BUS_CREATED: "🚌",
+			BUS_UPDATED: "🚌",
+			BUS_DELETED: "🚌",
+			REFUND_PROCESSED: "💰",
+			REFUND_FORCED: "⚠️",
+			USER_REGISTERED: "👤",
+			TRIP_CANCELLED: "❌",
+			CITY_CREATED: "🌆",
+			CITY_UPDATED: "🌆",
+			CITY_DELETED: "🌆",
+			BOOKING: "🎫",
+			BOOKING_CREATED: "🎫",
+			AGENT_CREATED: "👨‍💼",
+			STAFF_CREATED: "👥",
+			APPLICATION_APPROVED: "✅",
+			ADMIN_CREATED: "🔐",
+			RESERVATION_CREATED: "📅",
+			RESERVATION_UPDATED: "📅",
+			FINANCE: "💳",
+			INFO: "ℹ️",
+		};
+		return emojiMap[category] || "🔔";
+	}
+
+	/**
+	 * Initialise la permission pour les notifications push
+	 */
+	private initializeNotificationPermission(): void {
+		if (!("Notification" in window)) {
+			return;
+		}
+
+		// Si pas encore décidé, demander la permission
+		if (Notification.permission === "default") {
+			Notification.requestPermission();
+		}
+	}
+
+	/**
+	 * Joue un son d'alerte pour les notifications
+	 * Crée un son beep synthétisé avec Web Audio API
+	 */
+	private playNotificationSound(): void {
+		try {
+			// Créer le contexte audio si nécessaire
+			if (!this.audioContext) {
+				const AudioContextClass =
+					(window as any).AudioContext ||
+					(window as any).webkitAudioContext;
+				if (!AudioContextClass) {
+					console.warn("Web Audio API non disponible");
+					return;
+				}
+				this.audioContext = new AudioContextClass();
+			}
+
+			// Vérifier que le contexte audio est bien créé
+			if (!this.audioContext) {
+				return;
+			}
+
+			// Créer une séquence de beeps
+			const now = this.audioContext.currentTime;
+			const beepDuration = 0.15;
+			const beepGap = 0.1;
+
+			// Première beep - fréquence moyenne
+			this.playBeep(800, now, beepDuration);
+
+			// Deuxième beep - fréquence plus haute
+			this.playBeep(1000, now + beepDuration + beepGap, beepDuration);
+
+			// Troisième beep - fréquence encore plus haute
+			this.playBeep(
+				1200,
+				now + 2 * (beepDuration + beepGap),
+				beepDuration,
+			);
+		} catch (error) {
+			console.warn("Impossible de jouer le son de notification:", error);
+		}
+	}
+
+	/**
+	 * Génère une beep sonore à une fréquence et durée spécifiée
+	 */
+	private playBeep(
+		frequency: number,
+		startTime: number,
+		duration: number,
+	): void {
+		if (!this.audioContext) {
+			return;
+		}
+
+		// Créer un oscillateur
+		const oscillator = this.audioContext.createOscillator();
+		const gainNode = this.audioContext.createGain();
+
+		oscillator.connect(gainNode);
+		gainNode.connect(this.audioContext.destination);
+
+		oscillator.frequency.value = frequency;
+		oscillator.type = "sine";
+
+		// Envelope ADSR simple (Attack, Decay, Sustain, Release)
+		gainNode.gain.setValueAtTime(0, startTime);
+		gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.02); // Attack
+		gainNode.gain.linearRampToValueAtTime(0.2, startTime + 0.1); // Decay
+		gainNode.gain.linearRampToValueAtTime(0, startTime + duration); // Release
+
+		oscillator.start(startTime);
+		oscillator.stop(startTime + duration);
 	}
 }

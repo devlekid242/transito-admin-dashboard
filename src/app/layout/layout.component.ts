@@ -11,6 +11,7 @@ import { AdminAuthService, AdminUser } from "../services/admin-auth.service";
 import { SystemSettingsService } from "../services/system-settings.service";
 import { NotificationBellComponent } from "../shared/notification-bell.component";
 import { environment } from "../../environments/environment";
+import { AlertService } from "../services/alert.service";
 
 interface NavItem {
 	label: string;
@@ -57,6 +58,8 @@ const ADMIN_ROLE_LABELS: Record<string, string> = {
 export class LayoutComponent {
 	readonly sidebarOpen = signal(false);
 	readonly profileOpen = signal(false);
+
+	readonly alertService = inject(AlertService);
 
 	readonly BaseApiUrl = environment.baseApiUrl; // Assuming you have an environment file with the API base URL
 
@@ -273,7 +276,14 @@ export class LayoutComponent {
 	});
 
 	signOut() {
-		// logout() gère déjà la redirection vers /login une fois le nettoyage terminé
-		this.authService.logout();
+		this.alertService
+			.confirm(
+				"Deconnexion",
+				"etes vous sure de vouloir vous deconnecter ?",
+			)
+			.then((confirmed) => {
+				if(confirmed) this.authService.logout();
+				else return;				
+			});
 	}
 }
