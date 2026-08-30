@@ -1,68 +1,178 @@
 <app-page-header title="Portefeuilles des agences" subtitle="Solde disponible et réservé pour chaque agence partenaire." />
 
-    <!-- Summary KPIs -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <app-stat-card label="Solde total disponible" [value]="fcfa(totalAvailable())" icon="fa-wallet" iconBg="bg-green-600" accentBar="bg-green-500" />
-      <app-stat-card label="Solde total réservé" [value]="fcfa(totalReserved())" icon="fa-lock" iconBg="bg-amber-600" accentBar="bg-amber-500" />
-      <app-stat-card label="Solde total bloqué" [value]="fcfa(totalBlocked())" icon="fa-ban" iconBg="bg-red-600" accentBar="bg-red-500" />
-      <app-stat-card label="Nombre de portefeuilles" [value]="str(totalWallets())" icon="fa-building" iconBg="bg-cyan-600" accentBar="bg-cyan-500" />
+<div class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+  <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <div class="grid flex-1 grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+      <label class="block">
+        <span class="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Recherche</span>
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+          <input
+            type="text"
+            [value]="searchTerm()"
+            (input)="searchTerm.set($any($event.target).value)"
+            (keyup.enter)="applyFilters()"
+            placeholder="Nom d'agence, ID..."
+            class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+          />
+        </div>
+      </label>
+
+      <label class="block">
+        <span class="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Statut</span>
+        <select
+          [value]="statusFilter()"
+          (change)="statusFilter.set($any($event.target).value)"
+          class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+        >
+          <option value="all">Tous</option>
+          <option value="normal">Normaux</option>
+          <option value="frozen">Gelés</option>
+        </select>
+      </label>
     </div>
 
-    <!-- Wallet cards grid -->
-    <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-      @for (w of wallets(); track w.id) {
-        <a [routerLink]="['/finance/wallets', w.id]" class="group block rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-green-200 hover:shadow-md">
-          <div class="mb-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-sm font-bold text-slate-600">
-                {{ initials(w.agencyName) }}
-              </div>
-              <div>
-                <p class="font-semibold text-gray-800">{{ w.agencyName }}</p>
-                <p class="text-xs text-gray-400">{{ w.id }} · {{ w.currency }}</p>
-              </div>
-            </div>
-            <span class="rounded-lg bg-green-50 px-2 py-1 text-xs font-medium text-green-600">{{ w.lastTransaction }}</span>
-          </div>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        (click)="applyFilters()"
+        class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+      >
+        Filtrer
+      </button>
+      <button
+        type="button"
+        (click)="resetFilters()"
+        class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+      >
+        Réinitialiser
+      </button>
+    </div>
+  </div>
+</div>
 
-          <!-- Balance bars -->
-          <div class="mb-3">
-            <div class="mb-1.5 flex items-center justify-between text-xs">
-              <span class="font-medium text-gray-500">Disponible</span>
-              <span class="font-semibold text-green-600">{{ fcfa(w.available) }}</span>
-            </div>
-            <div class="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
-              <div class="h-full rounded-full bg-green-500 transition-all duration-700" [style.width.%]="pct(w.available, w.available + w.reserved + w.blocked)"></div>
-            </div>
-          </div>
-          <div class="mb-3">
-            <div class="mb-1.5 flex items-center justify-between text-xs">
-              <span class="font-medium text-gray-500">Réservé</span>
-              <span class="font-semibold text-amber-600">{{ fcfa(w.reserved) }}</span>
-            </div>
-            <div class="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
-              <div class="h-full rounded-full bg-amber-400 transition-all duration-700" [style.width.%]="pct(w.reserved, w.available + w.reserved + w.blocked)"></div>
-            </div>
-          </div>
-          <div class="mb-4">
-            <div class="mb-1.5 flex items-center justify-between text-xs">
-              <span class="font-medium text-gray-500">Bloqué</span>
-              <span class="font-semibold text-red-600">{{ fcfa(w.blocked) }}</span>
-            </div>
-            <div class="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
-              <div class="h-full rounded-full bg-red-500 transition-all duration-700" [style.width.%]="pct(w.blocked, w.available + w.reserved + w.blocked)"></div>
-            </div>
-          </div>
+<!-- Summary KPIs -->
+<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <app-stat-card label="Solde total disponible" [value]="fcfa(totalAvailable())" icon="fa-wallet" iconBg="bg-green-600" accentBar="bg-green-500" />
+  <app-stat-card label="Solde total réservé" [value]="fcfa(totalReserved())" icon="fa-lock" iconBg="bg-amber-600" accentBar="bg-amber-500" />
+  <app-stat-card label="Solde total bloqué" [value]="fcfa(totalBlocked())" icon="fa-ban" iconBg="bg-red-600" accentBar="bg-red-500" />
+  <app-stat-card label="Nombre de portefeuilles" [value]="str(totalWallets())" icon="fa-building" iconBg="bg-cyan-600" accentBar="bg-cyan-500" />
+</div>
 
-          <!-- Total -->
-          <div class="flex items-center justify-between border-t border-gray-100 pt-3">
-            <span class="text-xs text-gray-500">Total</span>
-            <span class="text-lg font-bold text-gray-900">{{ fcfa(w.available + w.reserved + w.blocked) }}</span>
+<div class="mt-4 flex items-center justify-between text-xs text-slate-500">
+  <span>Page {{ currentPage() }} / {{ totalPages() || 1 }}</span>
+  <span>{{ totalWallets() }} résultat(s)</span>
+</div>
+
+<!-- Wallet cards grid -->
+<div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+  @for (w of wallets(); track w.id) {
+    <a [routerLink]="['/finance/wallets', w.id]" class="group block rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
+      <div class="mb-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-sm font-bold text-slate-600">
+            {{ initials(w.agencyName) }}
           </div>
-          @if (w.frozen) {
-            <div class="mt-3 flex items-center gap-1.5 rounded-lg bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700"><i class="fa-solid fa-snowflake"></i> Portefeuille gelé</div>
-          }
-          <div class="mt-3 flex items-center gap-1 text-xs font-medium text-green-600 opacity-0 transition-opacity group-hover:opacity-100"><i class="fa-solid fa-arrow-right"></i> Voir les détails</div>
-        </a>
+          <div>
+            <p class="font-semibold text-slate-800">{{ w.agencyName }}</p>
+            <p class="text-xs text-slate-400">{{ w.id }} · {{ w.currency }}</p>
+          </div>
+        </div>
+        @if (w.lastTransaction) {
+          <span class="rounded-lg bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700">
+            {{ w.lastTransaction }}
+          </span>
+        }
+      </div>
+
+      <div class="mb-3">
+        <div class="mb-1.5 flex items-center justify-between text-xs">
+          <span class="font-medium text-slate-500">Disponible</span>
+          <span class="font-semibold text-emerald-600">{{ fcfa(w.available) }}</span>
+        </div>
+        <div class="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div class="h-full rounded-full bg-emerald-500 transition-all duration-700" [style.width.%]="pct(w.available, w.available + w.reserved + w.blocked)"></div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <div class="mb-1.5 flex items-center justify-between text-xs">
+          <span class="font-medium text-slate-500">Réservé</span>
+          <span class="font-semibold text-amber-600">{{ fcfa(w.reserved) }}</span>
+        </div>
+        <div class="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div class="h-full rounded-full bg-amber-400 transition-all duration-700" [style.width.%]="pct(w.reserved, w.available + w.reserved + w.blocked)"></div>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="mb-1.5 flex items-center justify-between text-xs">
+          <span class="font-medium text-slate-500">Bloqué</span>
+          <span class="font-semibold text-red-600">{{ fcfa(w.blocked) }}</span>
+        </div>
+        <div class="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div class="h-full rounded-full bg-red-500 transition-all duration-700" [style.width.%]="pct(w.blocked, w.available + w.reserved + w.blocked)"></div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between border-t border-slate-100 pt-3">
+        <span class="text-xs text-slate-500">Total</span>
+        <span class="text-lg font-bold text-slate-900">{{ fcfa(w.available + w.reserved + w.blocked) }}</span>
+      </div>
+
+      @if (w.frozen) {
+        <div class="mt-3 flex items-center gap-1.5 rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700">
+          <i class="fa-solid fa-snowflake"></i> Portefeuille gelé
+        </div>
       }
-    </div>
+
+      <div class="mt-3 flex items-center gap-1 text-xs font-medium text-emerald-600 opacity-0 transition-opacity group-hover:opacity-100">
+        <i class="fa-solid fa-arrow-right"></i> Voir les détails
+      </div>
+    </a>
+  }
+</div>
+
+@if (!wallets().length) {
+  <div class="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center text-slate-500">
+    <i class="fa-solid fa-wallet text-2xl text-slate-400"></i>
+    <p class="mt-3 text-sm font-medium">Aucun portefeuille ne correspond aux filtres actuels.</p>
+  </div>
+}
+
+@if (totalPages() > 1) {
+  <div class="mt-6 flex items-center justify-center gap-2">
+    <button
+      type="button"
+      (click)="changePage(currentPage() - 1)"
+      [disabled]="currentPage() === 1"
+      class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      Précédent
+    </button>
+
+    @for (page of pageNumbers(); track page) {
+      <button
+        type="button"
+        (click)="changePage(page)"
+        [class.bg-emerald-600]="page === currentPage()"
+        [class.text-white]="page === currentPage()"
+        [class.border-emerald-600]="page === currentPage()"
+        [class.bg-white]="page !== currentPage()"
+        [class.text-slate-600]="page !== currentPage()"
+        class="min-w-10 rounded-xl border px-3 py-2 text-sm font-semibold transition hover:border-emerald-200 hover:text-emerald-700"
+      >
+        {{ page }}
+      </button>
+    }
+
+    <button
+      type="button"
+      (click)="changePage(currentPage() + 1)"
+      [disabled]="currentPage() >= totalPages()"
+      class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      Suivant
+    </button>
+  </div>
+}
