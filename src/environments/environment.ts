@@ -4,15 +4,15 @@
 
 export const environment = {
 	production: false,
-	apiUrl: "http://192.168.1.67:8000/api",
-	baseApiUrl: "http://192.168.1.67:8000",
+	apiUrl: "http://192.168.100.5:8000/api",
+	baseApiUrl: "http://192.168.100.5:8000",
 	// apiUrl: 'http://localhost:8000/api',
 	// baseApiUrl: 'http://localhost:8000',
 	apiTimeout: 30000,
 	pusherKey: "9fd9732315c0fe4be887",
 	pusherCluster: "mt1",
 	pusherUseTLS: true,
-	pusherAuthEndpoint: "http://192.168.1.67:8000/api/pusher/auth",
+	pusherAuthEndpoint: "http://192.168.100.5:8000/api/pusher/auth",
 };
 
 /*

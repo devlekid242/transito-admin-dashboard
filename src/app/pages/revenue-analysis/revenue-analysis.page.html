@@ -38,15 +38,6 @@
 	</ng-template>
 </app-page-header>
 
-<!-- Loading state -->
-@if (loading()) {
-<div class="flex items-center justify-center py-8">
-	<div
-		class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-	<span class="ml-3">Chargement des données...</span>
-</div>
-}
-
 <!-- Error state -->
 @if (error()) {
 <div class="rounded-lg bg-red-50 border border-red-200 p-4 text-red-700">

@@ -5,6 +5,7 @@ import { ModalComponent } from "../../shared/modal.component";
 import {
 	SystemSettingsService,
 	SystemSettings,
+	MomoOperatorSetting,
 } from "../../services/system-settings.service";
 
 @Component({
@@ -25,6 +26,17 @@ export class SystemSettingsPage {
 	readonly settings = signal<SystemSettings | null>(null);
 	readonly draft = signal<SystemSettings | null>(null);
 
+	// --- CRUD opérateurs momo ---
+	readonly newOperatorForm = signal<{
+		id: string;
+		name: string;
+		collectionFeeRate: number;
+		disbursementFeeRate: number;
+	}>({ id: "", name: "", collectionFeeRate: 3, disbursementFeeRate: 3 });
+	readonly newOperatorError = signal<string | null>(null);
+	readonly showAddOperatorForm = signal(false);
+	readonly pendingDeleteOperatorId = signal<string | null>(null);
+
 	readonly tabs = [
 		{ id: "commission" as const, label: "Commission", icon: "fa-percent" },
 		{ id: "payments" as const, label: "Paiements", icon: "fa-credit-card" },
@@ -36,12 +48,21 @@ export class SystemSettingsPage {
 		this.loadSettings();
 	}
 
+	private normalizeSettings(data: SystemSettings): SystemSettings {
+		return {
+			...data,
+			momoOperators: data.momoOperators ?? [],
+			paymentMethods: data.paymentMethods ?? [],
+		};
+	}
+
 	loadSettings() {
 		this.loading.set(true);
 		this.settingsService.getSettings().subscribe((response) => {
 			if (response.success && response.data) {
-				this.settings.set(response.data);
-				this.draft.set(this.clone(response.data));
+				const normalized = this.normalizeSettings(response.data);
+				this.settings.set(normalized);
+				this.draft.set(this.clone(normalized));
 				this.lastError.set(null);
 			} else {
 				this.lastError.set(
@@ -116,6 +137,137 @@ export class SystemSettingsPage {
 		}));
 	}
 
+	// --- CRUD opérateurs momo (MTN, Airtel, ou tout nouvel opérateur) ---
+
+	openAddOperatorForm() {
+		this.newOperatorForm.set({
+			id: "",
+			name: "",
+			collectionFeeRate: 3,
+			disbursementFeeRate: 3,
+		});
+		this.newOperatorError.set(null);
+		this.showAddOperatorForm.set(true);
+	}
+
+	cancelAddOperatorForm() {
+		this.showAddOperatorForm.set(false);
+		this.newOperatorError.set(null);
+	}
+
+	updateNewOperatorForm<
+		Key extends keyof ReturnType<typeof this.newOperatorForm>,
+	>(key: Key, value: ReturnType<typeof this.newOperatorForm>[Key]) {
+		this.newOperatorForm.update((current) => ({ ...current, [key]: value }));
+	}
+
+	addMomoOperator() {
+		const draft = this.draft();
+		const form = this.newOperatorForm();
+		if (!draft) {
+			alert("Impossible d'ajouter un opérateur : aucun brouillon de paramètres.");
+			return;
+		}
+
+		const id = form.id.trim().toUpperCase().replace(/\s+/g, "_");
+		const name = form.name.trim();
+
+		if (!id || !name) {
+			this.newOperatorError.set(
+				"L'identifiant et le nom de l'opérateur sont obligatoires.",
+			);
+			return;
+		}
+		if ((draft.momoOperators ?? []).some((op) => op.id === id)) {
+			this.newOperatorError.set(
+				`Un opérateur avec l'identifiant "${id}" existe déjà.`,
+			);
+			return;
+		}
+		if (
+			form.collectionFeeRate < 0 ||
+			form.collectionFeeRate > 100 ||
+			form.disbursementFeeRate < 0 ||
+			form.disbursementFeeRate > 100
+		) {
+			this.newOperatorError.set(
+				"Les taux doivent être compris entre 0 et 100 %.",
+			);
+			return;
+		}
+
+		this.draft.update((current) => ({
+			...current!,
+			momoOperators: [
+				...current!.momoOperators,
+				{
+					id,
+					name,
+					collectionFeeRate: form.collectionFeeRate,
+					disbursementFeeRate: form.disbursementFeeRate,
+					enabled: true,
+				},
+			],
+		}));
+
+		this.showAddOperatorForm.set(false);
+		this.newOperatorError.set(null);
+	}
+
+	updateMomoOperator<Key extends keyof MomoOperatorSetting>(
+		operatorId: string,
+		key: Key,
+		value: MomoOperatorSetting[Key],
+	) {
+		if (!this.draft()) {
+			return;
+		}
+
+		this.draft.update((current) => ({
+			...current!,
+			momoOperators: current!.momoOperators.map((op) =>
+				op.id === operatorId ? { ...op, [key]: value } : op,
+			),
+		}));
+	}
+
+	toggleMomoOperator(operatorId: string) {
+		const operator = this.draft()?.momoOperators.find(
+			(op) => op.id === operatorId,
+		);
+		if (!operator) {
+			return;
+		}
+		this.updateMomoOperator(operatorId, "enabled", !operator.enabled);
+	}
+
+	confirmRemoveMomoOperator(operatorId: string) {
+		this.pendingDeleteOperatorId.set(operatorId);
+	}
+
+	cancelRemoveMomoOperator() {
+		this.pendingDeleteOperatorId.set(null);
+	}
+
+	removeMomoOperator(operatorId: string) {
+		if (!this.draft()) {
+			return;
+		}
+
+		this.draft.update((current) => ({
+			...current!,
+			momoOperators: current!.momoOperators.filter(
+				(op) => op.id !== operatorId,
+			),
+		}));
+		this.pendingDeleteOperatorId.set(null);
+	}
+
+	parseFloat2(value: string, fallback = 0): number {
+		const parsed = parseFloat(value);
+		return Number.isNaN(parsed) ? fallback : parsed;
+	}
+
 	get hasChanges() {
 		return JSON.stringify(this.draft()) !== JSON.stringify(this.settings());
 	}
@@ -134,7 +286,19 @@ export class SystemSettingsPage {
 				(method, index) =>
 					method.enabled !==
 					this.settings()!.paymentMethods[index]?.enabled,
-			)
+			) ||
+			JSON.stringify(this.draft()!.momoOperators) !==
+				JSON.stringify(this.settings()!.momoOperators)
+		);
+	}
+
+	get momoOperatorsChanged() {
+		if (!this.draft() || !this.settings()) {
+			return false;
+		}
+		return (
+			JSON.stringify(this.draft()!.momoOperators) !==
+			JSON.stringify(this.settings()!.momoOperators)
 		);
 	}
 
@@ -154,18 +318,21 @@ export class SystemSettingsPage {
 
 		this.saving.set(true);
 		this.settingsService.saveSettings(draft).subscribe((response) => {
+			this.saving.set(false);
 			if (response.success && response.data) {
-				this.settings.set(response.data);
-				this.draft.set(this.clone(response.data));
+				const normalized = this.normalizeSettings(response.data);
+				this.settings.set(normalized);
+				this.draft.set(this.clone(normalized));
 				this.lastError.set(null);
+				this.confirmSaveOpen.set(false);
 			} else {
 				this.lastError.set(
 					response.message ??
 						"Impossible de sauvegarder les paramètres.",
 				);
+				// La modale reste ouverte : on affiche l'erreur dedans
+				// plutôt que de la fermer comme si tout s'était bien passé.
 			}
-			this.saving.set(false);
-			this.confirmSaveOpen.set(false);
 		});
 	}
 

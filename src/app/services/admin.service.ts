@@ -35,10 +35,10 @@ export interface ApiResponse<T> {
 }
 
 export interface AdminKpiResponse extends ApiResponse<Record<string, number>> {
-	"superAdmin": number,
-	"financeAdmin": number,
-	"moderationAdmin": number,
-	"supportAdmin": number,
+	superAdmin: number;
+	financeAdmin: number;
+	moderationAdmin: number;
+	supportAdmin: number;
 }
 
 export interface AdminListResponse extends ApiResponse<AdminUserRow[]> {
@@ -191,7 +191,7 @@ export class AdminService {
 			);
 	}
 
-	getKpi(){
+	getKpi() {
 		return this.http
 			.get<AdminKpiResponse>(`${this.apiBaseUrl}/admin/admins/kpis`)
 			.pipe(

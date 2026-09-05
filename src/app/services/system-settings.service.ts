@@ -9,6 +9,18 @@ export interface PaymentMethodSetting {
 	icon: string;
 }
 
+export interface MomoOperatorSetting {
+	id: string;
+	name: string;
+	// % prélevé par l'opérateur à l'ENCAISSEMENT (paiement client).
+	// Répercuté sur le client, ajouté au prix total facturé.
+	collectionFeeRate: number;
+	// % prélevé par l'opérateur au DÉCAISSEMENT (remboursement / retrait).
+	// Absorbé par la plateforme, jamais déduit du montant reçu par le bénéficiaire.
+	disbursementFeeRate: number;
+	enabled: boolean;
+}
+
 export interface PasswordPolicy {
 	minLength: number;
 	requireUppercase: boolean;
@@ -31,6 +43,7 @@ export interface SystemSettings {
 	currency: string;
 	platformFee: number;
 	paymentMethods: PaymentMethodSetting[];
+	momoOperators: MomoOperatorSetting[];
 	security: SecuritySettings;
 	maintenanceMode: boolean;
 	maintenanceMessage: string;
@@ -130,6 +143,22 @@ export class SystemSettingsService {
 					name: "Carte bancaire",
 					icon: "fa-credit-card",
 					enabled: false,
+				},
+			],
+			momoOperators: [
+				{
+					id: "MTN_MOMO",
+					name: "MTN Mobile Money",
+					collectionFeeRate: 3,
+					disbursementFeeRate: 3,
+					enabled: true,
+				},
+				{
+					id: "AIRTEL_MOMO",
+					name: "Airtel Money",
+					collectionFeeRate: 3,
+					disbursementFeeRate: 3,
+					enabled: true,
 				},
 			],
 			security: {

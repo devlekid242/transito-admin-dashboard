@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  
+  # Si votre application est dans un sous-dossier, spécifiez-le ici (ex: /dashboard/)
+  # Sinon, laissez /
+  RewriteBase /
+
+  # Intercepte et sert directement les fichiers réels (.js, .css, images, etc.)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Redirige uniquement le reste vers index.html
+  RewriteRule ^ index.html [L]
+</IfModule>

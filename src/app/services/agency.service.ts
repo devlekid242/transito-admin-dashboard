@@ -251,7 +251,7 @@ export class AgencyService {
 	readonly currentAgency = signal<Agency | null>(null);
 	readonly currentAgencyBuses = signal<AgencyBus[]>([]);
 	readonly currentAgencyBordingPoind = signal<AgencyBoardingPoint[]>([]);
-	readonly currentAgencyAgents = signal<AgencyAgent[]>([]);      
+	readonly currentAgencyAgents = signal<AgencyAgent[]>([]);
 	readonly agencyStats = signal<AgencyStats | null>(null);
 	readonly agencyTrips = signal<Trip[]>([]);
 	readonly agencyReservations = signal<Reservation[]>([]);
@@ -261,10 +261,10 @@ export class AgencyService {
 
 	// Loading states
 	readonly loadingAgencies = signal<boolean>(false);
-	readonly loadingAgency = signal<boolean>(false); 
-	readonly loadingAgencyBordingPoind = signal<boolean>(false); 
+	readonly loadingAgency = signal<boolean>(false);
+	readonly loadingAgencyBordingPoind = signal<boolean>(false);
 	readonly loadingAgencyBuses = signal<boolean>(false);
-	readonly loadingAgencyAgents = signal<boolean>(false); 
+	readonly loadingAgencyAgents = signal<boolean>(false);
 	readonly loadingStats = signal<boolean>(false);
 	readonly loadingTrips = signal<boolean>(false);
 	readonly loadingReservations = signal<boolean>(false);
@@ -360,6 +360,13 @@ export class AgencyService {
 	 * Get a single agency by ID.
 	 */
 	getAgency(id: number) {
+		this.currentAgency.set(null);
+		this.agencyStats.set(null);
+		this.currentAgencyAgents.set([]);
+		this.currentAgencyBuses.set([]);
+		this.currentAgencyBordingPoind.set([]);
+		this.agencyTrips.set([]);
+		this.agencyReservations.set([]);
 		this.loadingAgency.set(true);
 
 		return this.http
@@ -388,15 +395,24 @@ export class AgencyService {
 	getAgencyBuses(id: number) {
 		this.loadingAgencyBuses.set(true);
 		return this.http
-			.get<ApiResponse<AgencyBus[]>>(`${this.apiBaseUrl}/admin/agencies/${id}/buses`)
+			.get<
+				ApiResponse<AgencyBus[]>
+			>(`${this.apiBaseUrl}/admin/agencies/${id}/buses`)
 			.pipe(
 				tap((response) => {
-					if (response.success && response.data) this.currentAgencyBuses.set(response.data);
+					if (response.success && response.data)
+						this.currentAgencyBuses.set(response.data);
 				}),
 				catchError((error) => {
-					console.error(`Error fetching buses for agency ${id}:`, error);
+					console.error(
+						`Error fetching buses for agency ${id}:`,
+						error,
+					);
 					this.currentAgencyBuses.set([]);
-					return of({ success: false, message: 'Erreur lors de la récupération des bus' });
+					return of({
+						success: false,
+						message: "Erreur lors de la récupération des bus",
+					});
 				}),
 				tap(() => this.loadingAgencyBuses.set(false)),
 			);
@@ -406,15 +422,25 @@ export class AgencyService {
 	getAgencyBordingPoind(id: number) {
 		this.loadingAgencyBordingPoind.set(true);
 		return this.http
-			.get<ApiResponse<AgencyBoardingPoint[]>>(`${this.apiBaseUrl}/admin/agencies/${id}/boarding-points`)
+			.get<
+				ApiResponse<AgencyBoardingPoint[]>
+			>(`${this.apiBaseUrl}/admin/agencies/${id}/boarding-points`)
 			.pipe(
 				tap((response) => {
-					if (response.success && response.data) this.currentAgencyBordingPoind.set(response.data);
+					if (response.success && response.data)
+						this.currentAgencyBordingPoind.set(response.data);
 				}),
 				catchError((error) => {
-					console.error(`Error fetching boarding points for agency ${id}:`, error);
+					console.error(
+						`Error fetching boarding points for agency ${id}:`,
+						error,
+					);
 					this.currentAgencyBordingPoind.set([]);
-					return of({ success: false, message: 'Erreur lors de la récupération des points d’embarquement' });
+					return of({
+						success: false,
+						message:
+							"Erreur lors de la récupération des points d’embarquement",
+					});
 				}),
 				tap(() => this.loadingAgencyBordingPoind.set(false)),
 			);
@@ -424,15 +450,24 @@ export class AgencyService {
 	getAgencyAgents(id: number) {
 		this.loadingAgencyAgents.set(true);
 		return this.http
-			.get<ApiResponse<AgencyAgent[]>>(`${this.apiBaseUrl}/admin/agencies/${id}/agents`)
+			.get<
+				ApiResponse<AgencyAgent[]>
+			>(`${this.apiBaseUrl}/admin/agencies/${id}/agents`)
 			.pipe(
 				tap((response) => {
-					if (response.success && response.data) this.currentAgencyAgents.set(response.data);
+					if (response.success && response.data)
+						this.currentAgencyAgents.set(response.data);
 				}),
 				catchError((error) => {
-					console.error(`Error fetching agents for agency ${id}:`, error);
+					console.error(
+						`Error fetching agents for agency ${id}:`,
+						error,
+					);
 					this.currentAgencyAgents.set([]);
-					return of({ success: false, message: 'Erreur lors de la récupération des agents' });
+					return of({
+						success: false,
+						message: "Erreur lors de la récupération des agents",
+					});
 				}),
 				tap(() => this.loadingAgencyAgents.set(false)),
 			);
@@ -639,7 +674,9 @@ export class AgencyService {
 				success: boolean;
 				data: Trip[];
 				pagination: any;
-			}>(`${this.apiBaseUrl}/admin/agencies/${agencyId}/trips`, { params })
+			}>(`${this.apiBaseUrl}/admin/agencies/${agencyId}/trips`, {
+				params,
+			})
 			.pipe(
 				tap((response) => {
 					if (response.success) {
@@ -684,7 +721,9 @@ export class AgencyService {
 				success: boolean;
 				data: Reservation[];
 				pagination: any;
-			}>(`${this.apiBaseUrl}/admin/agencies/${agencyId}/reservations`, { params })
+			}>(`${this.apiBaseUrl}/admin/agencies/${agencyId}/reservations`, {
+				params,
+			})
 			.pipe(
 				tap((response) => {
 					if (response.success) {
@@ -739,7 +778,11 @@ export class AgencyService {
 	readonly currentAgencyPayoutRequest = computed(() => {
 		const agency = this.currentAgency();
 		if (!agency) return null;
-		return this.payoutPendingRequests().find((r) => r.agencyId === agency.id) ?? null;
+		return (
+			this.payoutPendingRequests().find(
+				(r) => r.agencyId === agency.id,
+			) ?? null
+		);
 	});
 
 	/**
@@ -749,13 +792,18 @@ export class AgencyService {
 		this.loadingPayoutRequests.set(true);
 
 		return this.http
-			.get<PayoutMsisdnRequest[]>(
-				`${this.apiBaseUrl}/admin/agencies/payout-msisdn/pending`,
-			)
+			.get<
+				PayoutMsisdnRequest[]
+			>(`${this.apiBaseUrl}/admin/agencies/payout-msisdn/pending`)
 			.pipe(
-				tap((requests) => this.payoutPendingRequests.set(requests ?? [])),
+				tap((requests) =>
+					this.payoutPendingRequests.set(requests ?? []),
+				),
 				catchError((error) => {
-					console.error("Error fetching pending payout msisdn requests:", error);
+					console.error(
+						"Error fetching pending payout msisdn requests:",
+						error,
+					);
 					this.payoutPendingRequests.set([]);
 					return of([] as PayoutMsisdnRequest[]);
 				}),
@@ -773,7 +821,10 @@ export class AgencyService {
 			.post<{
 				message: string;
 				payoutMsisdn: string;
-			}>(`${this.apiBaseUrl}/admin/agencies/${agencyId}/payout-msisdn/approve`, {})
+			}>(
+				`${this.apiBaseUrl}/admin/agencies/${agencyId}/payout-msisdn/approve`,
+				{},
+			)
 			.pipe(
 				tap((response) => {
 					this.payoutPendingRequests.update((list) =>
@@ -793,7 +844,10 @@ export class AgencyService {
 					}
 				}),
 				catchError((error) => {
-					console.error(`Error approving payout msisdn for agency ${agencyId}:`, error);
+					console.error(
+						`Error approving payout msisdn for agency ${agencyId}:`,
+						error,
+					);
 					return of({
 						success: false,
 						message:
@@ -814,9 +868,12 @@ export class AgencyService {
 		return this.http
 			.post<{
 				message: string;
-			}>(`${this.apiBaseUrl}/admin/agencies/${agencyId}/payout-msisdn/reject`, {
-				reason: reason || undefined,
-			})
+			}>(
+				`${this.apiBaseUrl}/admin/agencies/${agencyId}/payout-msisdn/reject`,
+				{
+					reason: reason || undefined,
+				},
+			)
 			.pipe(
 				tap(() => {
 					this.payoutPendingRequests.update((list) =>
@@ -825,13 +882,20 @@ export class AgencyService {
 					if (this.currentAgency()?.id === agencyId) {
 						this.currentAgency.update((agency) =>
 							agency
-								? { ...agency, pendingPayoutMsisdn: null, pendingPayoutMsisdnRequestedAt: null }
+								? {
+										...agency,
+										pendingPayoutMsisdn: null,
+										pendingPayoutMsisdnRequestedAt: null,
+									}
 								: null,
 						);
 					}
 				}),
 				catchError((error) => {
-					console.error(`Error rejecting payout msisdn for agency ${agencyId}:`, error);
+					console.error(
+						`Error rejecting payout msisdn for agency ${agencyId}:`,
+						error,
+					);
 					return of({
 						success: false,
 						message:
@@ -859,7 +923,11 @@ export class AgencyService {
 	}
 
 	/** Met à jour un document dans currentAgency() et recalcule le KYC global. */
-	private patchCurrentAgencyDocument(agencyId: number, documentId: number, status: AgencyDocumentAdmin["status"]) {
+	private patchCurrentAgencyDocument(
+		agencyId: number,
+		documentId: number,
+		status: AgencyDocumentAdmin["status"],
+	) {
 		if (this.currentAgency()?.id !== agencyId) return;
 
 		this.currentAgency.update((agency) => {
@@ -867,7 +935,11 @@ export class AgencyService {
 			const documents = (agency.documents ?? []).map((d) =>
 				d.id === documentId ? { ...d, status } : d,
 			);
-			return { ...agency, documents, kyc: this.computeKycFromDocuments(documents) };
+			return {
+				...agency,
+				documents,
+				kyc: this.computeKycFromDocuments(documents),
+			};
 		});
 	}
 
@@ -882,18 +954,30 @@ export class AgencyService {
 				success: boolean;
 				message: string;
 				data: AgencyDocumentAdmin;
-			}>(`${this.apiBaseUrl}/admin/agencies/${agencyId}/documents/${documentId}/approve`, {})
+			}>(
+				`${this.apiBaseUrl}/admin/agencies/${agencyId}/documents/${documentId}/approve`,
+				{},
+			)
 			.pipe(
 				tap((response) => {
 					if (response.success !== false) {
-						this.patchCurrentAgencyDocument(agencyId, documentId, "approved");
+						this.patchCurrentAgencyDocument(
+							agencyId,
+							documentId,
+							"approved",
+						);
 					}
 				}),
 				catchError((error) => {
-					console.error(`Error approving document ${documentId} for agency ${agencyId}:`, error);
+					console.error(
+						`Error approving document ${documentId} for agency ${agencyId}:`,
+						error,
+					);
 					return of({
 						success: false,
-						message: error.error?.message || "Erreur lors de la validation du document",
+						message:
+							error.error?.message ||
+							"Erreur lors de la validation du document",
 						data: undefined as unknown as AgencyDocumentAdmin,
 					});
 				}),
@@ -904,7 +988,11 @@ export class AgencyService {
 	/**
 	 * Rejette un document KYC d'une agence.
 	 */
-	rejectAgencyDocument(agencyId: number, documentId: number, reason?: string) {
+	rejectAgencyDocument(
+		agencyId: number,
+		documentId: number,
+		reason?: string,
+	) {
 		this.submittingDocumentDecision.set(true);
 
 		return this.http
@@ -912,20 +1000,32 @@ export class AgencyService {
 				success: boolean;
 				message: string;
 				data: AgencyDocumentAdmin;
-			}>(`${this.apiBaseUrl}/admin/agencies/${agencyId}/documents/${documentId}/reject`, {
-				reason: reason || undefined,
-			})
+			}>(
+				`${this.apiBaseUrl}/admin/agencies/${agencyId}/documents/${documentId}/reject`,
+				{
+					reason: reason || undefined,
+				},
+			)
 			.pipe(
 				tap((response) => {
 					if (response.success !== false) {
-						this.patchCurrentAgencyDocument(agencyId, documentId, "rejected");
+						this.patchCurrentAgencyDocument(
+							agencyId,
+							documentId,
+							"rejected",
+						);
 					}
 				}),
 				catchError((error) => {
-					console.error(`Error rejecting document ${documentId} for agency ${agencyId}:`, error);
+					console.error(
+						`Error rejecting document ${documentId} for agency ${agencyId}:`,
+						error,
+					);
 					return of({
 						success: false,
-						message: error.error?.message || "Erreur lors du rejet du document",
+						message:
+							error.error?.message ||
+							"Erreur lors du rejet du document",
 						data: undefined as unknown as AgencyDocumentAdmin,
 					});
 				}),

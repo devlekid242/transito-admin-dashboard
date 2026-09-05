@@ -282,8 +282,8 @@ export class LayoutComponent {
 				"etes vous sure de vouloir vous deconnecter ?",
 			)
 			.then((confirmed) => {
-				if(confirmed) this.authService.logout();
-				else return;				
+				if (confirmed) this.authService.logout();
+				else return;
 			});
 	}
 }

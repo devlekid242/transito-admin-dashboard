@@ -226,7 +226,6 @@ export class UserService {
 	readonly userKpis = signal<UserKpis | null>(null);
 
 	readonly userItems = signal<UserSearchItem[]>([]);
-	
 
 	// Loading states
 	readonly loadingUsers = signal<boolean>(false);
@@ -310,7 +309,7 @@ export class UserService {
 						}));
 
 						this.userItems.set(userItems);
-						
+
 						this.users.set(users);
 						this.currentPage.set(page);
 

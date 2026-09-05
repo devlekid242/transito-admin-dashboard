@@ -169,10 +169,9 @@ export class CityService {
 	 */
 	updateCity(id: number, input: CityUpdateInput) {
 		return this.http
-			.put<ApiResponse<City>>(
-				`${this.apiBaseUrl}/admin/cities/${id}`,
-				input,
-			)
+			.put<
+				ApiResponse<City>
+			>(`${this.apiBaseUrl}/admin/cities/${id}`, input)
 			.pipe(
 				tap((response) => {
 					if (response.success && response.data) {

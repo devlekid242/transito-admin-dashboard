@@ -93,17 +93,6 @@
 	}
 </div>
 
-<!-- Loading indicator -->
-@if (loading || loadingPresets || loadingAgencies || loadingCharts) {
-<div class="flex items-center justify-center py-8">
-	<div class="flex items-center gap-3">
-		<div
-			class="h-8 w-8 animate-spin rounded-full border-4 border-green-600 border-t-transparent"></div>
-		<span class="text-gray-600">Chargement des statistiques...</span>
-	</div>
-</div>
-} @if (!loading && !loadingPresets && !loadingAgencies && !loadingCharts) {
-
 <!-- User KPIs -->
 <div class="mb-3 flex items-center gap-2">
 	<i class="fa-solid fa-users text-green-500"></i>
@@ -557,6 +546,4 @@
 		</div>
 	</div>
 </div>
-
-}
 <!-- End of main content wrapper -->
