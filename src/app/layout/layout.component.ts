@@ -10,7 +10,7 @@ import {
 import { AdminAuthService, AdminUser } from "../services/admin-auth.service";
 import { SystemSettingsService } from "../services/system-settings.service";
 import { NotificationBellComponent } from "../shared/notification-bell.component";
-import { environment } from "../../environments/environment";
+import { environment } from "../../environments/environment.prod";
 import { AlertService } from "../services/alert.service";
 
 interface NavItem {

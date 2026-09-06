@@ -3,7 +3,7 @@ import { HttpClient } from "@angular/common/http";
 import { Router } from "@angular/router";
 import { BehaviorSubject, firstValueFrom, Observable, throwError } from "rxjs";
 import { tap, catchError, finalize } from "rxjs/operators";
-import { environment } from "../../environments/environment";
+import { environment } from "../../environments/environment.prod";
 
 export interface AdminUser {
 	id: number;

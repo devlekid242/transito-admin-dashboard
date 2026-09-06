@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { tap } from "rxjs/operators";
 import Pusher, { Channel } from "pusher-js";
-import { environment } from "../../environments/environment";
+import { environment } from "../../environments/environment.prod";
 import { AdminAuthService } from "./admin-auth.service";
 
 export interface AdminNotification {

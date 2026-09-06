@@ -6,7 +6,7 @@ import {
 	HttpEventType,
 } from "@angular/common/http";
 import { catchError, of, tap } from "rxjs";
-import { environment } from "../../environments/environment";
+import { environment } from "../../environments/environment.prod";
 
 export interface ProfileKPI {
 	totalActions: number;

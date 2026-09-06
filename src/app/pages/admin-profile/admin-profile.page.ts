@@ -4,7 +4,7 @@ import { FormsModule } from "@angular/forms";
 import { HttpEvent, HttpEventType } from "@angular/common/http";
 import { AdminProfileService } from "../../services/admin-profile.service";
 import { PageHeaderComponent } from "../../shared/page-header.component";
-import { environment } from "../../../environments/environment";
+import { environment } from "../../../environments/environment.prod";
 
 @Component({
 	selector: "app-admin-profile",

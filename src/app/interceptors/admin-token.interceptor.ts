@@ -9,7 +9,7 @@ import {
 import { Observable, from, throwError } from "rxjs";
 import { catchError, switchMap } from "rxjs/operators";
 import { AdminAuthService } from "../services/admin-auth.service";
-import { environment } from "../../environments/environment";
+import { environment } from "../../environments/environment.prod";
 
 @Injectable()
 export class AdminTokenInterceptor implements HttpInterceptor {

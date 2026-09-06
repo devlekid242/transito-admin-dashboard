@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { environment } from "../../environments/environment";
+import { environment } from "../../environments/environment.prod";
 import { catchError, of } from "rxjs";
 
 // Types and interfaces for Revenue Analysis
