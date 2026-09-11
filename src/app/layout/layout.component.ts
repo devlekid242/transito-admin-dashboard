@@ -226,6 +226,11 @@ export class LayoutComponent {
 					route: "/admin/settings",
 				},
 				{
+					label: "Rapports système",
+					icon: "fa-solid fa-heart-pulse",
+					route: "/admin/job-reports",
+				},
+				{
 					label: "gestionnaire de ville",
 					icon: "fa-solid fa-city",
 					route: "/admin/cities",
@@ -234,6 +239,11 @@ export class LayoutComponent {
 					label: "Notifications",
 					icon: "fa-solid fa-bell",
 					route: "/admin/notifications",
+				},
+				{
+					label: "Journal d’audit",
+					icon: "fa-solid fa-file-shield",
+					route: "/admin/audit-logs",
 				},
 				{
 					label: "Mon profil",
