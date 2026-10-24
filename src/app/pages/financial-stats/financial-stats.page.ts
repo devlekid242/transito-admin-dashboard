@@ -1,4 +1,4 @@
-import { Component, inject, computed } from "@angular/core";
+import { Component, inject, computed, effect } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FinancialService, PeriodType } from "../../services/financial.service";
 import { PageHeaderComponent } from "../../shared/page-header.component";
@@ -22,17 +22,15 @@ import { FormsModule } from "@angular/forms";
 export class FinancialStatsPage {
 	readonly financialService = inject(FinancialService);
 
-	readonly periods = [
-		{ value: "daily" as const, label: "Jour" },
-		{ value: "weekly" as const, label: "Semaine" },
-		{ value: "monthly" as const, label: "Mois" },
-	];
-
 	// Use the service's date filter state directly
 	readonly dateFilter = this.financialService.dateFilter;
 
 	constructor() {
-		this.loadData();
+		effect(() => {
+			const filter = this.dateFilter();
+			const trigger = this.financialService.refreshTrigger();
+			this.loadData();
+		});
 	}
 
 	// Computed properties

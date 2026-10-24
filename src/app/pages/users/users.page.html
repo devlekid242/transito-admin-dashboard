@@ -1,168 +1,311 @@
-<app-page-header title="Gestion des utilisateurs" subtitle="Gérez les clients et agents, bloquez ou débloquez les comptes problématiques." />
+<app-page-header
+	title="Gestion des utilisateurs"
+	subtitle="Gérez les clients et agents, bloquez ou débloquez les comptes problématiques."
+	[showDateFilter]="false"
+	(refresh)="refreshData()" />
 
 <!-- KPIs -->
 <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-  <app-stat-card 
-    label="Total utilisateurs" 
-    [value]="str(userKpis()?.totalUsers ?? 0)" 
-    icon="fa-users" 
-    iconBg="bg-green-600" 
-    accentBar="bg-green-500" />
-  <app-stat-card 
-    label="Actifs" 
-    [value]="str(userKpis()?.activeUsers ?? 0)" 
-    icon="fa-user-check" 
-    iconBg="bg-green-600" 
-    accentBar="bg-green-500" />
-  <app-stat-card 
-    label="Bloqués" 
-    [value]="str(userKpis()?.blockedUsers ?? 0)" 
-    icon="fa-ban" 
-    iconBg="bg-red-600" 
-    accentBar="bg-red-500" />
-  <app-stat-card 
-    label="Nouveaux cette sem." 
-    [value]="str(userKpis()?.newUsersThisWeek ?? 0)" 
-    icon="fa-user-plus" 
-    iconBg="bg-cyan-600" 
-    accentBar="bg-cyan-500" />
+	<app-stat-card
+		label="Total utilisateurs"
+		[value]="str(userKpis()?.totalUsers ?? 0)"
+		icon="fa-users"
+		iconBg="bg-green-600"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Actifs"
+		[value]="str(userKpis()?.activeUsers ?? 0)"
+		icon="fa-user-check"
+		iconBg="bg-green-600"
+		accentBar="bg-green-500" />
+	<app-stat-card
+		label="Bloqués"
+		[value]="str(userKpis()?.blockedUsers ?? 0)"
+		icon="fa-ban"
+		iconBg="bg-red-600"
+		accentBar="bg-red-500" />
+	<app-stat-card
+		label="Nouveaux cette sem."
+		[value]="str(userKpis()?.newUsersThisWeek ?? 0)"
+		icon="fa-user-plus"
+		iconBg="bg-cyan-600"
+		accentBar="bg-cyan-500" />
 </div>
 
-<!-- Toolbar -->
-<div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-  <div class="relative flex-1">
-    <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
-    <input 
-      [value]="userService.searchQuery()" 
-      (input)="onSearch($any($event.target).value)"
-      type="text" 
-      [placeholder]="searchPlaceholder"
-      class="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-green-400 focus:ring-2 focus:ring-green-100" />
-  </div>
-  
-  <select 
-    [value]="userService.roleFilter()"
-    (change)="onRoleChange($any($event.target).value)"
-    class="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
-    <option value="ALL">Tous les rôles</option>
-    <option value="CLIENT">Clients</option>
-    <option value="AGENT">Agents</option>
-    <option value="ADMIN">Administrateurs</option>
-  </select>
-  
-  <select 
-    [value]="userService.statusFilter()"
-    (change)="onStatusChange($any($event.target).value)"
-    class="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
-    <option value="ALL">Tous les statuts</option>
-    <option value="active">Actifs</option>
-    <option value="suspended">Bloqués</option>
-    <option value="inactive">Inactifs</option>
-  </select>
+<div
+	class="mt-5 flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+	<div class="relative flex-1">
+		<i
+			class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400"></i>
+		<input
+			[value]="userService.searchQuery()"
+			(input)="onSearch($any($event.target).value)"
+			type="text"
+			[placeholder]="searchPlaceholder"
+			class="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-4 text-xs font-medium text-slate-700 outline-none transition-all hover:bg-slate-100/50 focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-100" />
+	</div>
+
+	<select
+		[value]="userService.roleFilter()"
+		(change)="onRoleChange($any($event.target).value)"
+		class="h-10 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-xs font-semibold text-slate-700 outline-none transition-all hover:bg-slate-100/50 focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-100">
+		<option value="ALL">Tous les rôles</option>
+		<option value="CLIENT">Clients</option>
+		<option value="AGENT">Agents</option>
+		<option value="ADMIN">Administrateurs</option>
+	</select>
+
+	<select
+		[value]="userService.statusFilter()"
+		(change)="onStatusChange($any($event.target).value)"
+		class="h-10 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-xs font-semibold text-slate-700 outline-none transition-all hover:bg-slate-100/50 focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-100">
+		<option value="ALL">Tous les statuts</option>
+		<option value="active">Actifs</option>
+		<option value="suspended">Bloqués</option>
+		<option value="inactive">Inactifs</option>
+	</select>
 </div>
 
 <!-- Users Data Table -->
 <div class="mt-5">
-  <app-data-table 
-    [columns]="columns" 
-    [rows]="users()" 
-    [trackKey]="'id'"
-    [pageSize]="10"
-    [searchPlaceholder]="searchPlaceholder"
-    [searchKeys]="searchKeys"
-    [emptyMessage]="emptyMessage">
-    
-    <!-- Custom row template -->
-    <ng-template #rowTemplate let-row="row">
-      <!-- User Cell -->
-      <td class="px-5 py-4">
-        <a [routerLink]="['/moderation/users', row.id]" class="flex items-center gap-3 hover:text-green-600">
-          <div class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white" [class]="row.avatarColor">
-            {{ getInitials(row.fullName) }}
-          </div>
-          <div>
-            <p class="font-semibold text-gray-800">{{ row.fullName }}</p>
-            <p class="text-xs text-gray-400">{{ row.phoneNumber }}</p>
-          </div>
-        </a>
-      </td>
-      
-      <!-- Role Cell -->
-      <td class="px-5 py-4">
-        <span class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold" 
-          [class]="getRoleBadgeClasses(row.role).bg + ' ' + getRoleBadgeClasses(row.role).text">
-          <i class="fa-solid" [class]="getRoleIcon(row.role)"></i>
-          {{ getRoleLabel(row.role) }}
-        </span>
-      </td>
-      
-      <!-- Agency Cell -->
-      <td class="px-5 py-4 text-gray-600">
-        {{ row.agency?.name ?? '—' }}
-      </td>
-      
-      <!-- Created At Cell -->
-      <td class="px-5 py-4 text-gray-600">
-        {{ formatDate(row.createdAt) }}
-      </td>
-      
-      <!-- Reservations Count Cell -->
-      <td class="px-5 py-4 text-gray-600">
-        {{ row.reservationsCount }}
-      </td>
-      
-      <!-- Cancellations Count Cell -->
-      <td class="px-5 py-4">
-        <span class="font-semibold" 
-          [class.text-red-600]="row.cancellationsCount >= 3" 
-          [class.text-gray-700]="row.cancellationsCount < 3">
-          {{ row.cancellationsCount }}
-        </span>
-        @if (row.cancellationsCount >= 3) { 
-          <i class="fa-solid fa-triangle-exclamation ml-1 text-xs text-red-500"></i> 
-        }
-      </td>
-      
-      <!-- Status Cell -->
-      <td class="px-5 py-4">
-        @if (row.status === 'active') { 
-          <app-status-badge variant="active" label="Actif" icon="fa-circle-check" /> 
-        } @else { 
-          <app-status-badge variant="suspended" label="Bloqué" icon="fa-ban" /> 
-        }
-      </td>
-      
-      <!-- Actions Cell -->
-      <td class="px-5 py-4 text-right">
-        <div class="flex items-center justify-end gap-2">
-          <a [routerLink]="['/moderation/users', row.id]" 
-             class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600" 
-             title="Voir le profil">
-            <i class="fa-solid fa-eye"></i>
-          </a>
-          <button (click)="toggleBlock(row)"
-            class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95"
-            [class.bg-red-50]="row.status === 'active'" 
-            [class.text-red-600]="row.status === 'active'" 
-            [class.hover:bg-red-100]="row.status === 'active'"
-            [class.bg-green-50]="row.status !== 'active'" 
-            [class.text-green-600]="row.status !== 'active'" 
-            [class.hover:bg-green-100]="row.status !== 'active'">
-            <i class="fa-solid" 
-               [class.fa-ban]="row.status === 'active'" 
-               [class.fa-unlock]="row.status !== 'active'"></i>
-            {{ row.status === 'active' ? 'Bloquer' : 'Débloquer' }}
-          </button>
-        </div>
-      </td>
-    </ng-template>
-    
-    <!-- Custom empty template -->
-    <ng-template #emptyTemplate>
-      <div class="flex flex-col items-center justify-center py-12 text-gray-400">
-        <i class="fa-solid fa-users-slash text-4xl mb-3"></i>
-        <p>{{ emptyMessage }}</p>
-      </div>
-    </ng-template>
-  </app-data-table>
+	<app-data-table
+		[columns]="columns"
+		[rows]="users()"
+		[trackKey]="'id'"
+		[pageSize]="10"
+		[searchPlaceholder]="searchPlaceholder"
+		[searchKeys]="searchKeys"
+		[emptyMessage]="emptyMessage">
+		<!-- Custom row template -->
+		<ng-template #rowTemplate let-row="row">
+			<!-- User Cell -->
+			<td class="px-5 py-4">
+				<a
+					[routerLink]="['/moderation/users', row.id]"
+					class="flex items-center gap-3 hover:text-green-600">
+					<div
+						class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white"
+						[class]="row.avatarColor">
+						{{ getInitials(row.fullName) }}
+					</div>
+					<div>
+						<p class="font-semibold text-gray-800">
+							{{ row.fullName }}
+						</p>
+						<p class="text-xs text-gray-400">
+							{{ row.phoneNumber }}
+						</p>
+					</div>
+				</a>
+			</td>
+
+			<!-- Role Cell -->
+			<td class="px-5 py-4">
+				<span
+					class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold"
+					[class]="getRoleBadgeClasses(row.role).bg + ' ' + getRoleBadgeClasses(row.role).text">
+					<i class="fa-solid" [class]="getRoleIcon(row.role)"></i>
+					{{ getRoleLabel(row.role) }}
+				</span>
+			</td>
+
+			<!-- Agency Cell -->
+			<td class="px-5 py-4 text-gray-600">
+				{{ row.agency?.name ?? '—' }}
+			</td>
+
+			<!-- Created At Cell -->
+			<td class="px-5 py-4 text-gray-600">
+				{{ formatDate(row.createdAt) }}
+			</td>
+
+			<!-- Reservations Count Cell -->
+			<td class="px-5 py-4 text-gray-600">{{ row.reservationsCount }}</td>
+
+			<!-- Cancellations Count Cell -->
+			<td class="px-5 py-4">
+				<span
+					class="font-semibold"
+					[class.text-red-600]="row.cancellationsCount >= 3"
+					[class.text-gray-700]="row.cancellationsCount < 3">
+					{{ row.cancellationsCount }}
+				</span>
+				@if (row.cancellationsCount >= 3) {
+				<i
+					class="fa-solid fa-triangle-exclamation ml-1 text-xs text-red-500"></i>
+				}
+			</td>
+
+			<!-- Status Cell -->
+			<td class="px-5 py-4">
+				@if (row.status === 'active') {
+				<app-status-badge
+					variant="active"
+					label="Actif"
+					icon="fa-circle-check" />
+				} @else {
+				<app-status-badge
+					variant="suspended"
+					label="Bloqué"
+					icon="fa-ban" />
+				}
+			</td>
+
+			<!-- Actions Cell -->
+			<td class="px-5 py-4 text-right">
+				<div class="flex items-center justify-end gap-2">
+					<a
+						[routerLink]="['/moderation/users', row.id]"
+						class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600"
+						title="Voir le profil">
+						<i class="fa-solid fa-eye"></i>
+					</a>
+					<button
+						(click)="toggleBlock(row)"
+						class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95"
+						[class.bg-red-50]="row.status === 'active'"
+						[class.text-red-600]="row.status === 'active'"
+						[class.hover:bg-red-100]="row.status === 'active'"
+						[class.bg-green-50]="row.status !== 'active'"
+						[class.text-green-600]="row.status !== 'active'"
+						[class.hover:bg-green-100]="row.status !== 'active'">
+						<i
+							class="fa-solid"
+							[class.fa-ban]="row.status === 'active'"
+							[class.fa-unlock]="row.status !== 'active'"></i>
+						{{ row.status === 'active' ? 'Bloquer' : 'Débloquer' }}
+					</button>
+				</div>
+			</td>
+		</ng-template>
+
+		<!-- Custom empty template -->
+		<ng-template #emptyTemplate>
+			<div
+				class="flex flex-col items-center justify-center py-12 text-gray-400">
+				<i class="fa-solid fa-users-slash text-4xl mb-3"></i>
+				<p>{{ emptyMessage }}</p>
+			</div>
+		</ng-template>
+	</app-data-table>
+	<app-data-table
+		[columns]="columns"
+		[rows]="users()"
+		[trackKey]="'id'"
+		[pageSize]="10"
+		[searchPlaceholder]="searchPlaceholder"
+		[searchKeys]="searchKeys"
+		[emptyMessage]="emptyMessage">
+		<!-- Custom row template -->
+		<ng-template #rowTemplate let-row="row">
+			<!-- User Cell -->
+			<td class="px-5 py-4">
+				<a
+					[routerLink]="['/moderation/users', row.id]"
+					class="flex items-center gap-3 hover:text-green-600">
+					<div
+						class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white"
+						[class]="row.avatarColor">
+						{{ getInitials(row.fullName) }}
+					</div>
+					<div>
+						<p class="font-semibold text-gray-800">
+							{{ row.fullName }}
+						</p>
+						<p class="text-xs text-gray-400">
+							{{ row.phoneNumber }}
+						</p>
+					</div>
+				</a>
+			</td>
+
+			<!-- Role Cell -->
+			<td class="px-5 py-4">
+				<span
+					class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold"
+					[class]="getRoleBadgeClasses(row.role).bg + ' ' + getRoleBadgeClasses(row.role).text">
+					<i class="fa-solid" [class]="getRoleIcon(row.role)"></i>
+					{{ getRoleLabel(row.role) }}
+				</span>
+			</td>
+
+			<!-- Agency Cell -->
+			<td class="px-5 py-4 text-gray-600">
+				{{ row.agency?.name ?? '—' }}
+			</td>
+
+			<!-- Created At Cell -->
+			<td class="px-5 py-4 text-gray-600">
+				{{ formatDate(row.createdAt) }}
+			</td>
+
+			<!-- Reservations Count Cell -->
+			<td class="px-5 py-4 text-gray-600">{{ row.reservationsCount }}</td>
+
+			<!-- Cancellations Count Cell -->
+			<td class="px-5 py-4">
+				<span
+					class="font-semibold"
+					[class.text-red-600]="row.cancellationsCount >= 3"
+					[class.text-gray-700]="row.cancellationsCount < 3">
+					{{ row.cancellationsCount }}
+				</span>
+				@if (row.cancellationsCount >= 3) {
+				<i
+					class="fa-solid fa-triangle-exclamation ml-1 text-xs text-red-500"></i>
+				}
+			</td>
+
+			<!-- Status Cell -->
+			<td class="px-5 py-4">
+				@if (row.status === 'active') {
+				<app-status-badge
+					variant="active"
+					label="Actif"
+					icon="fa-circle-check" />
+				} @else {
+				<app-status-badge
+					variant="suspended"
+					label="Bloqué"
+					icon="fa-ban" />
+				}
+			</td>
+
+			<!-- Actions Cell -->
+			<td class="px-5 py-4 text-right">
+				<div class="flex items-center justify-end gap-2">
+					<a
+						[routerLink]="['/moderation/users', row.id]"
+						class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600"
+						title="Voir le profil">
+						<i class="fa-solid fa-eye"></i>
+					</a>
+					<button
+						(click)="toggleBlock(row)"
+						class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95"
+						[class.bg-red-50]="row.status === 'active'"
+						[class.text-red-600]="row.status === 'active'"
+						[class.hover:bg-red-100]="row.status === 'active'"
+						[class.bg-green-50]="row.status !== 'active'"
+						[class.text-green-600]="row.status !== 'active'"
+						[class.hover:bg-green-100]="row.status !== 'active'">
+						<i
+							class="fa-solid"
+							[class.fa-ban]="row.status === 'active'"
+							[class.fa-unlock]="row.status !== 'active'"></i>
+						{{ row.status === 'active' ? 'Bloquer' : 'Débloquer' }}
+					</button>
+				</div>
+			</td>
+		</ng-template>
+
+		<!-- Custom empty template -->
+		<ng-template #emptyTemplate>
+			<div
+				class="flex flex-col items-center justify-center py-12 text-gray-400">
+				<i class="fa-solid fa-users-slash text-4xl mb-3"></i>
+				<p>{{ emptyMessage }}</p>
+			</div>
+		</ng-template>
+	</app-data-table>
 </div>

@@ -13,6 +13,8 @@ import { StatCardComponent } from '../../shared/stat-card.component';
 export class WalletsPage {
   readonly walletService = inject(WalletService);
 
+  readonly platform = computed(() => this.walletService.platformWallet());
+
   readonly searchTerm = signal('');
   readonly statusFilter = signal<'all' | 'normal' | 'frozen'>('all');
   readonly pageSize = signal(12);

@@ -1,11 +1,29 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { environment } from "../../environments/environment.prod";
+import { environment } from "../../environments/environment";
 import { catchError, of } from "rxjs";
 import { SearchSelectItem } from "../shared/search-select.component";
 
 // Types and interfaces
 export type RefundStatus = "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
+export type RefundType = "normal" | "late";
+
+export interface LatePaymentRefundInfo {
+	providerReference: string | null;
+	amount: string;
+	payerPhone: string | null;
+	paidAt: string | null;
+	reservationExpiredAt: string | null;
+	ageHours: number | null;
+	refundProviderReference: string | null;
+	refundProviderPaidAt: string | null;
+}
+
+export interface LateRefundCompletionPayload {
+	providerRefundReference: string;
+	providerRefundedAt: string;
+	adminNote: string;
+}
 
 export interface RefundRequest {
 	id: number;
@@ -16,6 +34,8 @@ export interface RefundRequest {
 	clientPhone: string | null;
 	reservationId: number | null;
 	bookingReference: string | null;
+	type: RefundType;
+	latePayment: LatePaymentRefundInfo | null;
 	amount: number;
 	netAmount: number;
 	reason: string;
@@ -33,6 +53,8 @@ export interface RefundRequest {
 
 export interface RefundDetail {
 	id: number;
+	type: RefundType;
+	latePayment: LatePaymentRefundInfo | null;
 	agency: {
 		id: number | null;
 		name: string;
@@ -101,6 +123,7 @@ export interface RefundActionResponse {
 	hasNegativeBalance?: boolean;
 	processedAt?: string;
 	forceProcessed?: boolean;
+	idempotent?: boolean;
 }
 
 export interface RefundCheckResponse {
@@ -126,6 +149,7 @@ export interface LookupResponse {
 
 export interface FilterOptions {
 	status?: RefundStatus | "ALL";
+	type?: RefundType | "ALL";
 	agencyId?: number;
 	search?: string;
 	forceOnly?: boolean;
@@ -145,7 +169,12 @@ function normalizeStatus(status: string): RefundStatus {
 }
 
 function normalizeRefund(r: any): RefundRequest {
-	return { ...r, status: normalizeStatus(r.status) };
+	return {
+		...r,
+		status: normalizeStatus(r.status),
+		type: r.type === "late" ? "late" : "normal",
+		latePayment: r.latePayment ?? null,
+	};
 }
 
 @Injectable({
@@ -196,7 +225,11 @@ export class RefundService {
 		const all = this.refunds();
 		const filters = this.filters();
 
-		if (!filters.search && (!filters.status || filters.status === "ALL")) {
+		if (
+			!filters.search &&
+			(!filters.status || filters.status === "ALL") &&
+			(!filters.type || filters.type === "ALL")
+		) {
 			return all;
 		}
 
@@ -219,7 +252,12 @@ export class RefundService {
 				filters.status === "ALL" ||
 				r.status === filters.status;
 
-			return matchesSearch && matchesStatus;
+			const matchesType =
+				!filters.type ||
+				filters.type === "ALL" ||
+				r.type === filters.type;
+
+			return matchesSearch && matchesStatus && matchesType;
 		});
 	});
 
@@ -244,6 +282,10 @@ export class RefundService {
 
 		if (filters.status && filters.status !== "ALL") {
 			params["status"] = filters.status.toLowerCase();
+		}
+
+		if (filters.type && filters.type !== "ALL") {
+			params["type"] = filters.type;
 		}
 
 		if (filters.agencyId) {
@@ -449,6 +491,13 @@ export class RefundService {
 					this.loading.set(false);
 				},
 			});
+	}
+
+	markLateRefundAsRefunded(id: number, payload: LateRefundCompletionPayload) {
+		return this.http.post<RefundActionResponse>(
+			`${this.apiBaseUrl}/admin/refunds/${id}/mark-as-refunded`,
+			payload,
+		);
 	}
 
 	/**

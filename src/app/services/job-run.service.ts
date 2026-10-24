@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import { Observable } from "rxjs";
-import { environment } from "../../environments/environment.prod";
+import { environment } from "../../environments/environment";
 import { JobRun, JobRunListResponse } from "../models/job-run.model";
 
 export interface JobRunFilters {

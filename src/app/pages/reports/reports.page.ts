@@ -14,6 +14,7 @@ import {
 	PaymentDistribution,
 	ReservationStatusDistribution,
 } from "../../services/reports.service";
+import { FinancialService } from "../../services/financial.service";
 import { PageHeaderComponent } from "../../shared/page-header.component";
 import { StatCardComponent } from "../../shared/stat-card.component";
 import { LineChartComponent } from "../../shared/line-chart.component";
@@ -35,6 +36,7 @@ import { DonutChartComponent } from "../../shared/donut-chart.component";
 })
 export class ReportsPage {
 	readonly reportsService = inject(ReportsService);
+	readonly financialService = inject(FinancialService);
 
 	// Date range state
 	readonly dateRangeOptions = DATE_RANGE_OPTIONS;
@@ -55,8 +57,22 @@ export class ReportsPage {
 	showDateRangeModal = signal(false);
 
 	constructor() {
-		// Load initial reports data
-		this.loadInitialData();
+		// Automatically reload reports when global date filter or refresh trigger changes
+		effect(() => {
+			const df = this.financialService.dateFilter();
+			const rt = this.financialService.refreshTrigger();
+			this.loading.set(true);
+			this.error.set(null);
+			if (df.startDate && df.endDate) {
+				this.reportsService.loadReports({
+					startDate: df.startDate,
+					endDate: df.endDate,
+					type: "CUSTOM",
+				});
+			} else {
+				this.reportsService.loadReportsByType("TODAY");
+			}
+		});
 
 		// Effect to update loading state based on service
 		effect(() => {
@@ -68,13 +84,6 @@ export class ReportsPage {
 				this.error.set(serviceError);
 			}
 		});
-	}
-
-	// Load initial data
-	private loadInitialData() {
-		this.loading.set(true);
-		this.error.set(null);
-		this.reportsService.loadReportsByType("TODAY");
 	}
 
 	// Get data from service

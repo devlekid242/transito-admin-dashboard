@@ -38,7 +38,7 @@
 	<select
 		#statusFilter
 		(change)="onStatusChange(statusFilter.value)"
-		class="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+		class="h-10 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-xs font-semibold text-slate-700 outline-none transition-all hover:bg-slate-100/50 focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-100">
 		<option value="ALL">Tous les statuts</option>
 		<option value="SCHEDULED">Planifiés</option>
 		<option value="IN_PROGRESS">En cours</option>
@@ -63,10 +63,14 @@
 			<td class="px-5 py-4 font-medium text-gray-800">{{ t.route }}</td>
 			<td class="px-5 py-4 text-gray-600">{{ t.agency }}</td>
 			<td class="px-5 py-4 text-gray-600">
-				{{ t.date }}<br /><span class="text-xs text-gray-400">{{ t.departure }} → {{ t.arrival }}</span>
+				{{ t.date }}<br /><span class="text-xs text-gray-400"
+					>{{ t.departure }} → {{ t.arrival }}</span
+				>
 			</td>
 			<td class="px-5 py-4 text-gray-600">
-				{{ t.busType }}<br /><span class="text-xs text-gray-400">{{ t.busPlate }}</span>
+				{{ t.busType }}<br /><span class="text-xs text-gray-400"
+					>{{ t.busPlate }}</span
+				>
 			</td>
 			<td class="px-5 py-4 text-gray-600">{{ t.driver }}</td>
 			<td class="px-5 py-4">
@@ -77,15 +81,22 @@
 							class="h-full rounded-full bg-green-500"
 							[style.width.%]="t.fillRate"></div>
 					</div>
-					<span class="text-xs font-semibold text-gray-600">{{ t.fillRate }}%</span>
+					<span class="text-xs font-semibold text-gray-600"
+						>{{ t.fillRate }}%</span
+					>
 				</div>
-				<span class="text-xs text-gray-400">{{ t.bookedSeats }}/{{ t.totalSeats }} places</span>
+				<span class="text-xs text-gray-400"
+					>{{ t.bookedSeats }}/{{ t.totalSeats }} places</span
+				>
 			</td>
 			<td class="px-5 py-4 font-semibold text-gray-900">
 				{{ fcfa(t.revenue) }}
 			</td>
 			<td class="px-5 py-4">
-            <app-status-badge [variant]="tripService.getStatusBadgeVariant(t.status)" [label]="tripService.getStatusLabel(t.status)" icon="fa-circle-check" />
+				<app-status-badge
+					[variant]="tripService.getStatusBadgeVariant(t.status)"
+					[label]="tripService.getStatusLabel(t.status)"
+					icon="fa-circle-check" />
 			</td>
 			<td class="px-5 py-4 text-right">
 				<a

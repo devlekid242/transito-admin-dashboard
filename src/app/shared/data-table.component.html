@@ -1,27 +1,54 @@
-<!-- Search bar -->
-<div class="relative mb-4">
-	<i
-		class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
-	<input
-		#searchInput
-		[value]="search()"
-		(input)="onSearch(searchInput.value)"
-		type="text"
-		[placeholder]="searchPlaceholder()"
-		class="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+<!-- Search & Filter Toolbar -->
+<div
+	class="mb-5 rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-4 shadow-sm">
+	<div
+		class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+		<div class="relative flex-1">
+			<i
+				class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
+			<input
+				#searchInput
+				[value]="search()"
+				(input)="onSearch(searchInput.value)"
+				type="text"
+				[placeholder]="searchPlaceholder()"
+				class="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-10 text-sm text-gray-700 outline-none transition focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-500/10" />
+			@if (search()) {
+				<button
+					type="button"
+					(click)="onSearch('')"
+					class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600">
+					<i class="fa-solid fa-circle-xmark"></i>
+				</button>
+			}
+		</div>
+
+		<div class="flex items-center gap-2">
+			<!-- Per page selector -->
+			<select
+				[value]="pageSize()"
+				(change)="onPageSizeChange($any($event.target).value)"
+				class="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-medium text-gray-700 outline-none transition hover:border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/10"
+				title="Lignes par page">
+				@for (size of [8, 15, 25, 50]; track size) {
+					<option [value]="size">{{ size }} / page</option>
+				}
+			</select>
+		</div>
+	</div>
 </div>
 
-<!-- Table -->
+<!-- Table Container -->
 <div
-	class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+	class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
 	<div class="overflow-x-auto">
 		<table class="w-full text-left text-sm">
 			<thead
-				class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+				class="bg-gray-50/75 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
 				<tr>
 					@for (col of columns(); track col.key) {
 						<th
-							class="px-5 py-3 font-semibold"
+							class="px-5 py-3.5 font-semibold"
 							[class.text-right]="col.align === 'right'"
 							[class.text-center]="col.align === 'center'">
 							{{ col.label }}
@@ -35,12 +62,17 @@
 						<td
 							[attr.colspan]="columns().length"
 							class="px-5 py-12 text-center text-gray-400">
-							<i class="fa-solid fa-spinner fa-spin text-xl"></i>
+							<div
+								class="flex flex-col items-center justify-center gap-2">
+								<i
+									class="fa-solid fa-spinner fa-spin text-2xl text-green-600"></i>
+								<p class="text-sm">Chargement des données...</p>
+							</div>
 						</td>
 					</tr>
 				} @else {
 					@for (row of paginatedRows(); track row[trackKey()]) {
-						<tr class="transition-colors hover:bg-gray-50">
+						<tr class="transition-colors hover:bg-gray-50/80">
 							@if (rowTemplate) {
 								<ng-container
 									[ngTemplateOutlet]="rowTemplate"
@@ -67,7 +99,7 @@
 												"
 												(error)="onImageError($event)"
 												alt="Image"
-												class="h-10 w-10 rounded-full object-cover" />
+												class="h-10 w-10 rounded-full object-cover shadow-sm" />
 										</td>
 									} @else {
 										<td
@@ -88,14 +120,22 @@
 						<tr>
 							<td
 								[attr.colspan]="columns().length"
-								class="px-5 py-12 text-center text-gray-400">
+								class="px-5 py-16 text-center text-gray-400">
 								@if (emptyTemplate) {
 									<ng-container
 										[ngTemplateOutlet]="
 											emptyTemplate
 										"></ng-container>
 								} @else {
-									{{ emptyMessage() }}
+									<div
+										class="flex flex-col items-center justify-center gap-2">
+										<i
+											class="fa-solid fa-inbox text-4xl text-gray-300 mb-1"></i>
+										<p
+											class="text-base font-medium text-gray-600">
+											{{ emptyMessage() }}
+										</p>
+									</div>
 								}
 							</td>
 						</tr>
@@ -105,42 +145,87 @@
 		</table>
 	</div>
 
-	<!-- Pagination -->
-	@if (totalPages() > 1) {
-		<div
-			class="flex flex-col items-center justify-between gap-3 border-t border-gray-100 px-5 py-3 sm:flex-row">
-			<p class="text-xs text-gray-500">
-				{{ rangeStart() }}–{{ rangeEnd() }} sur
-				{{ filteredRows().length }}
-			</p>
-			<div class="flex items-center gap-1">
-				<button
-					(click)="prevPage()"
-					[disabled]="currentPage() === 1"
-					class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-transparent">
-					<i class="fa-solid fa-chevron-left text-xs"></i>
-				</button>
-				@for (page of pages(); track page) {
-					@if (page === "...") {
-						<span class="px-2 text-gray-400">...</span>
-					} @else {
+	<!-- Pagination Footer -->
+	@if (filteredRows().length > 0) {
+		<div class="border-t border-gray-100 bg-gray-50/75 px-5 py-4">
+			<div
+				class="flex flex-col items-center justify-between gap-4 sm:flex-row">
+				<p class="text-xs font-medium text-gray-500">
+					Affichage de {{ rangeStart() }} à {{ rangeEnd() }} sur
+					{{ filteredRows().length }} résultats
+				</p>
+
+				@if (totalPages() > 1) {
+					<div class="flex items-center gap-1.5">
+						<!-- First Page -->
 						<button
-							(click)="goToPage(page)"
-							class="flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-semibold transition"
-							[class.bg-gray-900]="page === currentPage()"
-							[class.text-white]="page === currentPage()"
-							[class.text-gray-600]="page !== currentPage()"
-							[class.hover:bg-gray-100]="page !== currentPage()">
-							{{ page }}
+							type="button"
+							(click)="goToPage(1)"
+							[disabled]="currentPage() === 1"
+							class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-xs text-gray-600 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-100"
+							title="Première page">
+							<i class="fa-solid fa-angles-left"></i>
 						</button>
-					}
+
+						<!-- Prev Page -->
+						<button
+							type="button"
+							(click)="prevPage()"
+							[disabled]="currentPage() === 1"
+							class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-xs text-gray-600 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-100"
+							title="Page précédente">
+							<i class="fa-solid fa-chevron-left"></i>
+						</button>
+
+						<!-- Page Numbers -->
+						@for (page of pages(); track page) {
+							@if (page === "...") {
+								<span class="px-1.5 text-xs text-gray-400"
+									>...</span
+								>
+							} @else {
+								<button
+									type="button"
+									(click)="goToPage(page)"
+									[class.bg-green-600]="
+										page === currentPage()
+									"
+									[class.text-white]="page === currentPage()"
+									[class.font-bold]="page === currentPage()"
+									[class.border-green-600]="
+										page === currentPage()
+									"
+									[class.bg-white]="page !== currentPage()"
+									[class.text-gray-700]="
+										page !== currentPage()
+									"
+									class="flex h-8 min-w-[32px] items-center justify-center rounded-lg border border-gray-200 px-2 text-xs transition hover:border-green-500 hover:text-green-600">
+									{{ page }}
+								</button>
+							}
+						}
+
+						<!-- Next Page -->
+						<button
+							type="button"
+							(click)="nextPage()"
+							[disabled]="currentPage() === totalPages()"
+							class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-xs text-gray-600 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-100"
+							title="Page suivante">
+							<i class="fa-solid fa-chevron-right"></i>
+						</button>
+
+						<!-- Last Page -->
+						<button
+							type="button"
+							(click)="goToPage(totalPages())"
+							[disabled]="currentPage() === totalPages()"
+							class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-xs text-gray-600 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-100"
+							title="Dernière page">
+							<i class="fa-solid fa-angles-right"></i>
+						</button>
+					</div>
 				}
-				<button
-					(click)="nextPage()"
-					[disabled]="currentPage() === totalPages()"
-					class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-transparent">
-					<i class="fa-solid fa-chevron-right text-xs"></i>
-				</button>
 			</div>
 		</div>
 	}

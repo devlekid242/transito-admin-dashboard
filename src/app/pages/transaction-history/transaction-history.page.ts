@@ -6,7 +6,6 @@ import {
 	TransactionType,
 	TransactionStatus,
 	TransactionFilter,
-	TransactionStats,
 } from "../../services/financial.service";
 import { PageHeaderComponent } from "../../shared/page-header.component";
 import { StatCardComponent } from "../../shared/stat-card.component";
@@ -29,18 +28,18 @@ import { FormsModule } from "@angular/forms";
 export class TransactionHistoryPage {
 	readonly financialService = inject(FinancialService);
 
-	// Search and filter state
+	// Search, filter and sorting state
 	readonly search = signal("");
 	readonly type = signal<"ALL" | TransactionType>("ALL");
 	readonly status = signal<"ALL" | TransactionStatus>("ALL");
-	readonly startDate = signal<string>("");
-	readonly endDate = signal<string>("");
+	readonly sortBy = signal<"date" | "amount" | "feeAmount">("date");
+	readonly sortOrder = signal<"asc" | "desc">("desc");
+	readonly perPage = signal<number>(50);
+	readonly currentPage = signal<number>(1);
 
 	// Modal state
 	readonly showDetailModal = signal(false);
 	readonly selectedTransaction = signal<Transaction | null>(null);
-	// 👈 NOUVEAU : nom du champ copié récemment (pour afficher un check ✓
-	// temporaire à côté du bouton copier dans la modale de détail)
 	readonly copiedField = signal<string | null>(null);
 
 	// Computed properties
@@ -65,35 +64,41 @@ export class TransactionHistoryPage {
 	});
 
 	constructor() {
-		// Load transaction history on component initialization
-		this.loadData();
-
-		// Reload when search or filters change
+		// Reload when search, filters, pagination, sort, or global date filter / refresh trigger change
 		effect(() => {
 			const s = this.search();
 			const t = this.type();
 			const st = this.status();
-			const sd = this.startDate();
-			const ed = this.endDate();
+			const sb = this.sortBy();
+			const so = this.sortOrder();
+			const pp = this.perPage();
+			const cp = this.currentPage();
+			const df = this.financialService.dateFilter();
+			const rt = this.financialService.refreshTrigger();
 
-			// Debounce the search
+			// Debounce search/filter updates
 			const timer = setTimeout(() => {
 				this.loadData();
-			}, 500);
+			}, 300);
 
 			return () => clearTimeout(timer);
 		});
 	}
 
-	loadData(page: number = 1) {
+	loadData(pageNumber?: number) {
+		const page = pageNumber ?? this.currentPage();
+		const dateFilter = this.financialService.dateFilter();
+
 		const filter: TransactionFilter = {
-			search: this.search() || undefined,
+			search: this.search().trim() || undefined,
 			type: this.type() === "ALL" ? undefined : this.type(),
 			status: this.status() === "ALL" ? undefined : this.status(),
-			startDate: this.startDate() || undefined,
-			endDate: this.endDate() || undefined,
+			startDate: dateFilter.startDate || undefined,
+			endDate: dateFilter.endDate || undefined,
 			page,
-			perPage: 50,
+			perPage: this.perPage(),
+			sortBy: this.sortBy(),
+			sortOrder: this.sortOrder(),
 		};
 
 		this.financialService.loadTransactionHistory(filter);
@@ -101,10 +106,46 @@ export class TransactionHistoryPage {
 
 	onTypeChange(value: string) {
 		this.type.set(value as "ALL" | TransactionType);
+		this.currentPage.set(1);
 	}
 
 	onStatusChange(value: string) {
 		this.status.set(value as "ALL" | TransactionStatus);
+		this.currentPage.set(1);
+	}
+
+	onPerPageChange(value: string | number) {
+		this.perPage.set(Number(value));
+		this.currentPage.set(1);
+	}
+
+	onSortSelect(value: string) {
+		const [field, order] = value.split("-") as [
+			"date" | "amount" | "feeAmount",
+			"asc" | "desc",
+		];
+		this.sortBy.set(field || "date");
+		this.sortOrder.set(order || "desc");
+		this.currentPage.set(1);
+	}
+
+	toggleSort(field: "date" | "amount" | "feeAmount") {
+		if (this.sortBy() === field) {
+			this.sortOrder.set(this.sortOrder() === "asc" ? "desc" : "asc");
+		} else {
+			this.sortBy.set(field);
+			this.sortOrder.set("desc");
+		}
+		this.currentPage.set(1);
+	}
+
+	resetFilters() {
+		this.search.set("");
+		this.type.set("ALL");
+		this.status.set("ALL");
+		this.sortBy.set("date");
+		this.sortOrder.set("desc");
+		this.currentPage.set(1);
 	}
 
 	getTypeLabel(type: TransactionType): string {
@@ -182,10 +223,6 @@ export class TransactionHistoryPage {
 
 	// --- Modale de détail : aides d'affichage --------------------------
 
-	/**
-	 * Copie une valeur dans le presse-papier et affiche brièvement un
-	 * indicateur "copié" à côté du champ concerné (identifié par `field`).
-	 */
 	copyToClipboard(value: string | number | null | undefined, field: string) {
 		if (value === null || value === undefined) return;
 		navigator.clipboard?.writeText(String(value)).then(() => {
@@ -196,22 +233,22 @@ export class TransactionHistoryPage {
 		});
 	}
 
-	/** Formate une date ISO en "jj/mm/aaaa à HH:mm", ou '—' si absente. */
 	formatDateTime(iso?: string | null): string {
 		if (!iso) return "—";
 		const d = new Date(iso);
 		if (isNaN(d.getTime())) return "—";
 		const date = d.toLocaleDateString("fr-FR");
-		const time = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+		const time = d.toLocaleTimeString("fr-FR", {
+			hour: "2-digit",
+			minute: "2-digit",
+		});
 		return `${date} à ${time}`;
 	}
 
-	/**
-	 * Durée écoulée entre l'initiation et la validation d'une transaction.
-	 * Si `validatedAt` est absent, la transaction est toujours en attente :
-	 * on affiche le temps écoulé depuis l'initiation.
-	 */
-	getDurationLabel(initiatedAt?: string | null, validatedAt?: string | null): string {
+	getDurationLabel(
+		initiatedAt?: string | null,
+		validatedAt?: string | null,
+	): string {
 		if (!initiatedAt) return "—";
 		const start = new Date(initiatedAt).getTime();
 		if (isNaN(start)) return "—";
@@ -227,35 +264,77 @@ export class TransactionHistoryPage {
 		else if (hours > 0) duration = `${hours} h ${minutes % 60} min`;
 		else duration = `${minutes} min`;
 
-		return validatedAt ? `Traité en ${duration}` : `En attente depuis ${duration}`;
+		return validatedAt
+			? `Traité en ${duration}`
+			: `En attente depuis ${duration}`;
 	}
 
-	/**
-	 * Unifie l'affichage des statuts "internes" (PaymentLog, RefundRequest,
-	 * WithdrawalRequest) qui ont chacun leurs propres valeurs brutes
-	 * (PENDING/SUCCESS/REFUNDED..., pending/approved/rejected/completed...),
-	 * distinctes du statut standardisé de la transaction elle-même. Évite
-	 * d'avoir un badge codé en dur (ex: variant="approved" partout) qui ne
-	 * reflète pas le vrai statut, comme c'était le cas auparavant pour le
-	 * bloc "Informations de paiement".
-	 */
-	getSubStatusMeta(raw?: string | null): { variant: "pending" | "approved" | "rejected"; label: string; icon: string } {
+	getSubStatusMeta(raw?: string | null): {
+		variant: "pending" | "approved" | "rejected";
+		label: string;
+		icon: string;
+	} {
 		const value = (raw ?? "").toUpperCase();
 
-		const table: Record<string, { variant: "pending" | "approved" | "rejected"; label: string; icon: string }> = {
-			PENDING: { variant: "pending", label: "En attente", icon: "fa-hourglass-half" },
-			REFUND_PENDING: { variant: "pending", label: "Remboursement en attente", icon: "fa-hourglass-half" },
+		const table: Record<
+			string,
+			{
+				variant: "pending" | "approved" | "rejected";
+				label: string;
+				icon: string;
+			}
+		> = {
+			PENDING: {
+				variant: "pending",
+				label: "En attente",
+				icon: "fa-hourglass-half",
+			},
+			REFUND_PENDING: {
+				variant: "pending",
+				label: "Remboursement en attente",
+				icon: "fa-hourglass-half",
+			},
 			SUCCESS: { variant: "approved", label: "Réussi", icon: "fa-check" },
-			APPROVED: { variant: "approved", label: "Approuvé", icon: "fa-check" },
-			COMPLETED: { variant: "approved", label: "Terminé", icon: "fa-check-double" },
-			REFUNDED: { variant: "approved", label: "Remboursé", icon: "fa-rotate-left" },
-			REFUNDED_COMPLETED: { variant: "approved", label: "Remboursé", icon: "fa-rotate-left" },
-			REFUNDED_FORCE: { variant: "approved", label: "Remboursé (forcé)", icon: "fa-triangle-exclamation" },
+			APPROVED: {
+				variant: "approved",
+				label: "Approuvé",
+				icon: "fa-check",
+			},
+			COMPLETED: {
+				variant: "approved",
+				label: "Terminé",
+				icon: "fa-check-double",
+			},
+			REFUNDED: {
+				variant: "approved",
+				label: "Remboursé",
+				icon: "fa-rotate-left",
+			},
+			REFUNDED_COMPLETED: {
+				variant: "approved",
+				label: "Remboursé",
+				icon: "fa-rotate-left",
+			},
+			REFUNDED_FORCE: {
+				variant: "approved",
+				label: "Remboursé (forcé)",
+				icon: "fa-triangle-exclamation",
+			},
 			FAILED: { variant: "rejected", label: "Échec", icon: "fa-xmark" },
-			REJECTED: { variant: "rejected", label: "Rejeté", icon: "fa-xmark" },
+			REJECTED: {
+				variant: "rejected",
+				label: "Rejeté",
+				icon: "fa-xmark",
+			},
 		};
 
-		return table[value] ?? { variant: "pending", label: raw || "—", icon: "fa-question" };
+		return (
+			table[value] ?? {
+				variant: "pending",
+				label: raw || "—",
+				icon: "fa-question",
+			}
+		);
 	}
 
 	// Modal functions
@@ -271,8 +350,10 @@ export class TransactionHistoryPage {
 
 	// Pagination functions
 	goToPage(page: number) {
-		if (page >= 1) {
-			this.loadData(page);
+		const pagination = this.pagination();
+		if (!pagination) return;
+		if (page >= 1 && page <= pagination.total_pages) {
+			this.currentPage.set(page);
 		}
 	}
 
@@ -288,13 +369,13 @@ export class TransactionHistoryPage {
 				pages.push(i);
 			}
 		} else {
-			const currentPage = pagination.current_page;
-			const start = Math.max(1, currentPage - 2);
-			const end = Math.min(totalPages, currentPage + 2);
+			const current = pagination.current_page;
+			const start = Math.max(1, current - 2);
+			const end = Math.min(totalPages, current + 2);
 
 			if (start > 1) {
 				pages.push(1);
-				if (start > 2) pages.push(-1); // placeholder for ellipsis
+				if (start > 2) pages.push(-1); // ellipsis
 			}
 
 			for (let i = start; i <= end; i++) {
@@ -302,12 +383,23 @@ export class TransactionHistoryPage {
 			}
 
 			if (end < totalPages) {
-				if (end < totalPages - 1) pages.push(-1); // placeholder for ellipsis
+				if (end < totalPages - 1) pages.push(-1); // ellipsis
 				pages.push(totalPages);
 			}
 		}
 
 		return pages;
+	}
+
+	getShowingRange(): string {
+		const pagination = this.pagination();
+		if (!pagination || pagination.total === 0) return "0 transaction";
+		const start = (pagination.current_page - 1) * pagination.per_page + 1;
+		const end = Math.min(
+			pagination.current_page * pagination.per_page,
+			pagination.total,
+		);
+		return `Affichage de ${start} à ${end} sur ${this.formatNumber(pagination.total)} transactions`;
 	}
 
 	// Filter helper functions
@@ -331,6 +423,21 @@ export class TransactionHistoryPage {
 			{ value: "PENDING", label: "En attente" },
 			{ value: "FAILED", label: "Échec" },
 		];
+	}
+
+	get sortOptions(): { value: string; label: string }[] {
+		return [
+			{ value: "date-desc", label: "Date : Plus récente en premier" },
+			{ value: "date-asc", label: "Date : Plus ancienne en premier" },
+			{ value: "amount-desc", label: "Montant : Décroissant" },
+			{ value: "amount-asc", label: "Montant : Croissant" },
+			{ value: "feeAmount-desc", label: "Frais : Décroissant" },
+			{ value: "feeAmount-asc", label: "Frais : Croissant" },
+		];
+	}
+
+	get perPageOptions(): number[] {
+		return [10, 25, 50, 100];
 	}
 
 	// Stats getters

@@ -69,17 +69,14 @@ export class FAQManagementPage implements OnInit {
 		this.supportService.updateFAQFilter({
 			category: category === "all" ? "all" : category,
 		});
-		this.loadFAQs();
 	}
 
 	onSearchChange(search: string): void {
 		this.supportService.updateFAQFilter({ search });
-		this.loadFAQs();
 	}
 
 	onActiveFilterChange(activeOnly: boolean): void {
 		this.supportService.updateFAQFilter({ activeOnly });
-		this.loadFAQs();
 	}
 
 	// Modal methods

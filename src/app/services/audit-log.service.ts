@@ -1,11 +1,8 @@
 import { HttpClient, HttpParams } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import { Observable } from "rxjs";
-import { environment } from "../../environments/environment.prod";
-import {
-	AuditLogFilters,
-	AuditLogResponse,
-} from "../models/audit-log.model";
+import { environment } from "../../environments/environment";
+import { AuditLogFilters, AuditLogResponse } from "../models/audit-log.model";
 
 @Injectable({ providedIn: "root" })
 export class AuditLogService {

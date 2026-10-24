@@ -4,7 +4,7 @@
 		class="sidebar-scroll fixed inset-y-0 left-0 z-40 w-64 flex flex-col bg-black text-gray-400 transition-transform duration-300 lg:translate-x-0"
 		[class.-translate-x-full]="!sidebarOpen()">
 		<!-- Logo -->
-		<div class="flex h-16 items-center gap-3 border-b border-gray-900 px-6">
+		<div class="flex h-16 items-center justify-between gap-3 border-b border-gray-900 px-6">
 			<div
 				class="flex h-10 flex-1 items-center justify-center rounded-lg bg-white px-3">
 				<img
@@ -12,26 +12,50 @@
 					alt="Transito"
 					class="max-h-8 w-full object-contain" />
 			</div>
+			<!-- Total alerts badge -->
+
 		</div>
 
 		<!-- Nav -->
 		<nav class="sidebar-scroll flex-1 overflow-y-auto px-3 py-4">
-			@for (group of navGroups(); track group.title) {
+			@for (group of navGroupsWithBadges(); track group.title) {
 				<div class="mb-6">
-					<p
-						class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-600">
-						{{ group.title }}
-					</p>
+					<div class="flex items-center">
+						<p
+							class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-600">
+							{{ group.title }}
+						</p>
+						@if (group.badgeCount > 0) {
+							<span
+								class="section-badge"
+								[class.badge-danger]="group.severity === 'danger'"
+								[class.badge-warning]="group.severity === 'warning'"
+								[class.badge-info]="group.severity === 'info' || !group.severity">
+								{{ group.badgeCount > 9 ? "9+" : group.badgeCount }}
+							</span>
+						}
+					</div>
 					@for (item of group.items; track item.route) {
-						<a
-							[routerLink]="item.route"
-							routerLinkActive="active-link"
-							class="nav-link group mb-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-gray-900 hover:text-white">
-							<i
-								[class]="item.icon"
-								class="w-5 text-center text-base"></i>
-							<span>{{ item.label }}</span>
-						</a>
+						<div class="relative">
+							<a
+								[routerLink]="item.route"
+								routerLinkActive="active-link"
+								class="nav-link group mb-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-gray-900 hover:text-white">
+								<i
+									[class]="item.icon"
+									class="w-5 text-center text-base"></i>
+								<span>{{ item.label }}</span>
+								@if (getItemBadgeCount(item.route) > 0) {
+									<span
+										class="badge"
+										[class.badge-danger]="group.severity === 'danger'"
+										[class.badge-warning]="group.severity === 'warning'"
+										[class.badge-info]="group.severity === 'info' || !group.severity">
+										{{ getItemBadgeCount(item.route) > 9 ? "9+" : getItemBadgeCount(item.route) }}
+									</span>
+								}
+							</a>
+						</div>
 					}
 				</div>
 			}

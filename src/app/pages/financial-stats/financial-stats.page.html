@@ -1,42 +1,6 @@
 <app-page-header
 	title="Statistiques financières"
-	subtitle="Vue complète de la santé financière de la plateforme Tansico."
-	[actions]="true">
-	<ng-template #buttonAction>
-		<div class="flex items-center gap-2">
-			@for (p of periods; track p.value) {
-			<button
-				type="button"
-				(click)="onPeriodChange(p.value)"
-				class="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
-				[class.bg-green-600]="dateFilter().period === p.value"
-				[class.text-white]="dateFilter().period === p.value"
-				[class.bg-gray-100]="dateFilter().period !== p.value"
-				[class.text-gray-600]="dateFilter().period !== p.value"
-				[class.hover:bg-gray-200]="dateFilter().period !== p.value">
-				{{ p.label }}
-			</button>
-			}
-			<input
-				type="date"
-				[value]="dateFilter().startDate"
-				(change)="onStartDateChange($event)"
-				class="w-36 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
-			<input
-				type="date"
-				[value]="dateFilter().endDate"
-				(change)="onEndDateChange($event)"
-				class="w-36 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
-			<button
-				type="button"
-				(click)="applyCustomDateRange()"
-				[disabled]="!dateFilter().startDate || !dateFilter().endDate"
-				class="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
-				Appliquer
-			</button>
-		</div>
-	</ng-template>
-</app-page-header>
+	subtitle="Vue complète de la santé financière de la plateforme Tansico." />
 
 <!-- Error state -->
 @if (error()) {

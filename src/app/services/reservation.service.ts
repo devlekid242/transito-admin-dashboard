@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
-import { environment } from "../../environments/environment.prod";
+import { environment } from "../../environments/environment";
 import { catchError, of, tap } from "rxjs";
 
 // Reservation Status Types
@@ -19,7 +19,13 @@ export type ReservationPaymentStatus =
 	| "FAILED"
 	| "REFUNDED";
 export type TicketStatus = "PENDING" | "BOARDED" | "CANCELLED";
-export type TransactionStatus = "PENDING" | "SUCCESS" | "FAILED" | "REFUNDED";
+export type TransactionStatus =
+	| "PENDING"
+	| "SUCCESS"
+	| "FAILED"
+	| "REFUNDED"
+	| "REFUND_PENDING"
+	| "DUPLICATE";
 
 // Reservation Interface for list items
 export interface Reservation {
@@ -116,17 +122,6 @@ export interface TripSearchItem {
 	agencyName: string | null;
 }
 
-// Payment for SearchSelect
-export interface PaymentSearchItem {
-	id: number;
-	label: string;
-	sublabel: string;
-	amount: number;
-	operator: string;
-	reference: string;
-	createdAt: string;
-}
-
 // Trip Detail Interface for form autofill
 export interface TripDetail {
 	id: number;
@@ -182,31 +177,36 @@ export interface ReservationListResponse {
 	};
 }
 
-// Payment Option Type
-export type PaymentOption = "link_existing" | "new_payment";
-
-// Create/Update Reservation DTO
+// Create Reservation DTO
 export interface CreateReservationDto {
 	userId: number;
 	tripId: number;
 	totalAmount: number;
 	paymentMethod: string;
-	paymentOption?: PaymentOption;
 	passengerName?: string;
 	passengerPhone?: string;
 	passengerCni?: string;
 	seatCount?: number;
 	seatNumbers?: (number | null)[];
-	existingPaymentLogId?: number | null;
 	notes?: string;
 }
 
 // Update Reservation DTO
 export interface UpdateReservationDto {
-	paymentMethod?: string;
-	totalAmount?: number;
-	paymentStatus?: string;
-	tripId?: number;
+	passengerName?: string;
+	passengerPhone?: string;
+	passengerCni?: string;
+	tickets?: Array<{
+		id: number;
+		passengerName?: string;
+		passengerPhone?: string;
+		passengerCni?: string;
+	}>;
+}
+
+export interface PaymentVerificationResult {
+	status: "SUCCESS" | "PENDING" | "FAILED" | "REFUND_PENDING" | "DUPLICATE";
+	idempotent?: boolean;
 }
 
 // Cancel Reservation DTO
@@ -249,7 +249,6 @@ export class ReservationService {
 	readonly userItems = signal<UserSearchItem[]>([]);
 	readonly tripItems = signal<TripSearchItem[]>([]);
 	readonly agencyItems = signal<UserSearchItem[]>([]);
-	readonly paymentItems = signal<PaymentSearchItem[]>([]);
 
 	// Computed signals
 	readonly filteredReservations = computed(() => {
@@ -475,6 +474,30 @@ export class ReservationService {
 			);
 	}
 
+	verifyPayment(id: number) {
+		return this.http
+			.post<ApiResponse<PaymentVerificationResult>>(
+				`${this.apiBaseUrl}/admin/reservations/${id}/verify-payment`,
+				{},
+			)
+			.pipe(
+				tap((response) => {
+					if (response.success) {
+						this.refreshReservations();
+					}
+				}),
+				catchError((error) => {
+					console.error(`Error verifying payment for reservation ${id}:`, error);
+					return of<ApiResponse<PaymentVerificationResult>>({
+						success: false,
+						message:
+							error.error?.message ||
+							"Impossible de vérifier le paiement auprès du fournisseur.",
+					});
+				}),
+			);
+	}
+
 	/**
 	 * Cancel a reservation.
 	 */
@@ -577,33 +600,6 @@ export class ReservationService {
 					});
 				}),
 				tap(() => this.loadingUsers.set(false)),
-			);
-	}
-
-	/**
-	 * Get unlinked payments for a user (for payment linking).
-	 */
-	getUnlinkedPaymentsForUser(userId: number) {
-		return this.http
-			.get<
-				ApiResponse<PaymentSearchItem[]>
-			>(`${this.apiBaseUrl}/admin/reservations/users/${userId}/unlinked-payments`)
-			.pipe(
-				tap((response) => {
-					if (response.success && response.data) {
-						this.paymentItems.set(response.data);
-					}
-				}),
-				catchError((error) => {
-					console.error(
-						`Error fetching unlinked payments for user ${userId}:`,
-						error,
-					);
-					return of<ApiResponse<PaymentSearchItem[]>>({
-						success: false,
-						data: [],
-					});
-				}),
 			);
 	}
 

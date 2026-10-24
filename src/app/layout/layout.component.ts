@@ -10,7 +10,8 @@ import {
 import { AdminAuthService, AdminUser } from "../services/admin-auth.service";
 import { SystemSettingsService } from "../services/system-settings.service";
 import { NotificationBellComponent } from "../shared/notification-bell.component";
-import { environment } from "../../environments/environment.prod";
+import { SidebarBadgeService } from "../services/sidebar-badge.service";
+import { environment } from "../../environments/environment";
 import { AlertService } from "../services/alert.service";
 
 interface NavItem {
@@ -25,6 +26,11 @@ interface NavGroup {
 	items: NavItem[];
 	/** Rôles admin autorisés à voir CE GROUPE. Omis = visible par tout admin. */
 	roles?: string[];
+}
+
+// Interface étendue pour les items avec badges
+interface NavItemWithBadge extends NavItem {
+	badgeCount: number;
 }
 
 const ADMIN_ROLE_LABELS: Record<string, string> = {
@@ -52,6 +58,47 @@ const ADMIN_ROLE_LABELS: Record<string, string> = {
 				border-left: 3px solid #22c55e;
 				padding-left: 0.75rem;
 			}
+
+			.badge {
+				position: absolute;
+				top: -5px;
+				right: -5px;
+				min-width: 18px;
+				height: 18px;
+				padding: 0 4px;
+				border-radius: 9px;
+				font-size: 10px;
+				font-weight: 600;
+				text-align: center;
+				line-height: 18px;
+			}
+
+			.badge-danger {
+				background-color: #ef4444;
+				color: white;
+			}
+
+			.badge-warning {
+				background-color: #f59e0b;
+				color: white;
+			}
+
+			.badge-info {
+				background-color: #3b82f6;
+				color: white;
+			}
+
+			.section-badge {
+				margin-left: 8px;
+				min-width: 18px;
+				height: 18px;
+				padding: 0 4px;
+				border-radius: 9px;
+				font-size: 10px;
+				font-weight: 600;
+				text-align: center;
+				line-height: 18px;
+			}
 		`,
 	],
 })
@@ -60,6 +107,7 @@ export class LayoutComponent {
 	readonly profileOpen = signal(false);
 
 	readonly alertService = inject(AlertService);
+	readonly badgeService = inject(SidebarBadgeService);
 
 	readonly BaseApiUrl = environment.baseApiUrl; // Assuming you have an environment file with the API base URL
 
@@ -284,6 +332,34 @@ export class LayoutComponent {
 			}))
 			.filter((group) => group.items.length > 0);
 	});
+
+	/**
+	 * Retourne les groupes avec les comptes de badges par section
+	 */
+	readonly navGroupsWithBadges = computed<
+		(NavGroup & { badgeCount: number; severity?: string })[]
+	>(() => {
+		const groups = this.navGroups();
+		const sectionBadges = this.badgeService.sectionBadges();
+
+		return groups.map((group) => {
+			const sectionBadge = sectionBadges.find(
+				(s) => s.sectionTitle === group.title,
+			);
+			return {
+				...group,
+				badgeCount: sectionBadge ? sectionBadge.count : 0,
+				severity: sectionBadge?.severity,
+			};
+		});
+	});
+
+	/**
+	 * Retourne le compte de badge pour une route donnée
+	 */
+	getItemBadgeCount(route: string): number {
+		return this.badgeService.getRouteCount(route);
+	}
 
 	signOut() {
 		this.alertService

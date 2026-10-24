@@ -86,89 +86,195 @@
 	</div>
 </div>
 
-<!-- Filters -->
-<div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-	<div class="relative flex-1">
-		<i
-			class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
-		<input
-			#searchInput
-			(input)="search.set(searchInput.value)"
-			type="text"
-			placeholder="Rechercher par ID, agence, réservation..."
-			class="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+<!-- Filters Toolbar -->
+<div class="mt-6 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+	<div
+		class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+		<!-- Search Input -->
+		<div class="relative flex-1">
+			<i
+				class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
+			<input
+				#searchInput
+				[ngModel]="search()"
+				(ngModelChange)="search.set($event); currentPage.set(1)"
+				type="text"
+				placeholder="Rechercher par ID, agence, réservation, référence..."
+				class="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-10 text-sm text-gray-700 outline-none transition focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-500/10" />
+			@if (search()) {
+			<button
+				type="button"
+				(click)="search.set(''); currentPage.set(1)"
+				class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600">
+				<i class="fa-solid fa-circle-xmark"></i>
+			</button>
+			}
+		</div>
+
+		<!-- Select Filters -->
+		<div class="flex flex-wrap items-center gap-2.5">
+			<!-- Type Filter -->
+			<select
+				[ngModel]="type()"
+				(ngModelChange)="onTypeChange($event)"
+				class="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-medium text-gray-700 outline-none transition hover:border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/10">
+				@for (option of typeOptions; track option.value) {
+				<option [value]="option.value">{{ option.label }}</option>
+				}
+			</select>
+
+			<!-- Status Filter -->
+			<select
+				[ngModel]="status()"
+				(ngModelChange)="onStatusChange($event)"
+				class="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-medium text-gray-700 outline-none transition hover:border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/10">
+				@for (option of statusOptions; track option.value) {
+				<option [value]="option.value">{{ option.label }}</option>
+				}
+			</select>
+
+			<!-- Sort By Filter -->
+			<div class="relative">
+				<select
+					[ngModel]="sortBy() + '-' + sortOrder()"
+					(ngModelChange)="onSortSelect($event)"
+					class="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-medium text-gray-700 outline-none transition hover:border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/10">
+					@for (opt of sortOptions; track opt.value) {
+					<option [value]="opt.value">{{ opt.label }}</option>
+					}
+				</select>
+			</div>
+
+			<!-- Items Per Page -->
+			<select
+				[ngModel]="perPage()"
+				(ngModelChange)="onPerPageChange($event)"
+				class="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-medium text-gray-700 outline-none transition hover:border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/10"
+				title="Lignes par page">
+				@for (opt of perPageOptions; track opt) {
+				<option [value]="opt">{{ opt }} / page</option>
+				}
+			</select>
+
+			<!-- Reset Filters Button -->
+			@if (search() || type() !== 'ALL' || status() !== 'ALL' || sortBy()
+			!== 'date' || sortOrder() !== 'desc') {
+			<button
+				type="button"
+				(click)="resetFilters()"
+				class="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-medium text-gray-600 transition hover:bg-gray-100 hover:text-red-600"
+				title="Réinitialiser tous les filtres">
+				<i class="fa-solid fa-arrow-rotate-left"></i>
+				<span class="hidden sm:inline">Réinitialiser</span>
+			</button>
+			}
+		</div>
 	</div>
-	<select
-		#typeFilter
-		(change)="onTypeChange(typeFilter.value)"
-		class="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
-		@for (option of typeOptions; track option.value) {
-		<option [value]="option.value">{{ option.label }}</option>
-		}
-	</select>
-	<select
-		#statusFilter
-		(change)="onStatusChange(statusFilter.value)"
-		class="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
-		@for (option of statusOptions; track option.value) {
-		<option [value]="option.value">{{ option.label }}</option>
-		}
-	</select>
-	<button
-		(click)="loadData(1)"
-		class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-green-700">
-		<i class="fa-solid fa-filter"></i>
-		Filtrer
-	</button>
 </div>
 
 <!-- Error state -->
 @if (error()) {
-<div class="mt-5 flex items-center justify-center gap-3 py-12 text-red-500">
-	<i class="fa-solid fa-exclamation-triangle text-xl"></i>
-	<span>{{ error() }}</span>
-	<button (click)="loadData(1)" class="text-green-600 hover:underline">
+<div
+	class="mt-5 flex items-center justify-center gap-3 rounded-2xl border border-red-100 bg-red-50 p-6 text-red-600">
+	<i class="fa-solid fa-triangle-exclamation text-xl"></i>
+	<span class="text-sm font-medium">{{ error() }}</span>
+	<button
+		(click)="loadData(1)"
+		class="ml-2 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700">
 		Réessayer
 	</button>
 </div>
 }
 
-<!-- Empty state -->
-@if (!error() && transactions().length === 0) {
+<!-- Transactions table container -->
 <div
-	class="mt-5 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-	<div class="py-12 text-center text-gray-400">
-		<i class="fa-solid fa-inbox text-3xl mb-2"></i>
-		<p>Aucune transaction trouvée.</p>
-	</div>
-</div>
-}
-
-<!-- Transactions table -->
-@if (!error() && transactions().length > 0) {
-<div
-	class="mt-5 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+	class="mt-5 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
 	<div class="overflow-x-auto">
 		<table class="w-full text-left text-sm">
 			<thead
-				class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+				class="bg-gray-50/75 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
 				<tr>
-					<th class="px-5 py-3 font-semibold">ID</th>
-					<th class="px-5 py-3 font-semibold">Type</th>
-					<th class="px-5 py-3 font-semibold">Description</th>
-					<th class="px-5 py-3 font-semibold">Agence</th>
-					<th class="px-5 py-3 font-semibold">Montant</th>
-					<th class="px-5 py-3 font-semibold">Frais</th>
-					<th class="px-5 py-3 font-semibold">Solde après</th>
-					<th class="px-5 py-3 font-semibold">Date</th>
-					<th class="px-5 py-3 font-semibold">Statut</th>
-					<th class="px-5 py-3 font-semibold text-right">Actions</th>
+					<th class="px-5 py-3.5 font-semibold">ID</th>
+					<th class="px-5 py-3.5 font-semibold">Type</th>
+					<th class="px-5 py-3.5 font-semibold">Description</th>
+					<th class="px-5 py-3.5 font-semibold">Agence</th>
+					<th
+						class="px-5 py-3.5 font-semibold cursor-pointer select-none transition hover:text-green-700"
+						(click)="toggleSort('amount')"
+						title="Trier par montant">
+						<div class="flex items-center gap-1.5">
+							<span>Montant</span>
+							@if (sortBy() === 'amount') {
+							<i
+								class="fa-solid text-green-600"
+								[class.fa-arrow-down-wide-short]="sortOrder() === 'desc'"
+								[class.fa-arrow-up-wide-short]="sortOrder() === 'asc'"></i>
+							} @else {
+							<i
+								class="fa-solid fa-sort text-gray-300 text-[11px]"></i>
+							}
+						</div>
+					</th>
+					<th
+						class="px-5 py-3.5 font-semibold cursor-pointer select-none transition hover:text-green-700"
+						(click)="toggleSort('feeAmount')"
+						title="Trier par frais">
+						<div class="flex items-center gap-1.5">
+							<span>Frais</span>
+							@if (sortBy() === 'feeAmount') {
+							<i
+								class="fa-solid text-green-600"
+								[class.fa-arrow-down-wide-short]="sortOrder() === 'desc'"
+								[class.fa-arrow-up-wide-short]="sortOrder() === 'asc'"></i>
+							} @else {
+							<i
+								class="fa-solid fa-sort text-gray-300 text-[11px]"></i>
+							}
+						</div>
+					</th>
+					<th class="px-5 py-3.5 font-semibold">Solde après</th>
+					<th
+						class="px-5 py-3.5 font-semibold cursor-pointer select-none transition hover:text-green-700"
+						(click)="toggleSort('date')"
+						title="Trier par date">
+						<div class="flex items-center gap-1.5">
+							<span>Date</span>
+							@if (sortBy() === 'date') {
+							<i
+								class="fa-solid text-green-600"
+								[class.fa-arrow-down-wide-short]="sortOrder() === 'desc'"
+								[class.fa-arrow-up-wide-short]="sortOrder() === 'asc'"></i>
+							} @else {
+							<i
+								class="fa-solid fa-sort text-gray-300 text-[11px]"></i>
+							}
+						</div>
+					</th>
+					<th class="px-5 py-3.5 font-semibold">Statut</th>
+					<th class="px-5 py-3.5 font-semibold text-right">
+						Actions
+					</th>
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-50">
-				@for (t of transactions(); track t.id) {
+				@if (isLoading()) {
+				<tr>
+					<td
+						colspan="10"
+						class="px-5 py-12 text-center text-gray-400">
+						<div
+							class="flex flex-col items-center justify-center gap-2">
+							<i
+								class="fa-solid fa-arrows-rotate animate-spin text-2xl text-green-600"></i>
+							<p class="text-sm">
+								Chargement des transactions...
+							</p>
+						</div>
+					</td>
+				</tr>
+				} @else { @for (t of transactions(); track t.id) {
 				<tr
-					class="transition-colors hover:bg-gray-50 cursor-pointer"
+					class="transition-colors hover:bg-gray-50/80 cursor-pointer"
 					(click)="openDetailModal(t)">
 					<td
 						class="px-5 py-4 font-mono text-xs font-semibold text-gray-700">
@@ -176,30 +282,33 @@
 					</td>
 					<td class="px-5 py-4">
 						<span
-							class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold {{ getTypeColor(t.type) }}">
+							class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold {{ getTypeColor(t.type) }}">
 							<i class="fa-solid {{ getTypeIcon(t.type) }}"></i>
 							{{ getTypeLabel(t.type) }}
 						</span>
 					</td>
-					<td class="px-5 py-4 text-gray-700">
+					<td class="px-5 py-4 text-gray-700 max-w-xs truncate">
 						{{ t.description || '—' }}
 					</td>
-					<td class="px-5 py-4 text-gray-600">
+					<td class="px-5 py-4 text-gray-600 font-medium">
 						{{ t.agency.name || '—' }}
 					</td>
 					<td
-						class="px-5 py-4 font-semibold {{ getAmountColor(t.amount) }}">
+						class="px-5 py-4 font-bold {{ getAmountColor(t.amount) }}">
 						{{ t.amount > 0 ? '+' : '' }}{{ fcfa(t.amount) }}
 					</td>
-					<td class="px-5 py-4 text-gray-600">
+					<td class="px-5 py-4 text-gray-600 font-medium">
 						{{ fcfa(t.feeAmount) }}
 					</td>
 					<td class="px-5 py-4 text-gray-600">
-						{{ fcfa(t.balanceAfter) }}
+						{{ t.balanceAfter !== null && t.balanceAfter !==
+						undefined ? fcfa(t.balanceAfter) : '—' }}
 					</td>
-					<td class="px-5 py-4 text-gray-500">
-						{{ t.date | slice:0:10 }}
-						<span class="text-gray-400"
+					<td class="px-5 py-4 text-gray-500 whitespace-nowrap">
+						<span class="font-medium text-gray-700"
+							>{{ t.date | slice:0:10 }}</span
+						>
+						<span class="ml-1 text-xs text-gray-400"
 							>{{ t.date | slice:11:16 }}</span
 						>
 					</td>
@@ -211,10 +320,11 @@
 					</td>
 					<td class="px-5 py-4 text-right">
 						<button
+							type="button"
 							(click)="$event.stopPropagation(); openDetailModal(t)"
-							class="rounded-lg p-2 text-sm text-gray-500 transition hover:bg-gray-100 hover:text-green-600"
+							class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-green-50 hover:text-green-600"
 							title="Voir les détails">
-							<i class="fa-solid fa-eye"></i>
+							<i class="fa-solid fa-eye text-sm"></i>
 						</button>
 					</td>
 				</tr>
@@ -222,55 +332,100 @@
 				<tr>
 					<td
 						colspan="10"
-						class="px-5 py-12 text-center text-gray-400">
-						Aucune transaction trouvée.
+						class="px-5 py-16 text-center text-gray-400">
+						<div
+							class="flex flex-col items-center justify-center gap-2">
+							<i
+								class="fa-solid fa-inbox text-4xl text-gray-300 mb-1"></i>
+							<p class="text-base font-medium text-gray-600">
+								Aucune transaction trouvée
+							</p>
+							<p class="text-xs text-gray-400">
+								Essayez de modifier vos critères de recherche ou
+								la période sélectionnée.
+							</p>
+						</div>
 					</td>
 				</tr>
-				}
+				} }
 			</tbody>
 		</table>
 	</div>
 
-	<!-- Pagination -->
-	@if (pagination() && pagination()!.total_pages > 1) {
-	<div class="border-t border-gray-100 bg-gray-50 px-5 py-4">
+	<!-- Pagination Footer -->
+	@if (pagination() && pagination()!.total > 0) {
+	<div class="border-t border-gray-100 bg-gray-50/75 px-5 py-4">
 		<div
 			class="flex flex-col items-center justify-between gap-4 sm:flex-row">
-			<div class="text-sm text-gray-500">
-				{{ pagination()!.total }} transactions au total
+			<div class="text-xs font-medium text-gray-500">
+				{{ getShowingRange() }}
 			</div>
-			<div class="flex items-center gap-2">
+
+			@if (pagination()!.total_pages > 1) {
+			<div class="flex items-center gap-1.5">
+				<!-- First Page -->
 				<button
+					type="button"
+					(click)="goToPage(1)"
+					[disabled]="pagination()!.current_page === 1"
+					class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-xs text-gray-600 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-100"
+					title="Première page">
+					<i class="fa-solid fa-angles-left"></i>
+				</button>
+
+				<!-- Prev Page -->
+				<button
+					type="button"
 					(click)="goToPage(pagination()!.current_page - 1)"
 					[disabled]="pagination()!.current_page === 1"
-					class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 transition disabled:cursor-not-allowed disabled:opacity-50 hover:bg-gray-100">
+					class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-xs text-gray-600 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-100"
+					title="Page précédente">
 					<i class="fa-solid fa-chevron-left"></i>
 				</button>
 
-				@for (page of pages; track page) { @if (page === -1) {
-				<span class="px-2 py-2 text-gray-400">...</span>
+				<!-- Page Numbers -->
+				@for (p of pages; track p) { @if (p === -1) {
+				<span class="px-1.5 text-xs text-gray-400">...</span>
 				} @else {
 				<button
-					(click)="goToPage(page)"
-					[class.bg-green-600]="page === pagination()!.current_page"
-					[class.text-white]="page === pagination()!.current_page"
-					class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 transition hover:bg-green-50 hover:text-green-700">
-					{{ page }}
+					type="button"
+					(click)="goToPage(p)"
+					[class.bg-green-600]="p === pagination()!.current_page"
+					[class.text-white]="p === pagination()!.current_page"
+					[class.font-bold]="p === pagination()!.current_page"
+					[class.border-green-600]="p === pagination()!.current_page"
+					[class.bg-white]="p !== pagination()!.current_page"
+					[class.text-gray-700]="p !== pagination()!.current_page"
+					class="flex h-8 min-w-[32px] items-center justify-center rounded-lg border border-gray-200 px-2 text-xs transition hover:border-green-500 hover:text-green-600">
+					{{ p }}
 				</button>
 				} }
 
+				<!-- Next Page -->
 				<button
+					type="button"
 					(click)="goToPage(pagination()!.current_page + 1)"
 					[disabled]="pagination()!.current_page === pagination()!.total_pages"
-					class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 transition disabled:cursor-not-allowed disabled:opacity-50 hover:bg-gray-100">
+					class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-xs text-gray-600 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-100"
+					title="Page suivante">
 					<i class="fa-solid fa-chevron-right"></i>
 				</button>
+
+				<!-- Last Page -->
+				<button
+					type="button"
+					(click)="goToPage(pagination()!.total_pages)"
+					[disabled]="pagination()!.current_page === pagination()!.total_pages"
+					class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-xs text-gray-600 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-100"
+					title="Dernière page">
+					<i class="fa-solid fa-angles-right"></i>
+				</button>
 			</div>
+			}
 		</div>
 	</div>
 	}
 </div>
-}
 
 <!-- Detail Modal -->
 <app-modal
@@ -426,10 +581,10 @@
 					<div class="flex items-center justify-between gap-3">
 						<span class="text-sm text-gray-500">Montant</span>
 						<span
-							class="text-sm font-semibold {{ getAmountColor(selectedTransaction()!.amount) }}"
-							>{{ selectedTransaction()!.amount > 0 ? '+' : ''
-							}}{{ fcfa(selectedTransaction()!.amount) }}</span
-						>
+							class="text-sm font-semibold {{ getAmountColor(selectedTransaction()!.amount) }}">
+							{{ selectedTransaction()!.amount > 0 ? '+' : '' }}{{
+							fcfa(selectedTransaction()!.amount) }}
+						</span>
 					</div>
 					<div class="flex items-center justify-between gap-3">
 						<span class="text-sm text-gray-500">Frais</span>
@@ -451,8 +606,7 @@
 			</div>
 		</div>
 
-		<!-- Bloc spécifique au type : réservation / paiement / remboursement / retrait / admin -->
-
+		<!-- Bloc spécifique au type -->
 		@if (selectedTransaction()!.reservation) {
 		<div
 			class="rounded-xl border border-gray-100 border-l-4 border-l-blue-400 bg-blue-50/30 p-4">

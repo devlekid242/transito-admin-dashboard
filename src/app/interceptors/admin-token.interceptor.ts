@@ -5,16 +5,19 @@ import {
 	HttpInterceptor,
 	HttpErrorResponse,
 	HttpRequest,
+	HttpResponse,
 } from "@angular/common/http";
 import { Observable, from, throwError } from "rxjs";
-import { catchError, switchMap } from "rxjs/operators";
+import { catchError, switchMap, tap } from "rxjs/operators";
 import { AdminAuthService } from "../services/admin-auth.service";
-import { environment } from "../../environments/environment.prod";
+import { AlertService } from "../services/alert.service";
+import { environment } from "../../environments/environment";
 
 @Injectable()
 export class AdminTokenInterceptor implements HttpInterceptor {
 	private refreshPromise: Promise<string | null> | null = null;
 	private authService!: AdminAuthService;
+	private alertService!: AlertService;
 
 	constructor(private injector: Injector) {}
 
@@ -26,6 +29,42 @@ export class AdminTokenInterceptor implements HttpInterceptor {
 			this.authService = this.injector.get(AdminAuthService);
 		}
 		return this.authService;
+	}
+
+	private getAlertService(): AlertService {
+		if (!this.alertService) {
+			this.alertService = this.injector.get(AlertService);
+		}
+		return this.alertService;
+	}
+
+	private showApiResponseStatus(
+		event: HttpEvent<unknown>,
+		request: HttpRequest<unknown>,
+	): void {
+		if (
+			!(event instanceof HttpResponse) ||
+			!event.body ||
+			typeof event.body !== "object"
+		) {
+			return;
+		}
+
+		const body = event.body as { success?: unknown; message?: unknown };
+		if (body.success === false) {
+			this.getAlertService().apiError(body);
+		} else if (
+			request.method !== "GET" &&
+			body.success === true &&
+			typeof body.message === "string" &&
+			body.message.trim()
+		) {
+			this.getAlertService().success(body.message);
+		}
+	}
+
+	private showHttpError(error: HttpErrorResponse): void {
+		this.getAlertService().apiError(error);
 	}
 
 	/**
@@ -88,6 +127,7 @@ export class AdminTokenInterceptor implements HttpInterceptor {
 		}
 
 		return next.handle(authRequest).pipe(
+			tap((event) => this.showApiResponseStatus(event, authRequest)),
 			catchError((error: HttpErrorResponse) => {
 				// If 401 and we have a refresh token, try to refresh
 				if (
@@ -96,6 +136,7 @@ export class AdminTokenInterceptor implements HttpInterceptor {
 					this.isPublicAuthRoute(req.url) ||
 					!authService.getRefreshToken()
 				) {
+					this.showHttpError(error);
 					return throwError(() => error);
 				}
 
@@ -116,9 +157,21 @@ export class AdminTokenInterceptor implements HttpInterceptor {
 							req,
 							newToken,
 						);
-						return next.handle(retriedRequest);
+						return next
+							.handle(retriedRequest)
+							.pipe(
+								tap((event) =>
+									this.showApiResponseStatus(
+										event,
+										retriedRequest,
+									),
+								),
+							);
 					}),
-					catchError(() => throwError(() => error)),
+					catchError(() => {
+						this.showHttpError(error);
+						return throwError(() => error);
+					}),
 				);
 			}),
 		);

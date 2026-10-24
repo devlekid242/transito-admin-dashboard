@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { environment } from "../../environments/environment.prod";
+import { environment } from "../../environments/environment";
 import { catchError, of } from "rxjs";
 
 // Types and interfaces
@@ -95,6 +95,7 @@ export interface WalletListResponse {
 		totalWallets: number;
 		frozenWallets: number;
 	};
+	platform?: PlatformWalletSummary | null;
 	pagination: {
 		total: number;
 		page: number;
@@ -120,6 +121,79 @@ export interface WalletActionResponse {
 export interface FilterOptions {
 	search?: string;
 	status?: "normal" | "frozen" | "all";
+}
+
+/** Résumé du wallet plateforme renvoyé par GET /admin/wallets (clé "platform") */
+export interface PlatformWalletSummary {
+	id: number;
+	available: number;
+	reserved: number;
+	blocked: number;
+	total: number;
+	totalEarned: number;
+	lastTransaction?: string | null;
+}
+
+export interface PlatformWalletInfo {
+	id: number;
+	available: number;
+	reserved: number;
+	blocked: number;
+	total: number;
+	totalEarned: number;
+	totalWithdrawn: number;
+	currency: string;
+	updatedAt?: string;
+}
+
+export interface PlatformKPIs {
+	commissions: number;
+	noShowRevenue: number;
+	disbursementFees: number;
+	netRevenue: number;
+	monthEconomicRevenue: number;
+	adminCredits: number;
+	adminDebits: number;
+	collectionFeesMemo: number;
+	collectionFeesMemoCount: number;
+	lateRefundsPending: string;
+}
+
+export interface PlatformReconciliation {
+	ledgerBalance: number;
+	walletAvailable: number;
+	delta: number;
+	ok: boolean;
+}
+
+export interface PlatformTransaction {
+	id: number;
+	type: "CREDIT" | "DEBIT";
+	source: string;
+	label: string;
+	amount: number; // toujours positif : le sens est donné par `type`
+	affectsBalance: boolean; // false = ligne mémo (frais d'encaissement, gel/dégel)
+	balanceAfter: number;
+	reservationId?: number | null;
+	date: string;
+	adminId?: number;
+	adminName?: string;
+	adminReason?: string;
+}
+
+export interface PlatformWalletResponse {
+	wallet: PlatformWalletInfo;
+	kpis: PlatformKPIs;
+	reconciliation: PlatformReconciliation;
+	sources: string[];
+	transactions: PlatformTransaction[];
+}
+
+export interface PlatformLedgerFilters {
+	source?: string;
+	type?: "CREDIT" | "DEBIT";
+	from?: string; // YYYY-MM-DD
+	to?: string; // YYYY-MM-DD
 }
 
 @Injectable({
@@ -185,6 +259,20 @@ export class WalletService {
 		});
 	});
 
+	// 3) Signaux (dans la classe WalletService) ───────────────────
+	readonly platformWallet = signal<PlatformWalletSummary | null>(null); // carte dans la liste
+	readonly platformDetail = signal<PlatformWalletResponse | null>(null);
+	readonly platformLoading = signal<boolean>(false);
+	readonly platformError = signal<string | null>(null);
+	readonly platformPage = signal<number>(1);
+	readonly platformTotalPages = signal<number>(1);
+	readonly platformTotal = signal<number>(0);
+	private platformQuery = {
+		page: 1,
+		perPage: 20,
+		filters: {} as PlatformLedgerFilters,
+	};
+
 	/**
 	 * Load all wallets with filters and pagination
 	 */
@@ -226,6 +314,7 @@ export class WalletService {
 			.subscribe({
 				next: (response) => {
 					if (response?.success) {
+						this.platformWallet.set(response.platform ?? null);
 						this.wallets.set(response.data);
 						this.totalAvailable.set(response.kpis.totalAvailable);
 						this.totalReserved.set(response.kpis.totalReserved);
@@ -241,6 +330,82 @@ export class WalletService {
 					this.loading.set(false);
 				},
 			});
+	}
+
+	loadPlatformWallet(
+		page: number = 1,
+		perPage: number = 20,
+		filters: PlatformLedgerFilters = {},
+	) {
+		this.platformQuery = { page, perPage, filters };
+		this.platformLoading.set(true);
+		this.platformError.set(null);
+
+		const params: Record<string, string> = {
+			page: String(page),
+			perPage: String(perPage),
+		};
+		if (filters.source) params["source"] = filters.source;
+		if (filters.type) params["type"] = filters.type;
+		if (filters.from) params["from"] = filters.from;
+		if (filters.to) params["to"] = filters.to;
+
+		this.http
+			.get<{
+				success: boolean;
+				data: PlatformWalletResponse;
+				pagination: { total: number; page: number; totalPages: number };
+			}>(`${this.apiBaseUrl}/admin/platform-wallet`, { params })
+			.pipe(
+				catchError((error) => {
+					this.platformError.set(
+						error?.error?.message ||
+							"Échec du chargement du portefeuille plateforme.",
+					);
+					this.platformLoading.set(false);
+					return of(null);
+				}),
+			)
+			.subscribe((response) => {
+				if (response?.success) {
+					this.platformDetail.set(response.data);
+					this.platformPage.set(response.pagination.page);
+					this.platformTotalPages.set(
+						response.pagination.totalPages || 1,
+					);
+					this.platformTotal.set(response.pagination.total);
+				}
+				this.platformLoading.set(false);
+			});
+	}
+
+	refreshPlatformWallet() {
+		const { page, perPage, filters } = this.platformQuery;
+		this.loadPlatformWallet(page, perPage, filters);
+	}
+
+	/** Libellé FR d'une source de transaction (couvre toutes les sources du ledger). */
+	sourceLabel(source: string): string {
+		const map: Record<string, string> = {
+			RESERVATION_PAYMENT: "Paiement réservation",
+			PLATFORM_FEE: "Commission plateforme",
+			REFUND: "Remboursement",
+			TICKET_BOARDED: "Embarquement validé",
+			TICKET_NO_SHOW: "Billet non présenté (agence)",
+			NO_SHOW_REVENUE: "Revenu no-show",
+			WITHDRAWAL_HOLD: "Retrait en attente",
+			WITHDRAWAL_COMPLETED: "Retrait effectué",
+			WITHDRAWAL_RELEASED: "Retrait libéré",
+			ADJUSTMENT: "Ajustement",
+			ADMIN_CREDIT: "Crédit manuel",
+			ADMIN_DEBIT: "Débit manuel",
+			RESCHEDULE_ADJUSTMENT: "Ajustement de report",
+			MOMO_COLLECTION_FEE: "Frais momo d'encaissement (mémo)",
+			MOMO_DISBURSEMENT_FEE: "Frais momo de décaissement",
+			WALLET_FREEZE: "Portefeuille gelé",
+			WALLET_UNFREEZE: "Portefeuille dégelé",
+		};
+		return map[source] ?? source;
 	}
 
 	/**
@@ -315,6 +480,10 @@ export class WalletService {
 							),
 						);
 
+						if (this.platformDetail()?.wallet.id === id) {
+							this.refreshPlatformWallet();
+						}
+
 						// Update totals
 						if (response.newBalance !== undefined) {
 							this.totalAvailable.update((total) => {
@@ -385,6 +554,9 @@ export class WalletService {
 							),
 						);
 
+						if (this.platformDetail()?.wallet.id === id) {
+							this.refreshPlatformWallet();
+						}
 						// Update totals
 						if (response.newBalance !== undefined) {
 							this.totalAvailable.update((total) => {

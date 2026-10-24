@@ -1,4 +1,11 @@
-import { Component, inject, signal, computed, OnInit } from "@angular/core";
+import {
+	Component,
+	inject,
+	signal,
+	computed,
+	OnInit,
+	effect,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import {
 	ReservationService,
@@ -9,10 +16,12 @@ import {
 	CreateReservationDto,
 	UserSearchItem,
 	TripSearchItem,
-	PaymentSearchItem,
 	TripDetail,
-	PaymentOption,
+	PaymentVerificationResult,
+	UpdateReservationDto,
 } from "../../services/reservation.service";
+import { FinancialService } from "../../services/financial.service";
+import { AdminAuthService } from "../../services/admin-auth.service";
 import { PageHeaderComponent } from "../../shared/page-header.component";
 import { StatCardComponent } from "../../shared/stat-card.component";
 import { StatusBadgeComponent } from "../../shared/status-badge.component";
@@ -43,6 +52,29 @@ import { AgencyService } from "../../services/agency.service";
 export class ReservationsPage implements OnInit {
 	readonly reservationService = inject(ReservationService);
 	readonly agencyService = inject(AgencyService);
+	readonly financialService = inject(FinancialService);
+	readonly adminAuth = inject(AdminAuthService);
+
+	constructor() {
+		effect(() => {
+			const df = this.financialService.dateFilter();
+			const rt = this.financialService.refreshTrigger();
+			if (df.startDate && df.endDate) {
+				this.onDateRangeChange({
+					start: df.startDate,
+					end: df.endDate,
+				});
+			} else {
+				this.onDateRangeChange(null);
+			}
+			this.reservationService
+				.getReservationKpis(
+					df.startDate || undefined,
+					df.endDate || undefined,
+				)
+				.subscribe();
+		});
+	}
 
 	// Reservations data
 	readonly reservations = this.reservationService.reservations;
@@ -59,12 +91,16 @@ export class ReservationsPage implements OnInit {
 	readonly formError = signal("");
 	readonly formSuccess = signal("");
 	readonly isLoadingForm = signal(false);
+	readonly isVerifyingPayment = signal(false);
+	readonly paymentVerificationFeedback = signal<{
+		kind: "success" | "pending" | "error";
+		message: string;
+	} | null>(null);
 
 	// SearchSelect items
 	readonly userItems = this.reservationService.userItems;
 	readonly tripItems = this.reservationService.tripItems;
 	readonly agencyItems = signal<SearchSelectItem[]>([]);
-	readonly paymentItems = this.reservationService.paymentItems;
 
 	// SearchSelectItem requires a string id, but our domain items use numeric ids.
 	// These computed signals bridge that gap for use in the template.
@@ -74,10 +110,6 @@ export class ReservationsPage implements OnInit {
 	readonly tripSearchItems = computed<SearchSelectItem[]>(() =>
 		this.tripItems().map((t) => ({ ...t, id: String(t.id) })),
 	);
-	readonly paymentSearchItems = computed<SearchSelectItem[]>(() =>
-		this.paymentItems().map((p) => ({ ...p, id: String(p.id) })),
-	);
-
 	// Exposed so the template can call Number($any($event.target).value)
 	readonly Number = Number;
 
@@ -98,8 +130,7 @@ export class ReservationsPage implements OnInit {
 	);
 	readonly amount = signal(0);
 	readonly paymentMethod = signal("Wave");
-	readonly paymentOption = signal<PaymentOption>("new_payment");
-	readonly selectedPayment = signal<SearchSelectItem | null>(null);
+	readonly currentPaymentStatus = signal("");
 	readonly notes = signal("");
 
 	// Form mode: create or edit
@@ -166,29 +197,9 @@ export class ReservationsPage implements OnInit {
 		{ value: "Espèces", label: "Espèces" },
 	];
 
-	// Payment option types for radio buttons
-	readonly paymentOptions: {
-		value: PaymentOption;
-		label: string;
-		description: string;
-	}[] = [
-		{
-			value: "new_payment",
-			label: "Initier un nouveau paiement",
-			description: "Envoyer une nouvelle demande de paiement au client",
-		},
-		{
-			value: "link_existing",
-			label: "Lier à un paiement existant",
-			description: "Lier à un paiement non lié existant",
-		},
-	];
-
 	// Cancel modal fields
 	readonly cancelReason = signal("");
 	readonly cancelRefund = signal(true);
-
-	constructor() {}
 
 	ngOnInit(): void {
 		// Load initial data
@@ -315,10 +326,10 @@ export class ReservationsPage implements OnInit {
 						sublabel: reservation.user?.phoneNumber ?? "",
 					};
 					this.selectedUser.set(userItem);
-					this.passengerName.set(reservation.user?.fullName ?? "");
-					this.passengerPhone.set(
-						reservation.user?.phoneNumber ?? "",
-					);
+					const firstTicket = reservation.tickets?.[0];
+					this.passengerName.set(firstTicket?.passengerName ?? reservation.user?.fullName ?? "");
+					this.passengerPhone.set(firstTicket?.passengerPhone ?? reservation.user?.phoneNumber ?? "");
+					this.passengerCni.set(firstTicket?.passengerCni ?? "");
 
 					// Set agency
 					const agencyItem: SearchSelectItem = {
@@ -339,6 +350,7 @@ export class ReservationsPage implements OnInit {
 					// Set form fields
 					this.amount.set(reservation.totalAmount);
 					this.paymentMethod.set(reservation.paymentMethod);
+					this.currentPaymentStatus.set(reservation.paymentStatus);
 					this.seatCount.set(reservation.seats);
 					this.seatNumbers.set(
 						Array(reservation.seats)
@@ -347,23 +359,6 @@ export class ReservationsPage implements OnInit {
 					);
 					this.notes.set("");
 
-					// Set payment option based on payment logs
-					if (
-						reservation.paymentLogs &&
-						reservation.paymentLogs.length > 0
-					) {
-						this.paymentOption.set("link_existing");
-						// Find the first linked payment
-						const linkedPayment = reservation.paymentLogs[0];
-						const paymentItem: SearchSelectItem = {
-							id: String(linkedPayment.id),
-							label: `${linkedPayment.operator} - ${linkedPayment.reference}`,
-							sublabel: `${linkedPayment.amount} FCFA - ${linkedPayment.status}`,
-						};
-						this.selectedPayment.set(paymentItem);
-					} else {
-						this.paymentOption.set("new_payment");
-					}
 				}
 			},
 			error: (error) => {
@@ -386,11 +381,11 @@ export class ReservationsPage implements OnInit {
 		this.seatNumbers.set([null]);
 		this.amount.set(0);
 		this.paymentMethod.set("Wave");
-		this.paymentOption.set("new_payment");
-		this.selectedPayment.set(null);
+		this.currentPaymentStatus.set("");
 		this.notes.set("");
 		this.formError.set("");
 		this.formSuccess.set("");
+		this.paymentVerificationFeedback.set(null);
 		this.formMode.set("create");
 		this.editingReservationId.set(null);
 	}
@@ -404,14 +399,6 @@ export class ReservationsPage implements OnInit {
 		this.selectedTrip.set(null);
 		this.amount.set(0);
 
-		// Load unlinked payments for this user if link to existing payment is enabled
-		if (item && this.paymentOption() === "link_existing") {
-			this.reservationService
-				.getUnlinkedPaymentsForUser(Number(item.id))
-				.subscribe();
-		} else {
-			this.selectedPayment.set(null);
-		}
 	}
 
 	onAgencySelected(item: SearchSelectItem | null) {
@@ -478,34 +465,6 @@ export class ReservationsPage implements OnInit {
 		this.seatNumbers.set(seats);
 	}
 
-	onPaymentOptionChange(option: PaymentOption) {
-		this.paymentOption.set(option);
-
-		// If linking to existing payment, load unlinked payments for selected user
-		if (option === "link_existing" && this.selectedUser()) {
-			this.reservationService
-				.getUnlinkedPaymentsForUser(Number(this.selectedUser()!.id))
-				.subscribe();
-		} else {
-			this.selectedPayment.set(null);
-		}
-	}
-
-	onPaymentSelected(item: SearchSelectItem | null) {
-		this.selectedPayment.set(item);
-
-		// Auto-fill amount from payment if selected
-		if (item && this.paymentOption() === "link_existing") {
-			// Find the payment in paymentItems to get the amount
-			const payment = this.paymentItems().find(
-				(p) => p.id === Number(item.id),
-			);
-			if (payment) {
-				this.amount.set(payment.amount);
-			}
-		}
-	}
-
 	submitReservation() {
 		this.formError.set("");
 		this.isLoadingForm.set(true);
@@ -553,52 +512,40 @@ export class ReservationsPage implements OnInit {
 			}
 		}
 
-		// Handle link_existing payment option - require payment selection
-		if (
-			this.paymentOption() === "link_existing" &&
-			!this.selectedPayment()
-		) {
-			this.formError.set(
-				"Veuillez sélectionner un paiement existant à lier.",
-			);
-			this.isLoadingForm.set(false);
-			return;
-		}
-
 		// Prepare DTO
 		const dto: CreateReservationDto = {
 			userId: Number(this.selectedUser()!.id),
 			tripId: Number(this.selectedTrip()!.id),
 			totalAmount: this.amount(),
 			paymentMethod: this.paymentMethod(),
-			paymentOption: this.paymentOption(),
 			passengerName: this.passengerName(),
 			passengerPhone: this.passengerPhone(),
 			passengerCni: this.passengerCni(),
 			seatCount: this.seatCount(),
 			seatNumbers: this.seatNumbers().map((s) => s),
-			existingPaymentLogId:
-				this.paymentOption() === "link_existing" &&
-				this.selectedPayment()
-					? Number(this.selectedPayment()!.id)
-					: null,
 			notes: this.notes(),
 		};
 
 		// Call appropriate service method based on mode
 		const reservationId = this.editingReservationId();
 		if (this.formMode() === "edit" && reservationId) {
-			// Update existing reservation
+			const reservation = this.currentReservation();
+			const firstTicket = reservation?.tickets?.[0];
+			if (!firstTicket) {
+				this.formError.set("Aucun billet modifiable n’est lié à cette réservation.");
+				this.isLoadingForm.set(false);
+				return;
+			}
+			const update: UpdateReservationDto = {
+				tickets: [{
+					id: firstTicket.id,
+					passengerName: this.passengerName(),
+					passengerPhone: this.passengerPhone(),
+					passengerCni: this.passengerCni(),
+				}],
+			};
 			this.reservationService
-				.updateReservation(reservationId, {
-					tripId: dto.tripId,
-					totalAmount: dto.totalAmount,
-					paymentMethod: dto.paymentMethod,
-					paymentStatus:
-						dto.paymentOption === "link_existing"
-							? "PAID"
-							: "PENDING",
-				})
+				.updateReservation(reservationId, update)
 				.subscribe({
 					next: (response) => {
 						if (response.success) {
@@ -656,6 +603,7 @@ export class ReservationsPage implements OnInit {
 	// ========================================================================
 
 	openDetailModal(reservationId: number) {
+		this.paymentVerificationFeedback.set(null);
 		this.reservationService.getReservationDetail(reservationId).subscribe({
 			next: (response) => {
 				if (response.success) {
@@ -671,6 +619,67 @@ export class ReservationsPage implements OnInit {
 				console.error("Error loading reservation detail:", error);
 			},
 		});
+	}
+
+	isSuperAdmin(): boolean {
+		return this.adminAuth.getAdminRole() === "SUPER_ADMIN";
+	}
+
+	canVerifyMtnPayment(reservation: ReservationDetail): boolean {
+		return reservation.paymentLogs?.some(
+			(log) =>
+				/MTN/i.test(log.operator) &&
+				(log.status === "PENDING" || log.status === "FAILED"),
+		) ?? false;
+	}
+
+	verifyPaymentAtMtn(): void {
+		const reservation = this.currentReservation();
+		if (!reservation || !this.isSuperAdmin()) {
+			return;
+		}
+
+		this.isVerifyingPayment.set(true);
+		this.paymentVerificationFeedback.set(null);
+		this.reservationService.verifyPayment(reservation.id).subscribe({
+			next: (response) => {
+				if (!response.success || !response.data) {
+					this.paymentVerificationFeedback.set({
+						kind: "error",
+						message: response.message ?? "La vérification du paiement a échoué.",
+					});
+					return;
+				}
+				this.paymentVerificationFeedback.set(
+					this.paymentVerificationMessage(response.data),
+				);
+				this.reservationService.getReservationDetail(reservation.id).subscribe();
+			},
+			complete: () => this.isVerifyingPayment.set(false),
+		});
+	}
+
+	private paymentVerificationMessage(
+		result: PaymentVerificationResult,
+	): { kind: "success" | "pending" | "error"; message: string } {
+		switch (result.status) {
+			case "SUCCESS":
+				return { kind: "success", message: "Paiement confirmé par MTN." };
+			case "PENDING":
+				return { kind: "pending", message: "Le paiement est toujours en attente chez MTN." };
+			case "FAILED":
+				return { kind: "error", message: "MTN a confirmé l’échec du paiement." };
+			case "REFUND_PENDING":
+				return {
+					kind: "pending",
+					message: "Succès tardif enregistré : une demande de remboursement a été créée.",
+				};
+			case "DUPLICATE":
+				return {
+					kind: "pending",
+					message: "Paiement reçu en double; aucun nouveau crédit n’a été appliqué.",
+				};
+		}
 	}
 
 	closeDetailModal() {
@@ -787,10 +796,6 @@ export class ReservationsPage implements OnInit {
 			// For now, just use local filtering
 			// In a full implementation, we'd have a dedicated endpoint
 		}
-	}
-
-	onPaymentSearch(query: string) {
-		// Payments are loaded when user is selected and link to existing payment is enabled
 	}
 
 	// ========================================================================

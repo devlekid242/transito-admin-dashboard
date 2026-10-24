@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { environment } from "../../environments/environment.prod";
+import { environment } from "../../environments/environment";
 import { catchError, of, tap } from "rxjs";
 
 // Interfaces for Dashboard KPIs
@@ -52,12 +52,23 @@ export interface ActivityItem {
 
 export interface Alert {
 	id: string;
-	type: "withdrawal" | "refund" | "agency";
+	type:
+		| "withdrawal"
+		| "refund"
+		| "agency"
+		| "agency_document"
+		| "reservation"
+		| "support"
+		| "user"
+		| "trip"
+		| "application"
+		| "finance"
+		| "admin";
 	label: string;
 	description: string;
 	amount: number | null;
 	count: number;
-	severity: "danger" | "warning";
+	severity: "danger" | "warning" | "info";
 }
 
 export interface ChartData {

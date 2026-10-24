@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { environment } from "../../environments/environment.prod";
+import { environment } from "../../environments/environment";
 import { catchError, of } from "rxjs";
 
 // Types and interfaces for Revenue Analysis
@@ -138,7 +138,7 @@ export type DateRange = {
 	endDate: string;
 };
 
-export type PeriodType = "daily" | "weekly" | "monthly" | "custom";
+export type PeriodType = "today" | "daily" | "weekly" | "monthly" | "custom";
 
 export interface DateFilter {
 	period: PeriodType;
@@ -234,6 +234,8 @@ export interface TransactionFilter {
 	search?: string;
 	page?: number;
 	perPage?: number;
+	sortBy?: "date" | "amount" | "feeAmount";
+	sortOrder?: "asc" | "desc";
 }
 
 export interface TransactionHistoryData {
@@ -281,6 +283,9 @@ export class FinancialService {
 		total_pages: number;
 	} | null>(null);
 	readonly transactionFilter = signal<TransactionFilter>({});
+
+	// Refresh trigger signal to notify any listening component
+	readonly refreshTrigger = signal<number>(0);
 
 	// Date filter state
 	readonly dateFilter = signal<DateFilter>({
@@ -444,6 +449,12 @@ export class FinancialService {
 		if (filterToUse.perPage) {
 			params["per_page"] = filterToUse.perPage;
 		}
+		if (filterToUse.sortBy) {
+			params["sort_by"] = filterToUse.sortBy;
+		}
+		if (filterToUse.sortOrder) {
+			params["sort_order"] = filterToUse.sortOrder;
+		}
 
 		this.http
 			.get<TransactionHistoryResponse>(
@@ -603,12 +614,50 @@ export class FinancialService {
 	}
 
 	/**
+	 * Get human-readable label for the current date filter
+	 */
+	getDateFilterLabel(): string {
+		const filter = this.dateFilter();
+		switch (filter.period) {
+			case "today":
+				return "Aujourd'hui";
+			case "daily":
+				return "7 derniers jours";
+			case "weekly":
+				return "30 derniers jours";
+			case "monthly":
+				return "Ce mois";
+			case "custom":
+				if (filter.startDate && filter.endDate) {
+					return `${this.formatDateShort(filter.startDate)} - ${this.formatDateShort(filter.endDate)}`;
+				}
+				return "Personnalisé";
+			default:
+				return "Période";
+		}
+	}
+
+	/**
+	 * Format date string YYYY-MM-DD into DD/MM/YYYY
+	 */
+	formatDateShort(dateStr?: string | null): string {
+		if (!dateStr) return "";
+		const parts = dateStr.split("-");
+		if (parts.length === 3) {
+			return `${parts[2]}/${parts[1]}/${parts[0]}`;
+		}
+		return dateStr;
+	}
+
+	/**
 	 * Get start date based on period
 	 */
 	private getStartDate(period: PeriodType): string {
 		const now = new Date();
 
 		switch (period) {
+			case "today":
+				return now.toISOString().split("T")[0];
 			case "daily":
 				return new Date(
 					now.getFullYear(),
@@ -626,10 +675,14 @@ export class FinancialService {
 					.toISOString()
 					.split("T")[0];
 			case "monthly":
+				return new Date(now.getFullYear(), now.getMonth(), 1)
+					.toISOString()
+					.split("T")[0];
+			case "custom":
 			default:
 				return new Date(
 					now.getFullYear(),
-					now.getMonth() - 8,
+					now.getMonth() - 1,
 					now.getDate(),
 				)
 					.toISOString()
@@ -793,6 +846,7 @@ export class FinancialService {
 	 * Refresh all datasets
 	 */
 	refreshAll() {
+		this.refreshTrigger.update((v) => v + 1);
 		this.loadRevenueAnalysis();
 		this.loadFinancialStats();
 		this.loadTransactionHistory();

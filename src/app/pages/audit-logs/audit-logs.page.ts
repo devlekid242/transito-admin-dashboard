@@ -1,20 +1,20 @@
 import { CommonModule } from "@angular/common";
-import { Component, inject, signal } from "@angular/core";
+import { Component, effect, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import {
-	AuditLog,
-	AuditLogPagination,
-} from "../../models/audit-log.model";
+import { AuditLog, AuditLogPagination } from "../../models/audit-log.model";
 import { AuditLogService } from "../../services/audit-log.service";
+import { FinancialService } from "../../services/financial.service";
+import { PageHeaderComponent } from "../../shared/page-header.component";
 
 @Component({
 	selector: "app-audit-logs",
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [CommonModule, FormsModule, PageHeaderComponent],
 	templateUrl: "audit-logs.page.html",
 })
 export class AuditLogsPage {
 	private readonly auditLogService = inject(AuditLogService);
+	readonly financialService = inject(FinancialService);
 
 	readonly logs = signal<AuditLog[]>([]);
 	readonly pagination = signal<AuditLogPagination | null>(null);
@@ -30,7 +30,11 @@ export class AuditLogsPage {
 	readonly to = signal("");
 
 	constructor() {
-		this.loadLogs(1);
+		// React to global refresh trigger
+		effect(() => {
+			const trigger = this.financialService.refreshTrigger();
+			this.loadLogs(1);
+		});
 	}
 
 	loadLogs(page: number): void {
@@ -93,7 +97,7 @@ export class AuditLogsPage {
 			: date.toLocaleString("fr-FR", {
 					dateStyle: "short",
 					timeStyle: "short",
-			  });
+				});
 	}
 
 	formatValue(value: unknown): string {
@@ -111,17 +115,20 @@ export class AuditLogsPage {
 		const currentPage = this.pagination()?.page ?? 1;
 		const start = Math.max(1, currentPage - 2);
 		const end = Math.min(totalPages, currentPage + 2);
-		return Array.from({ length: Math.max(0, end - start + 1) }, (_, index) => start + index);
+		return Array.from(
+			{ length: Math.max(0, end - start + 1) },
+			(_, index) => start + index,
+		);
 	}
 
 	canReset(): boolean {
 		return Boolean(
 			this.actorType() ||
-				this.action() ||
-				this.targetType() ||
-				this.targetId() ||
-				this.from() ||
-				this.to(),
+			this.action() ||
+			this.targetType() ||
+			this.targetId() ||
+			this.from() ||
+			this.to(),
 		);
 	}
 }

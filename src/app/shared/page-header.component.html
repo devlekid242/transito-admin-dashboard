@@ -1,13 +1,145 @@
-<div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
-        @if (subtitle) {
-          <p class="mt-1 text-sm text-gray-500">{{ subtitle }}</p>
-        }
-      </div>
-      @if (actions) {
-        <div class="flex flex-wrap items-center gap-2">
-          <ng-container *ngTemplateOutlet="Action"></ng-container>
-        </div>
-      }
-    </div>
+<div
+	class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+	<div class="min-w-0 flex-1">
+		<h1 class="text-2xl font-bold tracking-tight text-gray-900">
+			{{ title }}
+		</h1>
+		@if (subtitle) {
+			<p class="mt-1 text-sm text-gray-500">{{ subtitle }}</p>
+		}
+	</div>
+
+	<div class="flex flex-wrap items-center gap-2.5">
+		<!-- Date Filter Dropdown / Popover -->
+		@if (showDateFilter) {
+			<div class="relative">
+				<button
+					type="button"
+					(click)="toggleDateDropdown()"
+					class="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-green-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+					<i class="fa-regular fa-calendar text-green-600"></i>
+					<span>{{ periodLabel() }}</span>
+					<i
+						class="fa-solid fa-chevron-down text-xs text-gray-400 transition-transform duration-200"
+						[class.rotate-180]="dateDropdownOpen()"></i>
+				</button>
+
+				@if (dateDropdownOpen()) {
+					<div
+						class="absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-2xl border border-gray-100 bg-white p-4 shadow-xl ring-1 ring-black/5">
+						<p
+							class="mb-2.5 text-xs font-bold uppercase tracking-wider text-gray-400">
+							Période d'analyse
+						</p>
+
+						<!-- Quick Presets -->
+						<div class="grid grid-cols-2 gap-1.5">
+							@for (p of periods; track p.value) {
+								@if (p.value !== "custom") {
+									<button
+										type="button"
+										(click)="selectPeriod(p.value)"
+										class="flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium transition"
+										[class.bg-green-50]="
+											dateFilter().period === p.value
+										"
+										[class.text-green-700]="
+											dateFilter().period === p.value
+										"
+										[class.font-semibold]="
+											dateFilter().period === p.value
+										"
+										[class.hover:bg-gray-50]="
+											dateFilter().period !== p.value
+										"
+										[class.text-gray-700]="
+											dateFilter().period !== p.value
+										">
+										<span>{{ p.label }}</span>
+										@if (dateFilter().period === p.value) {
+											<i
+												class="fa-solid fa-check text-green-600"></i>
+										}
+									</button>
+								}
+							}
+						</div>
+
+						<div class="my-3 border-t border-gray-100"></div>
+
+						<!-- Custom Range -->
+						<p
+							class="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">
+							Intervalle personnalisé
+						</p>
+						<div class="space-y-2">
+							<div class="flex items-center gap-2">
+								<div class="flex-1">
+									<label
+										class="block text-[11px] text-gray-500 mb-0.5"
+										>Date début</label
+									>
+									<input
+										type="date"
+										[ngModel]="customStartDate()"
+										(ngModelChange)="
+											customStartDate.set($event)
+										"
+										class="w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-gray-700 outline-none transition focus:border-green-500 focus:bg-white focus:ring-1 focus:ring-green-500" />
+								</div>
+								<div class="flex-1">
+									<label
+										class="block text-[11px] text-gray-500 mb-0.5"
+										>Date fin</label
+									>
+									<input
+										type="date"
+										[ngModel]="customEndDate()"
+										(ngModelChange)="
+											customEndDate.set($event)
+										"
+										class="w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-gray-700 outline-none transition focus:border-green-500 focus:bg-white focus:ring-1 focus:ring-green-500" />
+								</div>
+							</div>
+							<button
+								type="button"
+								(click)="applyCustomDates()"
+								[disabled]="
+									!customStartDate() || !customEndDate()
+								"
+								class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-green-600 py-2 text-xs font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
+								<i class="fa-solid fa-filter text-[11px]"></i>
+								Appliquer les dates
+							</button>
+						</div>
+					</div>
+				}
+			</div>
+		}
+
+		<!-- Refresh Button -->
+		@if (showRefresh) {
+			<button
+				type="button"
+				(click)="onRefreshClick()"
+				[disabled]="isRefreshing()"
+				title="Actualiser la page et les données"
+				class="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-green-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500/20 disabled:cursor-not-allowed disabled:opacity-75">
+				<i
+					class="fa-solid fa-arrows-rotate text-green-600 transition-transform duration-500"
+					[class.animate-spin]="isRefreshing()"></i>
+				<span class="hidden sm:inline">Actualiser</span>
+			</button>
+		}
+
+		<!-- Page Custom Actions Template -->
+		@if (actions) {
+			<div class="flex flex-wrap items-center gap-2">
+				<ng-container *ngTemplateOutlet="Action"></ng-container>
+			</div>
+		}
+
+		<!-- Default Content Projection if any -->
+		<ng-content></ng-content>
+	</div>
+</div>

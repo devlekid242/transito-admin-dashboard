@@ -33,6 +33,7 @@ import { LayoutComponent } from "./layout/layout.component";
 import { CitiesPage } from "./pages/cities/cities.page";
 import { JobRunsComponent } from "./pages/job-runs/job-runs.component";
 import { AuditLogsPage } from "./pages/audit-logs/audit-logs.page";
+import { PlatformWalletPage } from "./pages/platform-wallet/platform-wallet.page";
 
 
 export const routes: Routes = [
@@ -60,6 +61,12 @@ export const routes: Routes = [
 				path: "finance/wallets",
 				component: WalletsPage,
 				title: "Portefeuilles · Transito Admin",
+				canActivate: [authGuard],
+			},
+			{ 
+				path: 'finance/wallets/platform', 
+				component: PlatformWalletPage,
+				title: "Portefeuille plateforme · Transito Admin",
 				canActivate: [authGuard],
 			},
 			{

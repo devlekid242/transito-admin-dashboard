@@ -1,6 +1,6 @@
 import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RefundService, RefundRequest, RefundStatus, CreateRefundPayload } from '../../services/refund.service';
+import { RefundService, RefundRequest, RefundStatus, RefundType, CreateRefundPayload } from '../../services/refund.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { StatCardComponent } from '../../shared/stat-card.component';
 import { StatusBadgeComponent } from '../../shared/status-badge.component';
@@ -8,6 +8,7 @@ import { DataTableComponent, DataTableColumn } from '../../shared/data-table.com
 import { ModalComponent } from '../../shared/modal.component';
 import { SearchSelectComponent, SearchSelectItem } from '../../shared/search-select.component';
 import { FormsModule } from "@angular/forms";
+import { AdminAuthService } from '../../services/admin-auth.service';
 
 
 @Component({
@@ -17,6 +18,7 @@ import { FormsModule } from "@angular/forms";
 })
 export class RefundsPage {
   readonly refundService = inject(RefundService);
+  private readonly adminAuth = inject(AdminAuthService);
   
   // Form state for creating manual refund
   readonly selectedUser = signal<SearchSelectItem | null>(null);
@@ -32,6 +34,11 @@ export class RefundsPage {
   readonly forceRefundConfirmId = signal<number | null>(null);
   readonly standardRefundError = signal<string | null>(null);
   readonly forceRefundNote = signal('');
+  readonly lateRefundConfirmId = signal<number | null>(null);
+  readonly lateRefundProviderReference = signal('');
+  readonly lateRefundProviderDate = signal('');
+  readonly lateRefundAdminNote = signal('');
+  readonly lateRefundError = signal<string | null>(null);
 
   readonly columns: DataTableColumn[] = [
     { key: 'bookingReference', label: 'Référence' },
@@ -39,6 +46,7 @@ export class RefundsPage {
     { key: 'agencyName', label: 'Agence' },
     { key: 'amount', label: 'Montant' },
     { key: 'reason', label: 'Motif' },
+    { key: 'type', label: 'Type' },
     { key: 'status', label: 'Statut' },
     { key: 'createdAt', label: 'Date' },
     { key: 'actions', label: 'Actions', align: 'right' },
@@ -163,6 +171,56 @@ export class RefundsPage {
     this.forceRefundNote.set('');
   }
 
+  openLateRefundConfirm(id: number) {
+    this.lateRefundConfirmId.set(id);
+    this.lateRefundProviderReference.set('');
+    this.lateRefundProviderDate.set('');
+    this.lateRefundAdminNote.set('');
+    this.lateRefundError.set(null);
+  }
+
+  closeLateRefundConfirm() {
+    this.lateRefundConfirmId.set(null);
+    this.lateRefundError.set(null);
+  }
+
+  confirmLateRefund() {
+    const id = this.lateRefundConfirmId();
+    if (!id) return;
+
+    const providerRefundReference = this.lateRefundProviderReference().trim();
+    const providerRefundedAt = this.lateRefundProviderDate();
+    const adminNote = this.lateRefundAdminNote().trim();
+    if (!providerRefundReference || !providerRefundedAt || !adminNote) {
+      this.lateRefundError.set('La référence fournisseur, la date et la note sont obligatoires.');
+      return;
+    }
+
+    const providerRefundedAtIso = new Date(providerRefundedAt).toISOString();
+    this.lateRefundError.set(null);
+    this.refundService.markLateRefundAsRefunded(id, {
+      providerRefundReference,
+      providerRefundedAt: providerRefundedAtIso,
+      adminNote,
+    }).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.closeLateRefundConfirm();
+          this.refundService.loadRefunds(
+            this.refundService.currentPage(),
+            this.refundService.perPage(),
+            this.refundService.filters(),
+          );
+        }
+      },
+      error: (error) => {
+        this.lateRefundError.set(
+          error?.error?.message || 'Échec de l’enregistrement du remboursement fournisseur.',
+        );
+      },
+    });
+  }
+
   // Process standard refund
   confirmStandardRefund() {
     const id = this.standardRefundConfirmId();
@@ -268,14 +326,34 @@ export class RefundsPage {
     this.refundService.filters.update(f => ({ ...f, status }));
   }
 
+  onTypeFilter(type: RefundType | 'ALL') {
+    this.refundService.loadRefunds(1, this.refundService.perPage(), {
+      ...this.refundService.filters(),
+      type,
+    });
+  }
+
+  ageLabel(hours: number | null): string {
+    if (hours === null) return 'Inconnue';
+    if (hours < 1) return `${Math.max(1, Math.round(hours * 60))} min`;
+    if (hours < 24) return `${hours} h`;
+    const days = Math.floor(hours / 24);
+    const remainingHours = Math.floor(hours % 24);
+    return `${days} j ${remainingHours} h`;
+  }
+
+  isSuperAdmin(): boolean {
+    return this.adminAuth.getAdminRole() === 'SUPER_ADMIN';
+  }
+
   // Check if refund can be processed with standard method
   checkRefundProcessable(refund: RefundRequest): boolean {
-    return refund.status === 'PENDING' && refund.canStandardRefund;
+    return refund.type === 'normal' && refund.status === 'PENDING' && refund.canStandardRefund;
   }
 
   // Check if refund requires force
   checkRequiresForce(refund: RefundRequest): boolean {
-    return refund.status === 'PENDING' && !refund.canStandardRefund;
+    return refund.type === 'normal' && refund.status === 'PENDING' && !refund.canStandardRefund;
   }
 
   // Check if refund is already processed
