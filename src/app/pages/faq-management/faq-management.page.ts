@@ -1,7 +1,11 @@
 import { Component, inject, signal, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { SupportService, FAQ } from "../../services/support.service";
+import {
+	FAQ,
+	FAQAudience,
+	SupportService,
+} from "../../services/support.service";
 import { PageHeaderComponent } from "../../shared/page-header.component";
 import { ModalComponent } from "../../shared/modal.component";
 
@@ -25,6 +29,7 @@ export class FAQManagementPage implements OnInit {
 		question: "",
 		answer: "",
 		category: "general",
+		audience: "ALL" as FAQAudience,
 		orderPriority: 0,
 		isActive: true,
 	});
@@ -67,8 +72,12 @@ export class FAQManagementPage implements OnInit {
 	// Filter methods
 	onCategoryFilterChange(category: string): void {
 		this.supportService.updateFAQFilter({
-			category: category === "all" ? "all" : category,
+			category,
 		});
+	}
+
+	onAudienceFilterChange(audience: FAQAudience | "all"): void {
+		this.supportService.updateFAQFilter({ audience });
 	}
 
 	onSearchChange(search: string): void {
@@ -86,6 +95,7 @@ export class FAQManagementPage implements OnInit {
 			question: "",
 			answer: "",
 			category: "general",
+			audience: "ALL",
 			orderPriority: 0,
 			isActive: true,
 		});
@@ -143,6 +153,7 @@ export class FAQManagementPage implements OnInit {
 			question: faq.question,
 			answer: faq.answer,
 			category: faq.category,
+			audience: faq.audience,
 			orderPriority: faq.orderPriority,
 			isActive: faq.isActive,
 		};
@@ -189,6 +200,7 @@ export class FAQManagementPage implements OnInit {
 		{ key: "orderPriority", header: "Order", type: "number" },
 		{ key: "question", header: "Question", type: "text" },
 		{ key: "category", header: "Category", type: "text" },
+		{ key: "audience", header: "Audience", type: "text" },
 		{ key: "isActive", header: "Active", type: "boolean" },
 		{ key: "createdAt", header: "Created", type: "date" },
 	];

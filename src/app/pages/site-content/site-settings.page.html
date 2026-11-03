@@ -1,0 +1,52 @@
+<app-page-header title="Paramètres du site vitrine" subtitle="Coordonnées et liens publics autorisés." [actions]="true" [showDateFilter]="false">
+	<ng-template #buttonAction>
+		<button type="button" (click)="showPreview()" class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Aperçu des réglages</button>
+	</ng-template>
+</app-page-header>
+
+<nav class="mb-5 flex flex-wrap gap-2" aria-label="Navigation du site vitrine">
+	<a routerLink="/moderation/site-content/pages" routerLinkActive="bg-green-100 text-green-800" class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-600">Pages</a>
+	<a routerLink="/moderation/site-content/blocks" routerLinkActive="bg-green-100 text-green-800" class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-600">Blocs</a>
+	<a routerLink="/moderation/site-content/settings" routerLinkActive="bg-green-100 text-green-800" class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-600">Paramètres</a>
+</nav>
+
+@if (errorMessage()) { <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorMessage() }}</div> }
+
+<form (ngSubmit)="save()" class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+	@if (loading()) {
+		<p role="status" class="py-8 text-center text-sm text-gray-500">Chargement des paramètres…</p>
+	} @else {
+		<p class="mb-5 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-800">Les valeurs enregistrées sont publiques. Les champs laissés vides ne sont pas envoyés; utilisez « Retirer » pour supprimer une valeur déjà publiée.</p>
+		<div class="grid gap-5 md:grid-cols-2">
+			@for (field of fields; track field.key) {
+				<div>
+					<label [for]="'setting-' + field.key" class="mb-1 block text-sm font-semibold text-gray-700">{{ field.label }}</label>
+					@if (field.type === "textarea") {
+						<textarea [id]="'setting-' + field.key" [ngModel]="value(field.key)" (ngModelChange)="updateValue(field.key, $event)" [name]="field.key" maxlength="500" rows="3" class="w-full rounded-lg border border-gray-300 px-3 py-2"></textarea>
+					} @else {
+						<input [id]="'setting-' + field.key" [type]="field.type" [ngModel]="value(field.key)" (ngModelChange)="updateValue(field.key, $event)" [name]="field.key" maxlength="500" [attr.autocomplete]="field.type === 'email' ? 'email' : 'off'" class="w-full rounded-lg border border-gray-300 px-3 py-2" />
+					}
+					@if (field.type === "url") { <p class="mt-1 text-xs text-gray-500">URL HTTPS requise.</p> }
+					@if (fieldError(field.key)) { <p class="mt-1 text-xs text-red-600">{{ fieldError(field.key) }}</p> }
+					@if (savedValues()[field.key]) {
+						<button type="button" (click)="confirmRemove(field.key)" [disabled]="removingKey() === field.key" class="mt-2 text-xs font-semibold text-red-700 hover:underline disabled:opacity-50">Retirer la valeur publique</button>
+					}
+				</div>
+			}
+		</div>
+		<div class="mt-6 flex justify-end border-t border-gray-100 pt-5">
+			<button type="submit" [disabled]="saving()" class="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{{ saving() ? "Enregistrement…" : "Enregistrer les modifications" }}</button>
+		</div>
+	}
+</form>
+
+<app-modal [open]="modalOpen()" (close)="closePreview()" title="Aperçu des paramètres publics" size="md">
+	<dl class="space-y-3">
+		@for (field of fields; track field.key) {
+			<div class="border-b border-gray-100 pb-2">
+				<dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ field.label }}</dt>
+				<dd class="mt-1 whitespace-pre-wrap break-words text-sm text-gray-800">{{ value(field.key) || "Non renseigné" }}</dd>
+			</div>
+		}
+	</dl>
+</app-modal>

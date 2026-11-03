@@ -74,11 +74,14 @@ export interface SupportStats {
 
 // ==================== FAQ ====================
 
+export type FAQAudience = "TRAVELER" | "AGENCY" | "ALL";
+
 export interface FAQ {
 	id: number;
 	question: string;
 	answer: string;
 	category: string;
+	audience: FAQAudience;
 	orderPriority: number;
 	isActive: boolean;
 	createdAt?: string;
@@ -87,6 +90,7 @@ export interface FAQ {
 export interface FAQFilter {
 	search?: string;
 	category?: string;
+	audience?: FAQAudience | "all";
 	activeOnly: boolean;
 }
 
@@ -317,7 +321,10 @@ export class SupportService {
 		const f = this.currentFAQFilter();
 		const query = new URLSearchParams();
 		if (f.search) query.set("search", f.search);
-		if (f.category) query.set("category", f.category);
+		if (f.category && f.category !== "all") query.set("category", f.category);
+		if (f.audience && f.audience !== "all") {
+			query.set("audience", f.audience);
+		}
 		query.set("active_only", String(f.activeOnly));
 
 		return this.http
@@ -354,7 +361,7 @@ export class SupportService {
 	}
 
 	resetFAQFilters(): void {
-		this.currentFAQFilter.set({ activeOnly: true });
+		this.currentFAQFilter.set({ activeOnly: true, audience: "all" });
 		this.getFAQs().subscribe();
 	}
 

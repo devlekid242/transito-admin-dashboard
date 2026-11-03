@@ -1,0 +1,207 @@
+<app-page-header
+	title="Messages de contact"
+	subtitle="Consultez et traitez les messages envoyés depuis le site."
+	[actions]="true"
+	[showDateFilter]="false"
+	(refresh)="loadMessages()">
+	<ng-template #buttonAction>
+		<button
+			type="button"
+			(click)="loadMessages()"
+			class="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+			<i class="fa-solid fa-rotate"></i>
+			Actualiser
+		</button>
+	</ng-template>
+</app-page-header>
+
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+	<div class="flex items-center gap-2 rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+		<i class="fa-solid fa-envelope text-green-600"></i>
+		<span class="text-sm font-semibold text-gray-700">
+			{{ total() }} message{{ total() === 1 ? "" : "s" }}
+		</span>
+	</div>
+	<span class="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
+		{{ newMessagesOnPage() }} nouveau{{ newMessagesOnPage() === 1 ? "" : "x" }} sur cette page
+	</span>
+</div>
+
+<div class="mb-5 flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:flex-row">
+	<label class="relative flex-1">
+		<span class="sr-only">Rechercher un message</span>
+		<i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
+		<input
+			#searchInput
+			type="search"
+			maxlength="100"
+			[value]="search()"
+			(input)="onSearchChange(searchInput.value)"
+			placeholder="Rechercher par nom, e-mail ou sujet..."
+			class="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-500/10" />
+	</label>
+	<label class="sm:w-56">
+		<span class="sr-only">Filtrer par statut</span>
+		<select
+			[value]="statusFilter()"
+			(change)="onStatusChange($any($event.target).value)"
+			class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/10">
+			<option value="">Tous les statuts</option>
+			<option value="NEW">Nouveaux</option>
+			<option value="READ">Lus</option>
+			<option value="ARCHIVED">Archivés</option>
+		</select>
+	</label>
+</div>
+
+@if (errorMessage()) {
+	<div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+		{{ errorMessage() }}
+	</div>
+}
+
+<app-data-table
+	[columns]="columns"
+	[rows]="messages()"
+	[loading]="isLoading()"
+	[hideToolbar]="true"
+	[hidePagination]="true"
+	[pageSize]="100"
+	[searchKeys]="[]"
+	emptyMessage="Aucun message de contact trouvé.">
+	<ng-template #rowTemplate let-message>
+		<td class="px-5 py-4">
+			<button
+				type="button"
+				(click)="openDetails(message)"
+				class="text-left font-semibold text-gray-900 hover:text-green-700">
+				{{ message.name }}
+			</button>
+			@if (message.status === "NEW") {
+				<span class="ml-2 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-700">
+					Nouveau
+				</span>
+			}
+		</td>
+		<td class="px-5 py-4 text-gray-600">{{ message.email }}</td>
+		<td class="max-w-xs truncate px-5 py-4 text-gray-700">{{ message.subject }}</td>
+		<td class="whitespace-nowrap px-5 py-4 text-gray-600">{{ message.createdAt | date:"short" }}</td>
+		<td class="px-5 py-4">
+			<span
+				class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
+				[class.bg-blue-50]="message.status === 'NEW'"
+				[class.text-blue-700]="message.status === 'NEW'"
+				[class.bg-green-50]="message.status === 'READ'"
+				[class.text-green-700]="message.status === 'READ'"
+				[class.bg-gray-100]="message.status === 'ARCHIVED'"
+				[class.text-gray-600]="message.status === 'ARCHIVED'">
+				{{ statusLabel(message.status) }}
+			</span>
+		</td>
+		<td class="px-5 py-4 text-right">
+			<button
+				type="button"
+				(click)="openDetails(message)"
+				class="rounded-lg px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-50">
+				Voir
+			</button>
+		</td>
+	</ng-template>
+</app-data-table>
+
+@if (totalPages() > 1) {
+	<nav aria-label="Pagination des messages" class="mt-4 flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-5 py-3 shadow-sm">
+		<p class="text-xs text-gray-500">
+			Page {{ page() }} sur {{ totalPages() }} · {{ total() }} résultats
+		</p>
+		<div class="flex gap-2">
+			<button
+				type="button"
+				(click)="goToPage(page() - 1)"
+				[disabled]="page() <= 1 || isLoading()"
+				class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 disabled:opacity-40">
+				Précédent
+			</button>
+			<button
+				type="button"
+				(click)="goToPage(page() + 1)"
+				[disabled]="page() >= totalPages() || isLoading()"
+				class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 disabled:opacity-40">
+				Suivant
+			</button>
+		</div>
+	</nav>
+}
+
+<app-modal
+	[isOpen]="isDetailOpen()"
+	(close)="closeDetails()"
+	[title]="selectedMessage()?.subject ?? 'Message de contact'"
+	[size]="'lg'">
+	@if (isDetailLoading()) {
+		<p class="py-8 text-center text-sm text-gray-500">Chargement du message...</p>
+	} @else if (selectedMessage(); as message) {
+		<div class="space-y-5">
+			<div class="flex flex-wrap items-start justify-between gap-4">
+				<div>
+					<p class="font-semibold text-gray-900">{{ message.name }}</p>
+					<p class="mt-1 text-sm text-gray-500">
+						<a class="text-green-700 hover:underline" [href]="mailto(message)">
+							{{ message.email }}
+						</a>
+						<span class="mx-2">·</span>
+						{{ message.createdAt | date:"medium" }}
+					</p>
+				</div>
+				<span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
+					{{ statusLabel(message.status) }}
+				</span>
+			</div>
+
+			<div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+				<p class="whitespace-pre-wrap break-words text-sm leading-6 text-gray-800">{{ message.message }}</p>
+			</div>
+
+			@if (message.readAt) {
+				<p class="text-xs text-gray-500">
+					Lu le {{ message.readAt | date:"medium" }}
+					@if (message.readBy?.name) { par {{ message.readBy?.name }} }
+				</p>
+			}
+
+			<div class="flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
+				<a
+					[href]="mailto(message)"
+					class="mr-auto inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+					<i class="fa-solid fa-reply"></i>
+					Répondre
+				</a>
+				@if (message.status !== "READ") {
+					<button
+						type="button"
+						(click)="markAsRead()"
+						[disabled]="isUpdating()"
+						class="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+						Marquer comme lu
+					</button>
+				}
+				@if (message.status !== "ARCHIVED") {
+					<button
+						type="button"
+						(click)="archive()"
+						[disabled]="isUpdating()"
+						class="rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50">
+						Archiver
+					</button>
+				}
+				<button
+					type="button"
+					(click)="deleteMessage()"
+					[disabled]="isUpdating()"
+					class="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50">
+					Supprimer
+				</button>
+			</div>
+		</div>
+	}
+</app-modal>

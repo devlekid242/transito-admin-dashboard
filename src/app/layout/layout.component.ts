@@ -256,6 +256,33 @@ export class LayoutComponent {
 					route: "/moderation/faq-management",
 					permission: "view_support",
 				},
+				{
+					label: "Messages de contact",
+					icon: "fa-solid fa-envelope",
+					route: "/moderation/contact-messages",
+					permission: "view_support",
+				},
+			],
+		},
+		{
+			title: "Site vitrine",
+			roles: ["MODERATION_ADMIN", "SUPER_ADMIN"],
+			items: [
+				{
+					label: "Pages",
+					icon: "fa-solid fa-file-lines",
+					route: "/moderation/site-content/pages",
+				},
+				{
+					label: "Blocs",
+					icon: "fa-solid fa-layer-group",
+					route: "/moderation/site-content/blocks",
+				},
+				{
+					label: "Paramètres",
+					icon: "fa-solid fa-address-card",
+					route: "/moderation/site-content/settings",
+				},
 			],
 		},
 		{

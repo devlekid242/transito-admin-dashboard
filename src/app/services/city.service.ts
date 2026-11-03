@@ -1,5 +1,6 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
+import { HttpEvent, HttpEventType } from "@angular/common/http";
 import { environment } from "../../environments/environment";
 import { catchError, of, tap } from "rxjs";
 
@@ -10,6 +11,10 @@ export interface City {
 	code: string | null;
 	country: string | null;
 	isActive: boolean;
+	showOnSite: boolean;
+	siteDisplayOrder: number | null;
+	hasImage: boolean;
+	imagePreviewUrl: string | null;
 	tripsCount?: number;
 	boardingPointsCount?: number;
 	createdAt: string;
@@ -20,6 +25,8 @@ export interface CityCreateInput {
 	code?: string | null;
 	country?: string | null;
 	isActive?: boolean;
+	showOnSite?: boolean;
+	siteDisplayOrder?: number | null;
 }
 
 export interface CityUpdateInput {
@@ -27,11 +34,14 @@ export interface CityUpdateInput {
 	code?: string | null;
 	country?: string | null;
 	isActive?: boolean;
+	showOnSite?: boolean;
+	siteDisplayOrder?: number | null;
 }
 
 export interface CityListResponse {
 	success: boolean;
 	data: City[];
+	message?: string;
 }
 
 export interface CityDetailResponse {
@@ -43,6 +53,13 @@ export interface ApiResponse<T> {
 	success: boolean;
 	message?: string;
 	data?: T;
+	errors?: Record<string, string[]>;
+}
+
+export interface CitySiteVisibilityInput {
+	id: number;
+	showOnSite: boolean;
+	siteDisplayOrder: number | null;
 }
 
 @Injectable({
@@ -63,6 +80,8 @@ export class CityService {
 	// Search and filter state
 	readonly searchQuery = signal<string>("");
 	readonly statusFilter = signal<"active" | "inactive" | null>(null);
+	readonly siteVisibilityFilter = signal<"shown" | "hidden" | null>(null);
+	readonly uploadProgress = signal(0);
 
 	// Computed signals
 	readonly totalCities = computed(() => this.cities().length);
@@ -76,7 +95,11 @@ export class CityService {
 	/**
 	 * Get all cities with optional search and status filter.
 	 */
-	getCities(search?: string, status?: "active" | "inactive" | null) {
+	getCities(
+		search?: string,
+		status?: "active" | "inactive" | null,
+		showOnSite?: boolean | null,
+	) {
 		this.loadingCities.set(true);
 
 		let params = new HttpParams();
@@ -85,6 +108,9 @@ export class CityService {
 		}
 		if (status) {
 			params = params.set("status", status);
+		}
+		if (showOnSite !== undefined && showOnSite !== null) {
+			params = params.set("showOnSite", String(showOnSite));
 		}
 
 		return this.http
@@ -159,6 +185,7 @@ export class CityService {
 						message:
 							error.error?.message ||
 							"Erreur lors de la création de la ville",
+						data: undefined as City | undefined,
 					});
 				}),
 			);
@@ -191,9 +218,76 @@ export class CityService {
 						message:
 							error.error?.message ||
 							"Erreur lors de la mise à jour de la ville",
+						data: undefined as City | undefined,
 					});
 				}),
 			);
+	}
+
+	updateSiteVisibility(items: CitySiteVisibilityInput[]) {
+		return this.http
+			.patch<ApiResponse<City[]>>(
+				`${this.apiBaseUrl}/admin/cities/site-visibility`,
+				items,
+			)
+			.pipe(
+				tap((response) => {
+					if (response.success && response.data) {
+						const updated = new Map(
+							response.data.map((city) => [city.id, city]),
+						);
+						this.cities.update((cities) =>
+							cities.map((city) => updated.get(city.id) ?? city),
+						);
+					}
+				}),
+			);
+	}
+
+	uploadCityImage(id: number, file: File) {
+		const formData = new FormData();
+		formData.append("image", file, file.name);
+		this.uploadProgress.set(0);
+		return this.http
+			.post<ApiResponse<City>>(
+				`${this.apiBaseUrl}/admin/cities/${id}/image`,
+				formData,
+				{ reportProgress: true, observe: "events" },
+			)
+			.pipe(
+				tap((event: HttpEvent<ApiResponse<City>>) => {
+					if (event.type === HttpEventType.UploadProgress && event.total) {
+						this.uploadProgress.set(
+							Math.round((100 * event.loaded) / event.total),
+						);
+					}
+					if (event.type === HttpEventType.Response) {
+						this.uploadProgress.set(100);
+						const city = event.body?.data;
+						if (event.body?.success && city) this.replaceCity(city);
+					}
+				}),
+			);
+	}
+
+	deleteCityImage(id: number) {
+		return this.http
+			.delete<ApiResponse<City>>(
+				`${this.apiBaseUrl}/admin/cities/${id}/image`,
+			)
+			.pipe(
+				tap((response) => {
+					if (response.success && response.data) {
+						this.replaceCity(response.data);
+					}
+				}),
+			);
+	}
+
+	getCityImagePreview(id: number) {
+		return this.http.get(`${this.apiBaseUrl}/admin/cities/${id}/image`, {
+			responseType: "blob",
+		});
 	}
 
 	/**
@@ -283,6 +377,15 @@ export class CityService {
 			this.searchQuery() || undefined,
 			this.statusFilter(),
 		).subscribe();
+	}
+
+	private replaceCity(updated: City) {
+		this.cities.update((cities) =>
+			cities.map((city) => (city.id === updated.id ? updated : city)),
+		);
+		if (this.currentCity()?.id === updated.id) {
+			this.currentCity.set(updated);
+		}
 	}
 
 	/**

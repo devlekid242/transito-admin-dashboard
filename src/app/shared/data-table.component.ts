@@ -35,6 +35,8 @@ export class DataTableComponent<T> {
 	readonly searchKeys = input<string[]>([]);
 	readonly emptyMessage = input("Aucune donnée trouvée.");
 	readonly loading = input(false);
+	readonly hideToolbar = input(false);
+	readonly hidePagination = input(false);
 
 	readonly BaseApiUrl = environment.baseApiUrl; // Assuming you have an environment file with the API base URL
 

@@ -95,8 +95,8 @@ export class AdminTokenInterceptor implements HttpInterceptor {
 		const authService = this.getAuthService();
 		const adminRole = authService.getAdminRole();
 		if (adminRole) {
-			headers["X-User-Role"] = "admin";
-			headers["X-Admin-Role"] = adminRole;
+			// headers["X-User-Role"] = "admin";
+			// headers["X-Admin-Role"] = adminRole;
 		}
 
 		if (

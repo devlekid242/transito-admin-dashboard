@@ -95,6 +95,18 @@
 		<div class="flex flex-wrap items-center gap-3">
 			<div class="relative">
 				<select
+					[value]="supportService.currentFAQFilter().audience || 'all'"
+					(change)="onAudienceFilterChange($any($event.target).value)"
+					aria-label="Filtrer par public"
+					class="min-w-[170px] rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-medium text-gray-700 outline-none transition hover:border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/10">
+					<option value="all">Tous les publics</option>
+					<option value="ALL">Tous les utilisateurs</option>
+					<option value="TRAVELER">Voyageurs</option>
+					<option value="AGENCY">Agences</option>
+				</select>
+			</div>
+			<div class="relative">
+				<select
 					(change)="onCategoryFilterChange($any($event.target).value)"
 					class="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-medium text-gray-700 outline-none transition hover:border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/10 min-w-[150px]">
 					<option value="all">Toutes les catégories</option>
@@ -159,6 +171,10 @@
 					</th>
 					<th
 						class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+						Public
+					</th>
+					<th
+						class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
 						Status
 					</th>
 					<th
@@ -188,6 +204,11 @@
 							class="rounded-lg bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700"
 							>{{ faq.category }}</span
 						>
+					</td>
+					<td class="px-4 py-3 text-sm">
+						<span class="rounded-lg bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
+							{{ faq.audience === "TRAVELER" ? "Voyageurs" : faq.audience === "AGENCY" ? "Agences" : "Tous" }}
+						</span>
 					</td>
 					<td class="px-4 py-3 text-sm">
 						@if (faq.isActive) {
@@ -236,7 +257,7 @@
 				} @empty {
 				<tr>
 					<td
-						colspan="6"
+						colspan="7"
 						class="px-4 py-12 text-center text-sm text-gray-400">
 						<i class="fa-regular fa-question-circle text-4xl"></i>
 						<p class="mt-3">
@@ -313,6 +334,19 @@
 					min="0"
 					class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
 			</div>
+		</div>
+
+		<div>
+			<label class="mb-1 block text-sm font-medium text-gray-700" for="newFaqAudience">Public</label>
+			<select
+				id="newFaqAudience"
+				[value]="newFAQ().audience"
+				(change)="updateNewFAQ('audience', $any($event.target).value)"
+				class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+				<option value="ALL">Tous les utilisateurs</option>
+				<option value="TRAVELER">Voyageurs</option>
+				<option value="AGENCY">Agences</option>
+			</select>
 		</div>
 
 		<div class="flex items-center gap-2">
@@ -412,6 +446,19 @@
 					min="0"
 					class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
 			</div>
+		</div>
+
+		<div>
+			<label class="mb-1 block text-sm font-medium text-gray-700" for="editFaqAudience">Public</label>
+			<select
+				id="editFaqAudience"
+				[value]="currentFAQ()!.audience"
+				(change)="updateCurrentFAQ('audience', $any($event.target).value)"
+				class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100">
+				<option value="ALL">Tous les utilisateurs</option>
+				<option value="TRAVELER">Voyageurs</option>
+				<option value="AGENCY">Agences</option>
+			</select>
 		</div>
 
 		<div class="flex items-center gap-2">

@@ -18,5 +18,11 @@ export const authGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
 		return false;
 	}
 
+	const allowedRoles = route.data?.["adminRoles"] as string[] | undefined;
+	if (allowedRoles?.length && !allowedRoles.includes(authService.getAdminRole() ?? "")) {
+		router.navigate(["/"]);
+		return false;
+	}
+
 	return true;
 };

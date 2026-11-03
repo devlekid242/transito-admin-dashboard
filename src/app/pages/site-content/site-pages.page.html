@@ -1,0 +1,77 @@
+<app-page-header title="Pages du site vitrine" subtitle="Gérez les métadonnées et la publication des pages." [actions]="true" [showDateFilter]="false">
+	<ng-template #buttonAction>
+		<button type="button" (click)="openCreate()" class="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700">
+			<i class="fa-solid fa-plus mr-2"></i>Ajouter une page
+		</button>
+	</ng-template>
+</app-page-header>
+
+<nav class="mb-5 flex flex-wrap gap-2" aria-label="Navigation du site vitrine">
+	<a routerLink="/moderation/site-content/pages" routerLinkActive="bg-green-100 text-green-800" class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-600">Pages</a>
+	<a routerLink="/moderation/site-content/blocks" routerLinkActive="bg-green-100 text-green-800" class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-600">Blocs</a>
+	<a routerLink="/moderation/site-content/settings" routerLinkActive="bg-green-100 text-green-800" class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-600">Paramètres</a>
+</nav>
+
+@if (errorMessage()) {
+	<div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorMessage() }}</div>
+}
+
+<app-data-table [columns]="columns" [rows]="tableRows()" [loading]="loading()" [searchKeys]="['slug', 'title']" searchPlaceholder="Rechercher une page..." emptyMessage="Aucune page éditoriale.">
+	<ng-template #rowTemplate let-page>
+		<td class="px-5 py-4 font-mono text-xs text-gray-600">{{ page.slug }}</td>
+		<td class="px-5 py-4 font-medium text-gray-900">{{ page.title }}</td>
+		<td class="px-5 py-4">
+			<span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class.bg-amber-50]="page.status === 'DRAFT'" [class.text-amber-700]="page.status === 'DRAFT'" [class.bg-green-50]="page.status === 'PUBLISHED'" [class.text-green-700]="page.status === 'PUBLISHED'">{{ statusLabel(page.status) }}</span>
+		</td>
+		<td class="whitespace-nowrap px-5 py-4 text-sm text-gray-600">{{ page.updatedAt | date:"medium" }}</td>
+		<td class="px-5 py-4 text-sm text-gray-600">{{ page.updatedByName }}</td>
+		<td class="px-5 py-4 text-right">
+			<div class="flex justify-end gap-2">
+				<a [routerLink]="['/moderation/site-content/blocks']" [queryParams]="{ pageId: page.id }" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">Blocs</a>
+				<button type="button" (click)="openEdit(page)" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">SEO</button>
+				<button type="button" (click)="togglePublication(page)" class="rounded-lg px-3 py-1.5 text-xs font-semibold" [class.bg-green-50]="page.status === 'DRAFT'" [class.text-green-700]="page.status === 'DRAFT'" [class.bg-amber-50]="page.status === 'PUBLISHED'" [class.text-amber-700]="page.status === 'PUBLISHED'">{{ page.status === "PUBLISHED" ? "Dépublier" : "Publier" }}</button>
+				<button type="button" (click)="deletePage(page)" aria-label="Supprimer la page" class="rounded-lg border border-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"><i class="fa-solid fa-trash"></i></button>
+			</div>
+		</td>
+	</ng-template>
+</app-data-table>
+
+<app-modal [open]="modalOpen()" (close)="closeModal()" [title]="creating() ? 'Créer une page' : 'Modifier les métadonnées SEO'" size="lg">
+	<form (ngSubmit)="save()" class="space-y-4">
+		@if (creating()) {
+			<div>
+				<label for="page-slug" class="mb-1 block text-sm font-semibold text-gray-700">Page</label>
+				<select id="page-slug" [ngModel]="form().slug" (ngModelChange)="updateForm('slug', $event)" name="slug" class="w-full rounded-lg border border-gray-300 px-3 py-2">
+					@for (slug of slugs; track slug.value) { <option [value]="slug.value">{{ slug.label }} · {{ slug.value }}</option> }
+				</select>
+				@if (fieldError("slug")) { <p class="mt-1 text-xs text-red-600">{{ fieldError("slug") }}</p> }
+			</div>
+		}
+		<div>
+			<label for="page-title" class="mb-1 block text-sm font-semibold text-gray-700">Titre</label>
+			<input id="page-title" [ngModel]="form().title" (ngModelChange)="updateForm('title', $event)" name="title" maxlength="255" required class="w-full rounded-lg border border-gray-300 px-3 py-2" />
+			@if (fieldError("title")) { <p class="mt-1 text-xs text-red-600">{{ fieldError("title") }}</p> }
+		</div>
+		<div>
+			<div class="mb-1 flex items-center justify-between">
+				<label for="page-meta-title" class="text-sm font-semibold text-gray-700">Titre SEO</label>
+				<span class="text-xs text-gray-500">{{ form().metaTitle?.length ?? 0 }} / 70</span>
+			</div>
+			<input id="page-meta-title" [ngModel]="form().metaTitle" (ngModelChange)="updateForm('metaTitle', $event)" name="metaTitle" maxlength="70" class="w-full rounded-lg border border-gray-300 px-3 py-2" />
+			@if (fieldError("metaTitle")) { <p class="mt-1 text-xs text-red-600">{{ fieldError("metaTitle") }}</p> }
+		</div>
+		<div>
+			<div class="mb-1 flex items-center justify-between">
+				<label for="page-meta-description" class="text-sm font-semibold text-gray-700">Description SEO</label>
+				<span class="text-xs text-gray-500">{{ form().metaDescription?.length ?? 0 }} / 160</span>
+			</div>
+			<textarea id="page-meta-description" [ngModel]="form().metaDescription" (ngModelChange)="updateForm('metaDescription', $event)" name="metaDescription" maxlength="160" rows="3" class="w-full rounded-lg border border-gray-300 px-3 py-2"></textarea>
+			@if (fieldError("metaDescription")) { <p class="mt-1 text-xs text-red-600">{{ fieldError("metaDescription") }}</p> }
+		</div>
+		@if (errorMessage()) { <p role="alert" class="text-sm text-red-700">{{ errorMessage() }}</p> }
+		<div class="flex justify-end gap-2 border-t border-gray-100 pt-4">
+			<button type="button" (click)="closeModal()" class="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700">Annuler</button>
+			<button type="submit" [disabled]="saving()" class="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{{ saving() ? "Enregistrement…" : "Enregistrer" }}</button>
+		</div>
+	</form>
+</app-modal>

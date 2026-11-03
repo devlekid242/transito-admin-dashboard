@@ -16,6 +16,10 @@ import { UsersPage } from "./pages/users/users.page";
 import { UserProfilePage } from "./pages/user-profile/user-profile.page";
 import { SupportPage } from "./pages/support/support.page";
 import { FAQManagementPage } from "./pages/faq-management/faq-management.page";
+import { ContactMessagesPage } from "./pages/contact-messages/contact-messages.page";
+import { SitePagesPage } from "./pages/site-content/site-pages.page";
+import { SiteBlocksPage } from "./pages/site-content/site-blocks.page";
+import { SiteSettingsPage } from "./pages/site-content/site-settings.page";
 import { ModerationStatsPage } from "./pages/moderation-stats/moderation-stats.page";
 import { ReservationsPage } from "./pages/reservations/reservations.page";
 import { TripsPage } from "./pages/trips/trips.page";
@@ -182,6 +186,34 @@ export const routes: Routes = [
 				component: FAQManagementPage,
 				title: "FAQ Management · Transito Admin",
 				canActivate: [authGuard],
+			},
+			{
+				path: "moderation/contact-messages",
+				component: ContactMessagesPage,
+				title: "Messages de contact · Transito Admin",
+				canActivate: [authGuard],
+				data: { permission: "view_support" },
+			},
+			{
+				path: "moderation/site-content/pages",
+				component: SitePagesPage,
+				title: "Pages du site vitrine · Transito Admin",
+				canActivate: [authGuard],
+				data: { adminRoles: ["MODERATION_ADMIN", "SUPER_ADMIN"] },
+			},
+			{
+				path: "moderation/site-content/blocks",
+				component: SiteBlocksPage,
+				title: "Blocs du site vitrine · Transito Admin",
+				canActivate: [authGuard],
+				data: { adminRoles: ["MODERATION_ADMIN", "SUPER_ADMIN"] },
+			},
+			{
+				path: "moderation/site-content/settings",
+				component: SiteSettingsPage,
+				title: "Paramètres du site vitrine · Transito Admin",
+				canActivate: [authGuard],
+				data: { adminRoles: ["MODERATION_ADMIN", "SUPER_ADMIN"] },
 			},
 			{
 				path: "moderation/stats",
